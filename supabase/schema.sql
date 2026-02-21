@@ -1,6 +1,6 @@
 -- PROFILES
 create table profiles (
-  id uuid references auth.users on delete cascade primary key,
+  id uuid primary key, -- References auth.users(id)
   username text unique not null,
   avatar_url text,
   bio text,

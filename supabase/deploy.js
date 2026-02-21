@@ -3,18 +3,17 @@ import fs from 'fs';
 import path from 'path';
 
 async function deploy() {
-    const password = 'jtGP6EwAsKnrS4cI';
+    const password = 'Vty4PQA0jCsGIwPo';
     const projectRef = 'armlqjodhiwrverggqdx';
-    // Using a known IP for Singapore pooler
-    const ip = '13.214.234.136';
     const sqlFile = path.join(process.cwd(), 'supabase', 'schema.sql');
 
-    console.log('🚀 Starting Supabase deployment via Direct IP (Singapore Pooler)...');
-    console.log(`📡 Connecting to: ${ip}`);
+    const host = `db.${projectRef}.supabase.co`;
+    console.log('🚀 Starting Supabase deployment (Port 5432)...');
+    console.log(`📡 Connecting to: ${host}`);
 
     const sql = postgres({
-        host: ip,
-        port: 5432,
+        host: host,
+        port: 6543,
         database: 'postgres',
         username: `postgres.${projectRef}`,
         password: password,
