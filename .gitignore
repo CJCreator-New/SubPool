@@ -1,0 +1,20 @@
+# dependencies
+/node_modules
+/.pnpm-debug.log*
+
+# build
+/dist
+
+# local env files
+.env
+.env.local
+.env.*.local
+
+# vsc
+.vscode/*
+!.vscode/extensions.json
+.history
+*.log
+
+# ds_store
+.DS_Store

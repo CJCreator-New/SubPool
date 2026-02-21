@@ -1,0 +1,25 @@
+/* ─── SubPool Fonts ──────────────────────────────────────────────────────────
+   Syne      — display font for all headings, nav, buttons
+   IBM Plex Mono — monospace font for prices, timestamps, data labels
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+/* ─── Input / Placeholder resets ──────────────────────────────────────────── */
+
+input::placeholder,
+textarea::placeholder {
+  color: #6B6860;
+  opacity: 1;
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+}
+
+/* ─── Smooth scroll ───────────────────────────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
+}
