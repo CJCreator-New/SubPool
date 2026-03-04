@@ -3,7 +3,23 @@
 // ─── Pool ─────────────────────────────────────────────────────────────────────
 
 export type PoolStatus = 'open' | 'full' | 'closed';
-export type PoolCategory = 'entertainment' | 'work' | 'productivity' | 'ai';
+export type PoolCategory =
+  | 'OTT'
+  | 'TEAM_SAAS'
+  | 'AI_IDE'
+  | 'entertainment'
+  | 'work'
+  | 'productivity'
+  | 'ai';
+
+export interface PlatformPricing {
+  platform_id: string;
+  platform_name: string;
+  plan_name: string;
+  currency: string;
+  official_price: number;
+  max_slots: number;
+}
 
 export interface Pool {
   id: string;
@@ -31,6 +47,7 @@ export interface Profile {
   avatar_color: string;                 // hex
   is_verified: boolean;
   is_pro: boolean;
+  plan?: 'free' | 'pro' | 'host_plus';
   rating: number;                 // 0–5
   review_count: number;
   joined_at: string;

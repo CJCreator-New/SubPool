@@ -66,7 +66,7 @@ const ELENA_V: Profile = {
 export const MOCK_POOLS: Pool[] = [
     {
         id: 'pool-1', platform_id: 'netflix', owner_id: RIYA_K.id, owner: RIYA_K,
-        category: 'entertainment', status: 'open', plan_name: 'Standard 4K',
+        category: 'OTT', status: 'open', plan_name: '4K',
         price_per_slot: 499, slots_total: 4, slots_filled: 3,
         auto_approve: false,
         description: 'Reliable Netflix 4K pool. Auto-renews monthly via SubPool escrow.',
@@ -74,7 +74,7 @@ export const MOCK_POOLS: Pool[] = [
     },
     {
         id: 'pool-2', platform_id: 'spotify', owner_id: ALEX_T.id, owner: ALEX_T,
-        category: 'entertainment', status: 'open', plan_name: 'Duo',
+        category: 'OTT', status: 'open', plan_name: 'Duo',
         price_per_slot: 349, slots_total: 2, slots_filled: 1,
         auto_approve: true,
         description: 'Spotify Duo — 1 slot remaining. Instant approval.',
@@ -82,7 +82,7 @@ export const MOCK_POOLS: Pool[] = [
     },
     {
         id: 'pool-3', platform_id: 'figma', owner_id: SAM_D.id, owner: SAM_D,
-        category: 'work', status: 'full', plan_name: 'Professional',
+        category: 'TEAM_SAAS', status: 'full', plan_name: 'Professional',
         price_per_slot: 600, slots_total: 5, slots_filled: 5,
         auto_approve: false,
         description: 'Full Figma Professional pool for designers. Join waitlist.',
@@ -90,7 +90,7 @@ export const MOCK_POOLS: Pool[] = [
     },
     {
         id: 'pool-4', platform_id: 'notion', owner_id: JAY_M.id, owner: JAY_M,
-        category: 'productivity', status: 'open', plan_name: 'Team',
+        category: 'TEAM_SAAS', status: 'open', plan_name: 'Plus',
         price_per_slot: 400, slots_total: 4, slots_filled: 2,
         auto_approve: true,
         description: 'Notion Team plan — 2 slots open. Great for solo devs.',
@@ -98,7 +98,7 @@ export const MOCK_POOLS: Pool[] = [
     },
     {
         id: 'pool-5', platform_id: 'disneyplus', owner_id: PRIYA_S.id, owner: PRIYA_S,
-        category: 'entertainment', status: 'open', plan_name: 'Premium',
+        category: 'OTT', status: 'open', plan_name: 'Premium',
         price_per_slot: 375, slots_total: 4, slots_filled: 3,
         auto_approve: false,
         description: 'Disney+ Premium with 4K + Hulu bundle. 1 slot available.',
@@ -106,7 +106,7 @@ export const MOCK_POOLS: Pool[] = [
     },
     {
         id: 'pool-6', platform_id: 'chatgpt', owner_id: MARCUS_W.id, owner: MARCUS_W,
-        category: 'ai', status: 'open', plan_name: 'Plus',
+        category: 'AI_IDE', status: 'open', plan_name: 'Plus',
         price_per_slot: 999, slots_total: 2, slots_filled: 1,
         auto_approve: true,
         description: 'ChatGPT Plus split. Full GPT-4 access for half the price.',
@@ -114,7 +114,7 @@ export const MOCK_POOLS: Pool[] = [
     },
     {
         id: 'pool-7', platform_id: 'adobe', owner_id: ELENA_V.id, owner: ELENA_V,
-        category: 'work', status: 'open', plan_name: 'All Apps',
+        category: 'TEAM_SAAS', status: 'open', plan_name: 'All Apps',
         price_per_slot: 1800, slots_total: 3, slots_filled: 1,
         auto_approve: false,
         description: 'Adobe Creative Cloud All Apps plan. Full suite access.',
@@ -122,7 +122,7 @@ export const MOCK_POOLS: Pool[] = [
     },
     {
         id: 'pool-8', platform_id: 'youtube', owner_id: CURRENT_USER.id, owner: CURRENT_USER,
-        category: 'entertainment', status: 'open', plan_name: 'Premium Family',
+        category: 'OTT', status: 'open', plan_name: 'Premium Family',
         price_per_slot: 349, slots_total: 5, slots_filled: 4,
         auto_approve: true,
         description: 'My YouTube Premium Family pool. 1 slot remaining.',
@@ -177,14 +177,14 @@ export const MOCK_LEDGER: LedgerEntry[] = [
         id: 'led-3', pool_id: 'pool-8', pool_name: 'YouTube Premium', platform_emoji: '▶️',
         counterparty_id: 'user-mp', counterparty_name: 'Maya P',
         counterparty_initials: 'MP', counterparty_color: '#F5A623',
-        type: 'payout', status: 'pending', amount_cents: 349,
+        type: 'payout', status: 'owed', amount_cents: 349,
         due_at: '2025-02-05T00:00:00Z', settled_at: null, note: null,
     },
     {
         id: 'led-4', pool_id: 'pool-8', pool_name: 'YouTube Premium', platform_emoji: '▶️',
         counterparty_id: 'user-lk', counterparty_name: 'Liam K',
         counterparty_initials: 'LK', counterparty_color: '#54A0FF',
-        type: 'payout', status: 'overdue', amount_cents: 349,
+        type: 'payout', status: 'owed', amount_cents: 349,
         due_at: '2025-01-28T00:00:00Z', settled_at: null, note: 'Overdue 3 days',
     },
     {
@@ -247,5 +247,73 @@ export const MOCK_NOTIFICATIONS: Notification[] = [
         body: 'Your active pools saved you $12.47 vs retail pricing.',
         read: true, action_url: '/savings',
         created_at: '2025-01-28T10:00:00Z',
+    },
+];
+
+// ─── Analytics ─────────────────────────────────────────────────────────────────
+
+export const MOCK_EARNINGS_DATA = [
+    { month: 'Mar', earned: 85, would_have_paid: 120 },
+    { month: 'Apr', earned: 90, would_have_paid: 120 },
+    { month: 'May', earned: 90, would_have_paid: 120 },
+    { month: 'Jun', earned: 110, would_have_paid: 140 },
+    { month: 'Jul', earned: 115, would_have_paid: 140 },
+    { month: 'Aug', earned: 140, would_have_paid: 160 },
+    { month: 'Sep', earned: 150, would_have_paid: 180 },
+    { month: 'Oct', earned: 155, would_have_paid: 180 },
+    { month: 'Nov', earned: 160, would_have_paid: 180 },
+    { month: 'Dec', earned: 180, would_have_paid: 200 },
+    { month: 'Jan', earned: 195, would_have_paid: 210 },
+    { month: 'Feb', earned: 210, would_have_paid: 210 },
+];
+
+export const MOCK_PAYMENT_TIMELINE = [
+    {
+        name: 'Riya K',
+        avatar: 'R',
+        payments: [
+            { month: 'Sep', status: 'paid' },
+            { month: 'Oct', status: 'paid' },
+            { month: 'Nov', status: 'paid' },
+            { month: 'Dec', status: 'paid' },
+            { month: 'Jan', status: 'paid' },
+            { month: 'Feb', status: 'paid' },
+        ] as { month: string; status: 'paid' | 'late' | 'missed' | 'pending' }[],
+    },
+    {
+        name: 'Alex T',
+        avatar: 'A',
+        payments: [
+            { month: 'Sep', status: 'paid' },
+            { month: 'Oct', status: 'late' },
+            { month: 'Nov', status: 'paid' },
+            { month: 'Dec', status: 'paid' },
+            { month: 'Jan', status: 'paid' },
+            { month: 'Feb', status: 'paid' },
+        ] as { month: string; status: 'paid' | 'late' | 'missed' | 'pending' }[],
+    },
+    {
+        name: 'Liam K',
+        avatar: 'L',
+        payments: [
+            { month: 'Sep', status: 'paid' },
+            { month: 'Oct', status: 'paid' },
+            { month: 'Nov', status: 'missed' },
+            { month: 'Dec', status: 'paid' },
+            { month: 'Jan', status: 'late' },
+            { month: 'Feb', status: 'pending' },
+        ] as { month: string; status: 'paid' | 'late' | 'missed' | 'pending' }[],
+    },
+    {
+        name: 'Maya P',
+        avatar: 'M',
+        payments: [
+            { month: 'Sep', status: 'paid' },
+            { month: 'Oct', status: 'paid' },
+            { month: 'Nov', status: 'paid' },
+            { month: 'Dec', status: 'paid' },
+            { month: 'Jan', status: 'paid' },
+            { month: 'Feb', status: 'pending' },
+        ] as { month: string; status: 'paid' | 'late' | 'missed' | 'pending' }[],
     },
 ];

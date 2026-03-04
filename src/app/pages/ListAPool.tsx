@@ -14,11 +14,26 @@ import {
   SelectItem,
   SelectValue,
 } from '../components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../components/ui/dialog';
 import { PlatformIcon } from '../components/subpool-components';
+import { PaywallModal } from '../components/paywall-modal';
 import { PLATFORMS } from '../../lib/constants';
 import { createPool } from '../../lib/supabase/mutations';
 import type { PoolCategory } from '../../lib/types';
 import { useAuth } from '../../lib/supabase/auth';
+import { getPlatformSharingNote, analyzePricing, detectUserCurrency, getSuggestion } from '../../lib/pricing-service';
+import { PLATFORM_PRICING_SEED } from '../../lib/pricing-seed';
+import type { PlatformPricing } from '../../lib/pricing-seed';
+import { track } from '../../lib/analytics';
+import { useCurrency } from '../../lib/currency-context';
+import { CurrencyToggle } from '../components/currency-toggle';
 
 // ─── Step Indicator ────────────────────────────────────────────────────────────
 
@@ -58,26 +73,43 @@ function StepIndicator({ step }: { step: number }) {
 
 export function ListAPool() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [form, setForm] = useState({
     planName: '',
     totalCost: '',
     slots: '2',
-    category: 'entertainment' as PoolCategory,
+    category: 'OTT' as PoolCategory,
     billingCycle: 'monthly' as 'monthly' | 'yearly',
   });
+  const { currency, symbol: sym } = useCurrency();
   const [submitting, setSubmitting] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [marketMetrics, setMarketMetrics] = useState<any>(null);
+  const [isLive, setIsLive] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+
+  const userPlan = profile?.plan || 'free';
+  // Simplified for execution: we'll count pools in a useEffect or use a simplified check
+  const [hostedCount, setHostedCount] = useState(0);
+
+  React.useEffect(() => {
+    if (user?.id) {
+      import('../../lib/supabase/client').then(({ supabase }) => {
+        if (supabase) {
+          supabase.from('pools').select('id', { count: 'exact' }).eq('owner_id', user.id)
+            .then(({ count }) => setHostedCount(count || 0));
+        }
+      });
+    }
+  }, [user?.id]);
+
 
   // Computed
   const pricePerSlot =
     form.totalCost && form.slots
       ? (parseFloat(form.totalCost) / parseInt(form.slots)).toFixed(2)
-      : null;
-  const savingsPct =
-    form.totalCost && form.slots
-      ? Math.round((1 - 1 / parseInt(form.slots)) * 100)
       : null;
 
   const platform = PLATFORMS.find((p) => p.id === selectedPlatform);
@@ -92,7 +124,76 @@ export function ListAPool() {
   const updateForm = (key: string, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  // Auto-fill form values when platform is selected
+  React.useEffect(() => {
+    if (selectedPlatform && step === 2 && !form.planName) {
+      const plans = PLATFORM_PRICING_SEED.filter((s: PlatformPricing) => s.platform_id === selectedPlatform && s.currency === currency);
+      if (plans.length > 0) {
+        updateForm('planName', plans[0].plan_name);
+        updateForm('totalCost', plans[0].official_price.toString());
+      }
+
+      const pData = PLATFORMS.find(p => p.id === selectedPlatform);
+      if (pData) updateForm('category', pData.category);
+    }
+  }, [selectedPlatform, step, currency]);
+
+  // Fetch market metrics
+  React.useEffect(() => {
+    if (selectedPlatform && form.planName) {
+      import('../../lib/pricing-service').then(m => {
+        m.getMarketMetrics(selectedPlatform, form.planName).then(data => {
+          setMarketMetrics(data);
+          // Simple heuristic for "LIVE": if it has more than just seed fallback properties or if we can detect DB connection
+          setIsLive(!!data && !data.is_mock);
+        });
+      });
+    }
+  }, [selectedPlatform, form.planName]);
+
+
+  // Pricing Intelligence computation
+  const analysis = React.useMemo(() => {
+    if (!selectedPlatform || !form.planName || !form.slots || !form.totalCost) return null;
+    return analyzePricing({
+      platformId: selectedPlatform,
+      planName: form.planName,
+      userSlotPrice: parseFloat(form.totalCost) / parseInt(form.slots),
+      totalSlots: parseInt(form.slots),
+      currency: currency,
+      countryCode: currency === 'INR' ? 'IN' : 'US',
+    });
+  }, [selectedPlatform, form.planName, form.totalCost, form.slots, currency]);
+
+
+  // Pricing Guard logic
+  const handleContinueToStep3 = () => {
+    if (analysis && (analysis.band === 'overpriced' || analysis.band === 'aggressive' || analysis.band === 'steal')) {
+      track('pricing_guard_shown', { band: analysis.band, userPrice: analysis.userSlotPrice, platformId: selectedPlatform });
+      setModalOpen(true);
+    } else {
+      setStep(3);
+    }
+  };
+
+  React.useEffect(() => {
+    if (step === 2 && analysis && selectedPlatform && form.planName && form.slots) {
+      if (analysis.band === 'steal' || analysis.band === 'overpriced' || analysis.band === 'aggressive') {
+        const sugg = getSuggestion(selectedPlatform, form.planName, parseInt(form.slots), currency);
+        track('pricing_suggestion_viewed', { platformId: selectedPlatform, suggestedPrice: sugg.recommended, userPrice: analysis.userSlotPrice });
+      }
+    }
+  }, [step, analysis?.band, selectedPlatform, form.planName, form.slots, currency]);
+
+
   // ─── Step 1 — Choose Platform ──────────────────────────────────────────────
+
+  const sharingNote =
+    selectedPlatform && form.planName
+      ? getPlatformSharingNote(selectedPlatform, form.planName)
+      : selectedPlatform
+        ? getPlatformSharingNote(selectedPlatform, PLATFORM_PRICING_SEED.find((s: PlatformPricing) => s.platform_id === selectedPlatform)?.plan_name || '')
+        : null;
 
   const renderStep1 = () => (
     <div className="max-w-2xl mx-auto">
@@ -120,131 +221,372 @@ export function ListAPool() {
           );
         })}
       </div>
+
+      {/* Sharing Policy Note */}
+      {sharingNote && (
+        <div
+          className={`mt-6 p-3 rounded-[6px] border transition-all ${sharingNote.policy === 'allowed'
+            ? 'bg-[#4DFF91]/5 border-[#4DFF91]/20'
+            : sharingNote.policy === 'grey_area'
+              ? 'bg-[#F5A623]/5 border-[#F5A623]/20'
+              : 'bg-[#FF4D4D]/5 border-[#FF4D4D]/20'
+            }`}
+        >
+          <p
+            className={`font-mono text-[11px] leading-relaxed ${sharingNote.policy === 'allowed'
+              ? 'text-[#4DFF91]'
+              : sharingNote.policy === 'grey_area'
+                ? 'text-[#F5A623]'
+                : 'text-[#FF4D4D]'
+              }`}
+          >
+            {sharingNote.policy === 'allowed' && `✅ ${platform?.name || 'Platform'} officially supports account sharing on family plans.`}
+            {sharingNote.policy === 'grey_area' && `⚠️ ${platform?.name || 'Platform'} is licensed per-user. Position this pool as cost-splitting for small teams, not credential sharing.`}
+            {sharingNote.policy === 'not_recommended' && `ℹ️ ${platform?.name || 'Platform'} requires each user to have their own seat. Use SubPool to coordinate team billing, not share one login.`}
+          </p>
+        </div>
+      )}
+
       <div className="mt-8 flex justify-end">
         <Button
           disabled={!selectedPlatform}
-          onClick={() => setStep(2)}
+          onClick={() => {
+            if (userPlan === 'free' && hostedCount >= 1) {
+              setPaywallOpen(true);
+            } else {
+              setStep(2);
+            }
+          }}
         >
           Continue
         </Button>
       </div>
+
+      <PaywallModal
+        feature="hosting more pools"
+        requiredPlan="host_plus"
+        open={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+      />
     </div>
   );
 
   // ─── Step 2 — Configure ────────────────────────────────────────────────────
 
-  const renderStep2 = () => (
-    <div className="max-w-lg mx-auto space-y-5">
-      <h2 className="font-display font-bold text-xl mb-6">Configure your pool</h2>
+  const renderStep2 = () => {
+    const plans = PLATFORM_PRICING_SEED.filter((s: PlatformPricing) => s.platform_id === selectedPlatform && s.currency === currency);
 
-      {/* Plan Name */}
-      <div className="space-y-1.5">
-        <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Plan Name
-        </Label>
-        <Input
-          placeholder="e.g. Standard 4K"
-          value={form.planName}
-          onChange={(e) => updateForm('planName', e.target.value)}
-        />
-      </div>
+    return (
+      <div className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-8">
+        {/* Left Column - Form */}
+        <div className="flex-1 space-y-5 lg:min-w-[400px]">
+          <h2 className="font-display font-bold text-xl mb-6">Configure your pool</h2>
 
-      {/* Category */}
-      <div className="space-y-1.5">
-        <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Category
-        </Label>
-        <Select
-          value={form.category}
-          onValueChange={(v) => updateForm('category', v)}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="entertainment">Entertainment</SelectItem>
-            <SelectItem value="work">Work</SelectItem>
-            <SelectItem value="productivity">Productivity</SelectItem>
-            <SelectItem value="ai">AI</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          {/* Plan Name */}
+          <div className="space-y-1.5">
+            <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              Plan Name
+            </Label>
+            {plans.length > 0 ? (
+              <Select
+                value={form.planName}
+                onValueChange={(v) => {
+                  updateForm('planName', v);
+                  const p = plans.find((pp: PlatformPricing) => pp.plan_name === v);
+                  if (p) updateForm('totalCost', p.official_price.toString());
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {plans.map((p: PlatformPricing) => (
+                    <SelectItem key={p.plan_name} value={p.plan_name}>
+                      {p.plan_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                placeholder="e.g. Standard 4K"
+                value={form.planName}
+                onChange={(e) => updateForm('planName', e.target.value)}
+              />
+            )}
+          </div>
 
-      {/* 2-col: Cost + Slots */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            Total monthly cost ($)
-          </Label>
-          <Input
-            type="number"
-            placeholder="0.00"
-            min="0"
-            step="0.01"
-            value={form.totalCost}
-            onChange={(e) => updateForm('totalCost', e.target.value)}
-          />
+          {/* Category */}
+          <div className="space-y-1.5">
+            <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              Category
+            </Label>
+            <Select
+              value={form.category}
+              onValueChange={(v) => updateForm('category', v)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="OTT">OTT</SelectItem>
+                <SelectItem value="TEAM_SAAS">Team SaaS</SelectItem>
+                <SelectItem value="AI_IDE">AI/IDE</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 2-col: Cost + Slots */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center h-4">
+                <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Total cost / mo
+                </Label>
+                {/* Currency Toggle */}
+                <div className="scale-75 origin-top-right">
+                  <CurrencyToggle />
+                </div>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-2 text-muted-foreground font-mono">{sym}</span>
+                <Input
+                  className="pl-7"
+                  type="number"
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  value={form.totalCost}
+                  onChange={(e) => updateForm('totalCost', e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground flex items-center h-4">
+                Total Slots
+              </Label>
+              <Input
+                type="number"
+                placeholder="2"
+                min="2"
+                max="10"
+                value={form.slots}
+                onChange={(e) => updateForm('slots', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Billing Cycle */}
+          <div className="space-y-1.5">
+            <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              Billing Cycle
+            </Label>
+            <Select
+              value={form.billingCycle}
+              onValueChange={(v) => updateForm('billingCycle', v)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="yearly">Yearly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Nav */}
+          <div className="flex justify-between pt-6">
+            <Button variant="ghost" onClick={() => setStep(1)}>
+              Back
+            </Button>
+            <Button disabled={!allFieldsFilled} onClick={handleContinueToStep3}>
+              Continue
+            </Button>
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            Slots to share
-          </Label>
-          <Input
-            type="number"
-            placeholder="2"
-            min="2"
-            max="10"
-            value={form.slots}
-            onChange={(e) => updateForm('slots', e.target.value)}
-          />
+
+        {/* Right Column - Pricing Intelligence Panel */}
+        <div className="lg:w-[320px] lg:border-l lg:border-border lg:pl-8 mt-8 lg:mt-0 flex flex-col gap-6">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Pricing Intelligence</span>
+            <div className="flex items-center gap-1.5 bg-background border px-2 py-0.5 rounded-full shadow-sm">
+              <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'animate-pulse bg-primary' : 'bg-muted-foreground/30'}`} />
+              <span className="text-[9px] font-mono font-bold tracking-wider text-muted-foreground">{isLive ? 'LIVE' : 'SEED'}</span>
+            </div>
+          </div>
+
+
+          {analysis ? (
+            <>
+              {/* Section A: Official Pricing Reference */}
+              <div className="grid grid-cols-2 gap-y-2 font-mono text-[12px]">
+                <div className="text-muted-foreground">Official solo:</div>
+                <div className="text-right">{sym}{analysis.officialSoloPrice.toFixed(2)}</div>
+
+                <div className="text-muted-foreground">Max seats:</div>
+                <div className="text-right">{form.slots}</div>
+
+                <div className="text-muted-foreground">Category:</div>
+                <div className="text-right truncate">{platform?.category}</div>
+              </div>
+
+              {/* Section B: Gauge */}
+              <div className="bg-card border rounded-[8px] p-5 shadow-sm text-center">
+                <div className="font-display font-bold text-[36px]" style={{ color: analysis.color }}>
+                  {sym}{analysis.userSlotPrice.toFixed(2)}<span className="text-xl text-muted-foreground opacity-50">/mo</span>
+                </div>
+
+                {/* Horizontal Gauge */}
+                <div className="relative h-2 rounded-full bg-muted mt-4 overflow-hidden">
+                  <div
+                    className="absolute top-0 left-0 h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${Math.min(100, (analysis.userSlotPrice / analysis.officialSoloPrice) * 100)}%`,
+                      backgroundColor: analysis.color
+                    }}
+                  />
+                </div>
+                {/* Tick marks */}
+                <div className="relative h-4 mt-1">
+                  <div className="absolute left-[65%] w-px h-1.5 bg-border top-0" />
+                  <div className="absolute left-[75%] w-px h-2 bg-muted-foreground top-0" />
+                  <div className="absolute left-[85%] w-px h-1.5 bg-border top-0" />
+                  <div className="flex justify-between w-full font-mono text-[9px] text-muted-foreground mt-1.5">
+                    <span>Min</span>
+                    <span className="text-primary font-bold">Sweet spot</span>
+                    <span>Max</span>
+                  </div>
+                </div>
+
+
+                <div
+                  className="mt-4 font-mono text-[11px] font-bold border rounded-full px-3 py-1 inline-block"
+                  style={{ color: analysis.color, borderColor: `${analysis.color}40` }}
+                >
+                  {analysis.label.toUpperCase()}
+                </div>
+
+                {analysis.warningMessage && (
+                  <div className="mt-4 p-2.5 rounded-[6px] font-mono text-[11px] text-left leading-relaxed" style={{ backgroundColor: '#F5A62310', border: '1px solid #F5A62320', color: '#F5A623' }}>
+                    {analysis.warningMessage}
+                  </div>
+                )}
+                {analysis.tipMessage && (
+                  <div className="mt-4 p-2.5 rounded-[6px] font-mono text-[11px] text-left leading-relaxed" style={{ backgroundColor: `${analysis.color}15`, border: `1px solid ${analysis.color}30`, color: analysis.color }}>
+                    {analysis.tipMessage}
+                  </div>
+                )}
+              </div>
+
+              {/* Section C: Economics Breakdown */}
+              <div className="space-y-3 font-mono text-[12px]">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Members save:</span>
+                  <span className="font-bold text-[#4DFF91]">{analysis.savingsPct.toFixed(0)}% vs solo</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">You earn/mo:</span>
+                  <span>{sym}{analysis.hostEarnings.toFixed(2)} from members</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Your net cost:</span>
+                  <span className={analysis.hostEarnings > analysis.officialSoloPrice ? 'text-primary' : ''}>
+                    {sym}{(analysis.officialSoloPrice - analysis.hostEarnings).toFixed(2)}
+                  </span>
+                </div>
+                <p className="font-mono text-[10px] text-muted-foreground mt-1 leading-tight border-t pt-2">
+                  You pay {sym}{analysis.officialSoloPrice.toFixed(2)},
+                  collect {sym}{analysis.hostEarnings.toFixed(2)} from {parseInt(form.slots) - 1} members.
+                </p>
+              </div>
+
+              {/* Section D: Market Comparison */}
+              {marketMetrics && (
+                <div className="space-y-3">
+                  <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                    MARKET RATES FOR {platform?.name.toUpperCase()} {form.planName.toUpperCase()}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="relative h-12 flex items-end gap-1">
+                      {[
+                        { label: 'Min', value: marketMetrics.min_slot_price },
+                        { label: 'Median', value: marketMetrics.median_slot_price },
+                        { label: 'Max', value: marketMetrics.max_slot_price }
+                      ].map((m, i) => {
+                        const maxValue = Math.max(marketMetrics.max_slot_price, analysis.userSlotPrice);
+                        const height = (m.value / maxValue) * 100;
+                        return (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                            <div className="w-full bg-muted rounded-t-[2px] relative overflow-hidden h-8">
+                              <div
+                                className="absolute bottom-0 left-0 w-full bg-primary/40 transition-all duration-500"
+                                style={{ height: `${height}%` }}
+                              />
+                              {/* Price Marker for user's price */}
+                              {i === 1 && (
+                                <div
+                                  className="absolute bottom-0 left-1/2 -ml-1 transition-all duration-300 z-10"
+                                  style={{ bottom: `${(analysis.userSlotPrice / maxValue) * 100}%` }}
+                                >
+                                  <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[6px] border-b-primary" />
+                                </div>
+                              )}
+                            </div>
+                            <span className="font-mono text-[9px] text-muted-foreground">{sym}{m.value.toFixed(0)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="font-mono text-[10px] text-muted-foreground">
+                    Based on {marketMetrics.pool_count || 12} active pools
+                  </div>
+                </div>
+              )}
+
+
+              {/* Section E: Suggestion CTA */}
+              {(analysis.band === 'steal' || analysis.band === 'overpriced' || analysis.band === 'aggressive') && (
+                <div
+                  className={`mt-2 p-3 rounded-[6px] border ${analysis.band === 'steal' ? 'border-primary/30' : 'border-[#F5A623]/30'
+                    }`}
+                >
+                  <p className="font-bold font-display text-base mb-1">
+                    {analysis.band === 'steal'
+                      ? `You could charge ${sym}${getSuggestion(selectedPlatform!, form.planName, parseInt(form.slots), currency).recommended.toFixed(0)} and still save members ${Math.round((1 - (getSuggestion(selectedPlatform!, form.planName, parseInt(form.slots), currency).recommended / analysis.officialSoloPrice)) * 100)}%`
+                      : `Suggested: ${sym}${getSuggestion(selectedPlatform!, form.planName, parseInt(form.slots), currency).recommended.toFixed(0)}/slot`
+                    }
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 -ml-2 text-primary"
+                    onClick={() => {
+                      const sugg = getSuggestion(selectedPlatform!, form.planName, parseInt(form.slots), currency);
+                      track('pricing_suggestion_applied', { platformId: selectedPlatform, suggestedPrice: sugg.recommended });
+                      updateForm('totalCost', (sugg.recommended * parseInt(form.slots)).toFixed(0));
+                    }}
+                  >
+                    Apply suggestion →
+                  </Button>
+                </div>
+              )}
+
+
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-48 border border-dashed rounded-[8px] opacity-50">
+              <span className="font-mono text-xs text-muted-foreground">Enter cost & slots</span>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Billing Cycle */}
-      <div className="space-y-1.5">
-        <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Billing Cycle
-        </Label>
-        <Select
-          value={form.billingCycle}
-          onValueChange={(v) => updateForm('billingCycle', v)}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="monthly">Monthly</SelectItem>
-            <SelectItem value="yearly">Yearly</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Live Preview */}
-      {pricePerSlot && (
-        <div className="bg-primary/5 border border-primary/20 rounded-[6px] p-4 mt-4">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block">
-            Price Per Slot
-          </span>
-          <span className="font-display font-bold text-3xl text-primary block mt-1">
-            ${pricePerSlot}/mo
-          </span>
-          <span className="font-mono text-[11px] text-muted-foreground block mt-1">
-            Members save {savingsPct}% vs solo plan
-          </span>
-        </div>
-      )}
-
-      {/* Nav */}
-      <div className="flex justify-between pt-2">
-        <Button variant="ghost" onClick={() => setStep(1)}>
-          Back
-        </Button>
-        <Button disabled={!allFieldsFilled} onClick={() => setStep(3)}>
-          Continue
-        </Button>
-      </div>
-    </div>
-  );
+    );
+  };
 
   // ─── Step 3 — Review ───────────────────────────────────────────────────────
 
@@ -263,6 +605,7 @@ export function ListAPool() {
         auto_approve: false,
         description: null,
       });
+      track('pool_created', { platformId: selectedPlatform, slotPrice: Math.round(parseFloat(pricePerSlot!) * 100), band: analysis?.band, totalSlots: parseInt(form.slots) });
       navigate('/my-pools');
       toast.success('Your pool is live! 🎉');
     } catch {
@@ -276,14 +619,13 @@ export function ListAPool() {
     { label: 'Platform', value: platform?.name ?? '' },
     { label: 'Plan', value: form.planName },
     { label: 'Category', value: form.category.charAt(0).toUpperCase() + form.category.slice(1) },
-    { label: 'Total cost', value: `$${parseFloat(form.totalCost).toFixed(2)}` },
+    { label: 'Total cost', value: `${sym}${parseFloat(form.totalCost).toFixed(2)}` },
     { label: 'Slots', value: form.slots },
     {
       label: 'Price per slot',
-      value: `$${pricePerSlot}/mo`,
+      value: `${sym}${pricePerSlot}/mo`,
       highlight: true,
     },
-    { label: 'Savings', value: `${savingsPct}%` },
     { label: 'Billing cycle', value: form.billingCycle === 'monthly' ? 'Monthly' : 'Yearly' },
   ];
 
@@ -298,7 +640,17 @@ export function ListAPool() {
           <PlatformIcon platformId={selectedPlatform ?? ''} size="lg" />
           <div>
             <div className="font-display font-bold text-base">{platform?.name}</div>
-            <div className="font-mono text-[11px] text-muted-foreground">{form.planName}</div>
+            <div className="font-mono text-[11px] text-muted-foreground flex items-center gap-2">
+              {form.planName}
+              {analysis && (
+                <span
+                  className="px-2 py-0.5 rounded-full border text-[9px] font-bold tracking-wider uppercase"
+                  style={{ color: analysis.color, borderColor: `${analysis.color}40`, backgroundColor: `${analysis.color}10` }}
+                >
+                  {analysis.label}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -306,23 +658,59 @@ export function ListAPool() {
         {summaryRows.map((row, i) => (
           <div
             key={row.label}
-            className={`flex justify-between items-center py-3 ${i < summaryRows.length - 1 ? 'border-b border-border' : ''
-              }`}
+            className={`flex justify-between items-center py-3 border-b border-border`}
           >
             <span className="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">
               {row.label}
             </span>
-            <span
-              className={
-                row.highlight
-                  ? 'font-display font-bold text-xl text-primary'
-                  : 'font-mono text-sm'
-              }
-            >
-              {row.value}
-            </span>
+            <div className="flex items-center gap-2">
+              {row.label === 'Price per slot' && analysis && (
+                <span
+                  className="px-2 py-0.5 rounded-full border text-[9px] font-bold tracking-wider uppercase"
+                  style={{ color: analysis.color, borderColor: `${analysis.color}40`, backgroundColor: `${analysis.color}10` }}
+                >
+                  {analysis.label}
+                </span>
+              )}
+              <span
+                className={
+                  row.highlight
+                    ? 'font-display font-bold text-xl text-primary'
+                    : 'font-mono text-sm'
+                }
+              >
+                {row.value}
+              </span>
+            </div>
           </div>
         ))}
+
+
+        {/* Economics Sub-summary */}
+        {analysis && (
+          <div className="py-4 border-b border-border bg-muted/30 -mx-6 px-6 relative">
+            <span className="font-mono text-[11px] text-muted-foreground uppercase tracking-wider block mb-2">Pool Economics</span>
+            <div className="space-y-1.5 font-mono text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Member savings:</span>
+                <span className="font-bold text-[#4DFF91]">{analysis.savingsPct.toFixed(0)}% vs solo</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cost offset:</span>
+                <span className="font-bold text-primary">
+                  {analysis.hostOffset.toFixed(0)}% of total
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Your net cost:</span>
+                <span className={analysis.hostEarnings > analysis.officialSoloPrice ? 'text-primary' : ''}>
+                  {sym}{(analysis.officialSoloPrice - analysis.hostEarnings).toFixed(0)}/mo
+                </span>
+              </div>
+
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Publish Button */}
@@ -346,14 +734,59 @@ export function ListAPool() {
     </div>
   );
 
-  // ─── Render ────────────────────────────────────────────────────────────────
+  // ─── Modals ────────────────────────────────────────────────────────────────
+  const renderGuardModal = () => {
+    if (!analysis) return null;
+    const isOverpriced = analysis.band === 'overpriced' || analysis.band === 'aggressive';
 
+    return (
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {isOverpriced
+                ? 'Your price is above the usual range'
+                : "You're significantly undercharging"}
+            </DialogTitle>
+            <DialogDescription className="pt-2 font-mono text-sm leading-relaxed">
+              {isOverpriced ? (
+                <>At <span className="text-foreground font-bold">{sym}{analysis.userSlotPrice.toFixed(0)}</span>/slot, you're charging more than the typical solo plan. Most users will see better options elsewhere. Are you sure?</>
+              ) : (
+                <>At <span className="text-foreground font-bold">{sym}{analysis.userSlotPrice.toFixed(0)}</span>/slot, you're essentially subsidising members. The fair range for this pool is <span className="text-[#4DFF91] font-bold">{sym}{analysis.fairRangeMin.toFixed(0)}–{sym}{analysis.fairRangeMax.toFixed(0)}</span>/slot.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-2 mt-4">
+            <Button variant="ghost" onClick={() => {
+              track('pricing_guard_overridden', { band: analysis.band });
+              setModalOpen(false);
+              setStep(3);
+            }}>
+              {isOverpriced ? 'Continue anyway' : "That's fine, continue"}
+            </Button>
+            <Button onClick={() => {
+              const sugg = getSuggestion(selectedPlatform!, form.planName, parseInt(form.slots), currency);
+              track('pricing_suggestion_applied', { platformId: selectedPlatform, suggestedPrice: sugg.recommended });
+              setModalOpen(false);
+              updateForm('totalCost', (sugg.recommended * parseInt(form.slots)).toFixed(0));
+            }}>
+              {isOverpriced ? 'Lower my price' : 'Adjust price'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+    );
+  };
+
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="py-6">
       <StepIndicator step={step} />
       {step === 1 && renderStep1()}
       {step === 2 && renderStep2()}
       {step === 3 && renderStep3()}
+      {renderGuardModal()}
     </div>
   );
 }

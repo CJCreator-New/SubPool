@@ -2,7 +2,7 @@
 // Financial ledger with dual-section table, stats row, filter chips,
 // and optimistic mark-as-paid updates.
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { StatCard, StatusPill, PlatformIcon } from '../components/subpool-components';
 import { EmptyState } from '../components/empty-state';
@@ -21,7 +21,9 @@ import { formatPrice, formatDate } from '../../lib/constants';
 import { useLedger } from '../../lib/supabase/hooks';
 import { markLedgerPaid } from '../../lib/supabase/mutations';
 import type { LedgerEntry } from '../../lib/types';
-import { Insight } from '../components/demo-mode';
+import { Insight, useDemo } from '../components/demo-mode';
+import { useMagneticButton } from '../../hooks/useMagneticButton';
+import { celebrate } from '../../lib/confetti';
 
 // ─── Filter type ──────────────────────────────────────────────────────────────
 
@@ -32,11 +34,13 @@ type LedgerFilter = 'all' | 'owed' | 'paid';
 export function Ledger() {
   const [filter, setFilter] = useState<LedgerFilter>('all');
   const { data: entries, loading, refetch } = useLedger();
+  const { isDemo } = useDemo();
 
   const handleMarkPaid = async (id: string) => {
     try {
       await markLedgerPaid(id);
       refetch();
+      celebrate('full', isDemo);
     } catch (e) {
       console.error(e);
     }
@@ -93,6 +97,24 @@ export function Ledger() {
   const filteredIOwe = filterEntries(iOwe);
   const filteredOwedToMe = filterEntries(owedToMe);
 
+  // ─── Magnetic Button Component ──────────────────────────────────────────
+
+  function MagneticPayButton({ entry, onClick, isDemo }: { entry: LedgerEntry, onClick: () => void, isDemo: boolean }) {
+    const { ref, style } = useMagneticButton(0.3, isDemo);
+    return (
+      <div ref={ref} style={style} className="inline-block relative">
+        <Button
+          size="sm"
+          onClick={onClick}
+          className="md:w-auto w-[68px] md:h-9 h-8 p-0 md:px-3 text-[11px] md:text-sm font-display font-semibold transition-transform"
+        >
+          <span className="hidden md:inline">Pay {formatPrice(entry.amount_cents)}</span>
+          <span className="md:hidden pr-1">Pay</span>
+        </Button>
+      </div>
+    );
+  }
+
   // ─── Render Row ──────────────────────────────────────────────────────────
 
   const renderRow = (entry: LedgerEntry, section: 'iOwe' | 'owedToMe') => {
@@ -105,9 +127,9 @@ export function Ledger() {
         {/* Platform + Pool */}
         <TableCell className="px-5">
           <div className="flex items-center gap-2">
-            <PlatformIcon platformId="" size="sm" />
+            <PlatformIcon platformId={entry.pool_name.split(' ')[0].toLowerCase()} size="sm" />
             <span className="text-sm">
-              {entry.platform_emoji} {entry.pool_name}
+              {entry.pool_name}
             </span>
           </div>
         </TableCell>
@@ -147,14 +169,7 @@ export function Ledger() {
               <span className="md:hidden">🔔</span>
             </Button>
           ) : (
-            <Button
-              size="sm"
-              onClick={() => handleMarkPaid(entry.id)}
-              className="md:w-auto w-9 md:h-9 h-8 p-0 md:px-3"
-            >
-              <span className="hidden md:inline">Mark Paid</span>
-              <span className="md:hidden">✓</span>
-            </Button>
+            <MagneticPayButton entry={entry} onClick={() => handleMarkPaid(entry.id)} isDemo={isDemo} />
           )}
         </TableCell>
       </TableRow>
@@ -306,6 +321,14 @@ export function Ledger() {
 
           {/* Footer: Net Position */}
           <TableFooter className="border-t border-border">
+            <TableRow className="border-b border-border">
+              <TableCell colSpan={4} className="px-5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                Lifetime Savings Created
+              </TableCell>
+              <TableCell colSpan={2} className="px-5 text-right font-display font-bold text-[15px] text-[#4DFF91]">
+                + $341.00
+              </TableCell>
+            </TableRow>
             <TableRow>
               <TableCell
                 colSpan={4}

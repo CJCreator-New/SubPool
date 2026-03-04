@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { Avatar, AvatarFallback } from '../components/ui/avatar';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Switch } from '../components/ui/switch';
-import { Separator } from '../components/ui/separator';
+import { supabase } from '../../lib/supabase/client';
+import { cn } from '../components/ui/utils';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
 import { useAuth } from '../../lib/supabase/auth';
-import { supabase } from '../../lib/supabase/client';
 import { toast } from 'sonner';
+import { track } from '../../lib/analytics';
 import { Insight } from '../components/demo-mode';
 
 export function Profile() {
+  const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
   const [settings, setSettings] = useState({
     autoApprove: false,
@@ -77,6 +80,8 @@ export function Profile() {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
+  const referralUrl = user?.id ? `subpool.app/ref/${user.id}` : 'subpool.app/ref/unknown';
+
   return (
     <div className="max-w-4xl mx-auto py-6 space-y-6">
       {/* HERO CARD */}
@@ -95,6 +100,24 @@ export function Profile() {
                 <p className="font-mono text-xs text-muted-foreground mt-1 uppercase tracking-wider">
                   {profile ? `@${profile.username}` : '@yourusername'} · member since {profile?.joined_at ? new Date(profile.joined_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Jan 2025'}
                 </p>
+                <div className="flex items-center gap-2 mt-2.5">
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full border text-[9px] font-bold tracking-wider uppercase",
+                    profile?.plan === 'host_plus' ? "text-[#EAB308] border-[#EAB308]/40 bg-[#EAB308]/10" :
+                      profile?.plan === 'pro' ? "text-primary border-primary/40 bg-primary/10" :
+                        "text-muted-foreground border-border bg-muted/20"
+                  )}>
+                    {profile?.plan?.replace('_', ' ') ?? 'FREE'} PLAN
+                  </span>
+                  {profile?.plan === 'free' && (
+                    <button
+                      onClick={() => navigate('/plans')}
+                      className="text-[10px] font-mono text-primary hover:underline"
+                    >
+                      Upgrade →
+                    </button>
+                  )}
+                </div>
                 {profile?.bio && (
                   <p className="text-sm text-foreground/80 mt-3 max-w-xl">
                     {profile.bio}
@@ -224,6 +247,32 @@ export function Profile() {
                 onCheckedChange={(checked) => handleToggle('allNotifs', checked)}
                 className="data-[state=checked]:bg-primary"
               />
+            </div>
+
+            <div className="flex flex-col py-5 border-t border-border/50 gap-3">
+              <div className="flex justify-between items-center">
+                <div className="space-y-1 overflow-hidden pr-4">
+                  <p className="font-display font-semibold text-sm">Invite friends</p>
+                  <p className="font-mono text-[11px] text-muted-foreground truncate max-w-[200px] sm:max-w-[250px]">
+                    {referralUrl}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(referralUrl);
+                    toast.success("Referral link copied!");
+                    track('referral_link_copied', {});
+                  }}
+                >
+                  📋 Copy
+                </Button>
+              </div>
+              <div className="self-start bg-primary/5 border border-primary/20 rounded px-2 py-1">
+                <span className="font-mono text-[10px] text-primary">Invite 3 friends → unlock Pro for 1 month</span>
+              </div>
             </div>
           </div>
         </CardContent>

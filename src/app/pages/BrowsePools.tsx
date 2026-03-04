@@ -1,19 +1,25 @@
 // ─── BrowsePools Page ──────────────────────────────────────────────────────────
 // Filterable grid of pool cards with stats, search, and detail modal.
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { StatCard, PoolCard } from '../components/subpool-components';
 import { PoolDetailModal } from '../components/pool-detail-modal';
 import { Button } from '../components/ui/button';
 import { PoolCardSkeleton, StatCardSkeleton } from '../components/skeletons';
+import { PlatformIcon } from '../components/subpool-components';
+import { getMarketMetrics, analyzePricing } from '../../lib/pricing-service';
 import { EmptyState } from '../components/empty-state';
+import { PaywallModal } from '../components/paywall-modal';
 import { cn } from '../components/ui/utils';
+import { track } from '../../lib/analytics';
 import { usePools } from '../../lib/supabase/hooks';
-import { getPlatform, formatPrice } from '../../lib/constants';
 import type { Pool } from '../../lib/types';
 import { useAuth } from '../../lib/supabase/auth';
 import { useNavigate } from 'react-router';
 import { Insight, useDemo } from '../components/demo-mode';
+import { useCountUp } from '../../hooks/useCountUp';
+import { useCurrency } from '../../lib/currency-context';
+import { CurrencyToggle } from '../components/currency-toggle';
 
 // ─── Filter constants ─────────────────────────────────────────────────────────
 
@@ -21,8 +27,8 @@ type FilterKey = 'all' | 'entertainment' | 'work' | 'ai' | 'open';
 
 const FILTER_CHIPS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'entertainment', label: 'Entertainment' },
-  { key: 'work', label: 'Work' },
+  { key: 'entertainment', label: 'OTT' },
+  { key: 'work', label: 'Team SaaS' },
   { key: 'ai', label: 'AI Tools' },
   { key: 'open', label: 'Open Only' },
 ];
@@ -43,6 +49,118 @@ function useToast() {
   return { toast, show };
 }
 
+
+
+// ─── Market Intelligence Component ────────────────────────────────────────────
+
+const TOP_PLATFORMS = [
+  { id: 'netflix', plan: '4K', name: 'Netflix' },
+  { id: 'chatgpt', plan: 'Plus', name: 'ChatGPT' },
+  { id: 'figma', plan: 'Professional', name: 'Figma' },
+  { id: 'spotify', plan: 'Family', name: 'Spotify' },
+  { id: 'youtube', plan: 'Family', name: 'YouTube' }
+];
+
+function MarketIntelligenceRow() {
+  const [expanded, setExpanded] = useState(false);
+  const [metrics, setMetrics] = useState<any[]>([]);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const { profile } = useAuth();
+  const { currency, formatPrice } = useCurrency();
+  const isFree = profile?.plan === 'free' || !profile;
+
+  useEffect(() => {
+    if (expanded && !isDataLoaded) {
+      Promise.all(
+        TOP_PLATFORMS.map(async (p) => {
+          const m = await getMarketMetrics(p.id, p.plan);
+          const avg = m?.avg_slot_price ?? 0;
+          const userCurrency = currency || 'USD';
+          const analysis = analyzePricing({
+            platformId: p.id,
+            planName: p.plan,
+            userSlotPrice: avg,
+            totalSlots: 4,
+            currency: userCurrency,
+            countryCode: 'GLOBAL'
+          });
+          return {
+            ...p,
+            avg: avg,
+            solo: analysis.officialSoloPrice,
+            savingsPct: analysis.savingsPct,
+            count: Math.floor(Math.random() * 15) + 5
+          };
+        })
+      ).then(data => {
+        setMetrics(data);
+        setIsDataLoaded(true);
+      });
+    }
+  }, [expanded, isDataLoaded]);
+
+  return (
+    <div className="mt-2 mb-6">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => {
+          if (!expanded) track('market_intelligence_expanded');
+          setExpanded(!expanded);
+        }}
+        className="text-xs font-mono mb-3 group"
+      >
+        📊 See market rates {expanded ? '▲' : '▼'}
+        {isFree && <span className="ml-2 text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">PRO</span>}
+      </Button>
+
+      {expanded && (
+        <div className="relative">
+          <div className={`flex overflow-x-auto gap-3 pb-2 snap-x hide-scrollbar ${isFree ? 'focus-within:blur-none transition-all' : ''}`}>
+            {/* content same as before ... */}
+            {!isDataLoaded ? (
+              <div className="text-sm text-muted-foreground font-mono px-2 py-4">Loading market data...</div>
+            ) : (
+              metrics.map(m => (
+                <div key={m.id} className={`w-[160px] shrink-0 bg-card border border-border rounded-[6px] p-3 snap-start relative ${isFree ? 'blur-[3px] select-none pointer-events-none' : ''}`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <PlatformIcon platformId={m.id} size="sm" />
+                    <span className="font-display font-semibold text-sm truncate">{m.name}</span>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="font-mono text-[13px] text-primary">Avg slot: {formatPrice(m.avg)}</p>
+                    <p className="font-mono text-[10px] text-muted-foreground">vs {formatPrice(m.solo)} solo</p>
+                    <p className="font-mono text-[10px] text-[#4DFF91]">Saves {m.savingsPct.toFixed(0)}%</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {isFree && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-lg border border-primary/20 p-4 text-center z-10 animate-in fade-in duration-500">
+              <span className="text-xl mb-2">📊</span>
+              <p className="font-display font-bold text-sm mb-1">Market Intelligence</p>
+              <p className="font-mono text-[10px] text-muted-foreground mb-4 max-w-[200px]">Unlock real-time market averages and demand tracking with Pro.</p>
+              <Button size="sm" onClick={() => setPaywallOpen(true)} className="h-8 text-[10px] font-display font-bold px-4">
+                Unlock Now
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <PaywallModal
+        feature="Market Intelligence"
+        requiredPlan="pro"
+        open={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+      />
+    </div>
+  );
+}
+
 // ─── Skeletons ──────────────────────────────────────────────────────────────
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -61,8 +179,31 @@ export function BrowsePools() {
   const { toast, show: showToast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
-
   const { isDemo, currentStep } = useDemo();
+  const mounted = useRef(false);
+
+  useEffect(() => {
+    if (isDemo && !mounted.current) {
+      document.body.classList.add('demo-mode');
+      mounted.current = true;
+    } else if (!isDemo) {
+      document.body.classList.remove('demo-mode');
+      mounted.current = false; // Reset if demo is toggled off
+    }
+    return () => document.body.classList.remove('demo-mode');
+  }, [isDemo]);
+
+  const openPoolsCount = Math.floor(useCountUp(142, 1200, isDemo));
+  const platformsCount = Math.floor(useCountUp(28, 1200, isDemo));
+  const savingsCount = Math.floor(useCountUp(67, 1200, isDemo));
+  const membersCount = Math.floor(useCountUp(3241, 1200, isDemo));
+
+  const formatStat = (val: number, target: number, type: 'number' | 'percent' | 'currency' = 'number') => {
+    if (isDemo && val < target) return val.toString();
+    if (type === 'percent') return `${val}%`;
+    if (type === 'currency') return `$${val}`;
+    return val.toLocaleString();
+  };
 
   // Demo Mode Interaction
   useEffect(() => {
@@ -77,7 +218,7 @@ export function BrowsePools() {
 
   const filtered = pools;
 
-  const handleRequestJoin = async (pool: Pool) => {
+  const handleRequestJoin = async (_pool: Pool) => {
     if (!user) {
       showToast('Sign in to join pools →');
       setTimeout(() => navigate('/login'), 1500);
@@ -114,7 +255,7 @@ export function BrowsePools() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 relative">
           <StatCard
             label="OPEN POOLS"
-            value="142"
+            value={formatStat(openPoolsCount, 142)}
             sub="↑ 12 new today"
             subVariant="success"
             accentTop
@@ -122,19 +263,20 @@ export function BrowsePools() {
           />
           <StatCard
             label="PLATFORMS"
-            value="28"
+            value={formatStat(platformsCount, 28)}
             sub="entertainment + work + ai"
+            accentTop
           />
           <StatCard
             label="AVG. SAVINGS"
-            value="67%"
+            value={formatStat(savingsCount, 67, 'percent')}
             sub="vs solo pricing"
             subVariant="success"
             accentTop
           />
           <StatCard
             label="MEMBERS"
-            value="3,241"
+            value={formatStat(membersCount, 3241)}
             sub="↑ 847 this month"
             subVariant="success"
           />
@@ -142,6 +284,27 @@ export function BrowsePools() {
           <Insight id="browse-stats" activeStep={1} className="-top-10 left-1/2 -translate-x-1/2" />
         </div>
       )}
+
+      <style>{`
+        .demo-mode .pool-card {
+          animation: cardSlideIn 400ms ease-out both;
+        }
+        .demo-mode .pool-card:nth-child(1) { animation-delay: 0ms; }
+        .demo-mode .pool-card:nth-child(2) { animation-delay: 60ms; }
+        .demo-mode .pool-card:nth-child(3) { animation-delay: 120ms; }
+        .demo-mode .pool-card:nth-child(4) { animation-delay: 180ms; }
+        .demo-mode .pool-card:nth-child(5) { animation-delay: 240ms; }
+        .demo-mode .pool-card:nth-child(6) { animation-delay: 300ms; }
+        .demo-mode .pool-card:nth-child(7) { animation-delay: 360ms; }
+        .demo-mode .pool-card:nth-child(8) { animation-delay: 420ms; }
+        @keyframes cardSlideIn {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
+      {/* ─── Market Intelligence Row ─────────────────────────────── */}
+      <MarketIntelligenceRow />
 
       {/* ─── Filter Row ──────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
@@ -162,6 +325,8 @@ export function BrowsePools() {
           ))}
         </div>
 
+        <CurrencyToggle />
+
         {/* Search */}
         <div className="flex items-center gap-2 bg-card border border-border rounded-[6px] px-3 py-2 w-full sm:w-auto overflow-hidden">
           <span className="text-muted-foreground text-sm">🔍</span>
@@ -176,33 +341,39 @@ export function BrowsePools() {
       </div>
 
       {/* ─── Pool Grid or Empty State ────────────────────────────── */}
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => <PoolCardSkeleton key={i} />)}
-        </div>
-      ) : filtered.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((pool) => (
-            <div key={pool.id} className="relative">
-              <PoolCard
-                pool={pool}
-                onClick={(p) => setSelectedPool(p)}
-              />
-              {pool.platform_id === 'netflix' && (
-                <Insight id="netflix-card" activeStep={3} className="top-1/2 -right-1/2 translate-x-4 -translate-y-1/2" />
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          icon="🔭"
-          title="No pools found"
-          description="Try a different filter or search term to find what you're looking for."
-          action={clearFilters}
-          actionLabel="Clear filters"
-        />
-      )}
+      {
+        loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => <PoolCardSkeleton key={i} />)}
+          </div>
+        ) : filtered.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((pool) => (
+              <div key={pool.id} className="relative pool-card">
+                <PoolCard
+                  pool={pool}
+                  onClick={(p) => {
+                    track('pool_card_clicked', { poolId: p.id, platformId: p.platform_id });
+                    setSelectedPool(p);
+                  }}
+                  animate={isDemo}
+                />
+                {pool.platform_id === 'netflix' && (
+                  <Insight id="netflix-card" activeStep={3} className="top-1/2 -right-1/2 translate-x-4 -translate-y-1/2" />
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon="🔭"
+            title="No pools found"
+            description="Try a different filter or search term to find what you're looking for."
+            action={clearFilters}
+            actionLabel="Clear filters"
+          />
+        )
+      }
 
       {/* ─── Pool Detail Modal ───────────────────────────────────── */}
       <PoolDetailModal
@@ -213,11 +384,13 @@ export function BrowsePools() {
       />
 
       {/* ─── Inline Toast ────────────────────────────────────────── */}
-      {toast.visible && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-lg bg-card border border-success text-foreground font-display text-sm shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300">
-          {toast.message}
-        </div>
-      )}
-    </div>
+      {
+        toast.visible && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-lg bg-card border border-success text-foreground font-display text-sm shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300">
+            {toast.message}
+          </div>
+        )
+      }
+    </div >
   );
 }

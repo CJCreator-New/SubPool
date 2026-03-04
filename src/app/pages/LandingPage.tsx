@@ -19,7 +19,7 @@ export function LandingPage() {
             slots_total: 4,
             price_per_slot: 499,
             status: 'open',
-            category: 'entertainment',
+            category: 'OTT',
             owner_id: 'owner-1',
             owner: {
                 id: 'owner-1',
@@ -46,7 +46,7 @@ export function LandingPage() {
             slots_total: 2,
             price_per_slot: 999,
             status: 'open',
-            category: 'ai',
+            category: 'AI_IDE',
             owner_id: 'owner-2',
             owner: {
                 id: 'owner-2',
@@ -73,7 +73,7 @@ export function LandingPage() {
             slots_total: 5,
             price_per_slot: 600,
             status: 'open',
-            category: 'work',
+            category: 'TEAM_SAAS',
             owner_id: 'owner-3',
             owner: {
                 id: 'owner-3',
@@ -123,7 +123,18 @@ export function LandingPage() {
             </nav>
 
             {/* ━━━ HERO SECTION ━━━ */}
-            <div className="pt-16 max-w-[1440px] mx-auto min-h-screen flex flex-col md:flex-row">
+            <div className="pt-16 max-w-[1440px] mx-auto min-h-screen flex flex-col md:flex-row relative">
+
+                {/* Ambient ellipses — pointer-events-none */}
+                <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+                    <div className="absolute top-0 right-0 w-[600px] h-[300px] 
+                        bg-primary opacity-[0.04] blur-[120px] rounded-full
+                        animate-[floatEllipse_20s_ease-in-out_infinite]" style={{ willChange: 'transform' }} />
+                    <div className="absolute top-1/4 left-0 w-[800px] h-[400px] 
+                        opacity-[0.08] blur-[100px] rounded-full
+                        bg-[#0D4F3C]
+                        animate-[floatEllipse_25s_ease-in-out_infinite_reverse]" style={{ willChange: 'transform' }} />
+                </div>
 
                 {/* LEFT HALF */}
                 <div className="w-full md:w-1/2 px-6 md:px-16 py-16 md:py-24 flex flex-col justify-center">
@@ -305,13 +316,14 @@ export function LandingPage() {
 
             {/* ━━━ STATS SECTION ━━━ */}
             <section className="py-20 border-t border-[#2A2A2A] bg-background">
-                <div className="max-w-6xl mx-auto px-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-0">
+                <div className="max-w-7xl mx-auto px-6">
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-0">
                         {[
                             { value: '3,241', label: 'Members saving' },
                             { value: '142', label: 'Open pools today' },
-                            { value: '67%', label: 'Average savings' },
-                            { value: '$341', label: 'Avg. saved per year' }
+                            { value: '64%', label: 'Average savings' },
+                            { value: '$4,103', label: 'Market value matched' },
+                            { value: '₹22,560', label: 'Avg. saved per year' }
                         ].map((stat, i) => (
                             <div key={i} className="text-center px-4">
                                 <div className="font-display font-black text-[48px] text-primary tracking-[-2px] leading-tight">

@@ -1,0 +1,120 @@
+﻿src/app/components/character-card.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/components/demo-mode.tsx(4,27): error TS6133: 'ChevronLeft' is declared but its value is never read.
+src/app/components/error-boundary.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/components/pool-analytics-charts.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/components/pool-analytics-charts.tsx(13,1): error TS6133: 'cn' is declared but its value is never read.
+src/app/components/skeletons.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/components/skeletons.tsx(4,1): error TS6133: 'cn' is declared but its value is never read.
+src/app/components/subpool/AppShell.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/AppShell.tsx(78,3): error TS6133: 'path' is declared but its value is never read.
+src/app/components/subpool/AutoApproveSettingsModal.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/Avatar.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/OverflowMenu.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/PoolCard.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/PricingIntelligenceCard.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/PricingIntelligenceCard.tsx(9,43): error TS6133: 'platform' is declared but its value is never read.
+src/app/components/subpool/PricingIntelligenceCard.tsx(23,9): error TS6133: 'isCompetitive' is declared but its value is never read.
+src/app/components/subpool/ProAnalytics.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/ProAnalytics.tsx(3,71): error TS6133: 'BarChart' is declared but its value is never read.
+src/app/components/subpool/ProAnalytics.tsx(3,81): error TS6133: 'Bar' is declared but its value is never read.
+src/app/components/subpool/ProPaywallModal.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/ReportModal.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/ReportModal.tsx(20,43): error TS6133: 'targetName' is declared but its value is never read.
+src/app/components/subpool/ReportModal.tsx(161,21): error TS2322: Type 'ReportReason' is not assignable to type 'string | number | readonly string[] | undefined'.
+  Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.
+src/app/components/subpool/ReviewModal.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/SlotFillBar.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/StatusPill.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/ToastNotification.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/TrustBadge.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/VerificationModal.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/components/subpool/VerifiedBadge.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/AdminPage.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/AdminPage.tsx(1,27): error TS6133: 'useEffect' is declared but its value is never read.
+src/app/pages/AdminPage.tsx(11,12): error TS6133: 'stats' is declared but its value is never read.
+src/app/pages/AdminPage.tsx(11,19): error TS6133: 'setStats' is declared but its value is never read.
+src/app/pages/Billing.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/BrowsePools.tsx(8,10): error TS2305: Module '"../components/skeletons"' has no exported member 'PoolCardSkeleton'.
+src/app/pages/BrowsePools.tsx(8,28): error TS2305: Module '"../components/skeletons"' has no exported member 'StatCardSkeleton'.
+src/app/pages/DesignSystem.tsx(15,1): error TS6133: 'SlotFillBar' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(16,1): error TS6133: 'ProAnalytics' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(17,1): error TS6133: 'ProPaywallModal' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(18,1): error TS6133: 'ReportModal' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(19,1): error TS6133: 'ReviewModal' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(20,1): error TS6133: 'VerificationModal' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(47,25): error TS6133: 'setProgressValue' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(50,10): error TS6133: 'showProModal' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(50,24): error TS6133: 'setShowProModal' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(51,10): error TS6133: 'showReportModal' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(51,27): error TS6133: 'setShowReportModal' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(52,10): error TS6133: 'showReviewModal' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(52,27): error TS6133: 'setShowReviewModal' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(55,9): error TS6133: 'sampleNotification' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(64,9): error TS6133: 'samplePoolData' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(77,9): error TS6133: 'sampleSlotFillData' is declared but its value is never read.
+src/app/pages/DesignSystem.tsx(84,9): error TS6133: 'sampleProData' is declared but its value is never read.
+src/app/pages/InvestorDemo.tsx(29,17): error TS6133: 'ChevronRight' is declared but its value is never read.
+src/app/pages/InvestorDemo.tsx(1892,32): error TS6133: 'onNext' is declared but its value is never read.
+src/app/pages/InvestorDemoEnhanced.tsx(25,1): error TS6133: 'StatusPill' is declared but its value is never read.
+src/app/pages/InvestorDemoEnhanced.tsx(26,53): error TS6133: 'X' is declared but its value is never read.
+src/app/pages/Landing.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/LandingPage.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/Ledger.tsx(9,10): error TS2305: Module '"../components/skeletons"' has no exported member 'StatCardSkeleton'.
+src/app/pages/Ledger.tsx(9,28): error TS2305: Module '"../components/skeletons"' has no exported member 'TableRowSkeleton'.
+src/app/pages/ListAPool.tsx(33,15): error TS2305: Module '"../../lib/types"' has no exported member 'PlatformPricing'.
+src/app/pages/ListAPool.tsx(91,20): error TS2304: Cannot find name 'profile'.
+src/app/pages/ListAPool.tsx(92,9): error TS6133: 'userPools' is declared but its value is never read.
+src/app/pages/ListAPool.tsx(92,11): error TS2339: Property 'data' does not exist on type 'Promise<HookState<Pool[]>>'.
+src/app/pages/ListAPool.tsx(113,9): error TS6133: 'savingsPct' is declared but its value is never read.
+src/app/pages/ListAPool.tsx(671,32): error TS6133: 'i' is declared but its value is never read.
+src/app/pages/LoginPage.tsx(15,11): error TS6133: 'navigate' is declared but its value is never read.
+src/app/pages/MarketIntelligence.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/Messages.tsx(4,1): error TS6133: 'Button' is declared but its value is never read.
+src/app/pages/MobileBrowse.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/MobileMyPools.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/MobileNotifications.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/MobilePoolDetail.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/MyPools.tsx(9,10): error TS2305: Module '"../components/skeletons"' has no exported member 'PoolCardSkeleton'.
+src/app/pages/MyPools.tsx(9,28): error TS2305: Module '"../components/skeletons"' has no exported member 'StatCardSkeleton'.
+src/app/pages/MyPools.tsx(9,46): error TS2305: Module '"../components/skeletons"' has no exported member 'TableRowSkeleton'.
+src/app/pages/MyPools.tsx(22,15): error TS6196: 'Pool' is declared but never used.
+src/app/pages/NotFound.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/Onboarding.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/payment/PaymentConfirmation.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/payment/PaymentSuccess.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/payment/PaymentSuccess.tsx(3,27): error TS6133: 'ArrowLeft' is declared but its value is never read.
+src/app/pages/payment/PaymentSuccess.tsx(10,10): error TS6133: 'showContent' is declared but its value is never read.
+src/app/pages/PayoutDashboard.tsx(6,1): error TS6133: 'Separator' is declared but its value is never read.
+src/app/pages/Profile.tsx(7,1): error TS6133: 'Separator' is declared but its value is never read.
+src/app/pages/Savings.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/SavingsPage.tsx(1,36): error TS6133: 'useEffect' is declared but its value is never read.
+src/app/pages/SavingsPage.tsx(2,29): error TS6133: 'CardHeader' is declared but its value is never read.
+src/app/pages/SavingsPage.tsx(2,41): error TS6133: 'CardTitle' is declared but its value is never read.
+src/app/pages/SavingsPage.tsx(15,1): error TS6133: 'abbrevNumber' is declared but its value is never read.
+src/app/pages/Wishlist.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/app/pages/Wishlist.tsx(31,10): error TS6133: 'errors' is declared but its value is never read.
+src/app/pages/Wishlist.tsx(31,18): error TS6133: 'setErrors' is declared but its value is never read.
+src/app/routes.tsx(15,10): error TS6133: 'PageSuspense' is declared but its value is never read.
+src/lib/constants.ts(18,84): error TS2322: Type '"entertainment"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(19,84): error TS2322: Type '"entertainment"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(20,84): error TS2322: Type '"entertainment"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(21,86): error TS2322: Type '"entertainment"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(22,78): error TS2322: Type '"entertainment"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(23,86): error TS2322: Type '"entertainment"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(25,82): error TS2322: Type '"work"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(26,80): error TS2322: Type '"work"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(27,80): error TS2322: Type '"work"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(28,82): error TS2322: Type '"work"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(29,84): error TS2322: Type '"work"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(30,82): error TS2322: Type '"productivity"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(32,84): error TS2322: Type '"ai"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(33,82): error TS2322: Type '"ai"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(34,82): error TS2322: Type '"ai"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(35,90): error TS2322: Type '"ai"' is not assignable to type 'PoolCategory'.
+src/lib/constants.ts(36,90): error TS2322: Type '"ai"' is not assignable to type 'PoolCategory'.
+src/lib/pricing-service.ts(116,69): error TS6133: 'totalSlots' is declared but its value is never read.
+src/lib/supabase/mutations.test.ts(2,36): error TS6133: 'createPool' is declared but its value is never read.
+src/lib/supabase/mutations.test.ts(3,20): error TS6133: 'isSupabaseConnected' is declared but its value is never read.
+src/lib/supabase/mutations.ts(8,1): error TS6192: All imports in import declaration are unused.
+src/lib/supabase/mutations.ts(9,30): error TS6196: 'Membership' is declared but never used.
+src/lib/supabase/mutations.ts(10,1): error TS6133: 'getPlatform' is declared but its value is never read.

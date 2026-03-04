@@ -113,6 +113,7 @@ export const NAV_ITEMS: NavItem[] = [
     // DISCOVER
     { icon: '🌐', label: 'Browse', path: '/', section: 'DISCOVER' },
     { icon: '📈', label: 'Market', path: '/market', section: 'DISCOVER' },
+    { icon: '💡', label: 'Savings Hub', path: '/savings', section: 'DISCOVER' },
     { icon: '🎯', label: 'Wishlist', path: '/wishlist', section: 'DISCOVER' },
     { icon: '🗂️', label: 'My Pools', path: '/my-pools', section: 'DISCOVER' },
     { icon: '➕', label: 'List a Pool', path: '/list', section: 'DISCOVER' },
@@ -124,7 +125,7 @@ export const NAV_ITEMS: NavItem[] = [
     { icon: '🔔', label: 'Notifications', path: '/notifications', section: 'MANAGE', badge: '2' },
     // ACCOUNT
     { icon: '👤', label: 'Profile', path: '/profile', section: 'ACCOUNT' },
-    { icon: '📊', label: 'Savings', path: '/savings', section: 'ACCOUNT' },
+    { icon: '⭐', label: 'Plans', path: '/plans', section: 'ACCOUNT' },
 ];
 
 export const NAV_SECTIONS = ['DISCOVER', 'MANAGE', 'ACCOUNT'] as const;
@@ -157,7 +158,8 @@ export const PAGE_TITLES: Record<string, string> = {
     '/messages': 'Messages',
     '/notifications': 'Notifications',
     '/profile': 'Profile',
-    '/savings': 'Savings',
+    '/savings': 'Savings Hub',
+    '/plans': 'Plans & Upgrades',
     '/payment/method': 'Payment Method',
     '/payment/confirm': 'Confirm Payment',
 };

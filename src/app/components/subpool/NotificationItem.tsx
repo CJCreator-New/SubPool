@@ -13,6 +13,7 @@ interface NotificationItemProps {
 export function NotificationItem({ read = false, icon, title, body, timestamp, actions }: NotificationItemProps) {
   return (
     <div
+      aria-live={!read ? 'polite' : undefined}
       style={{
         width: '100%',
         backgroundColor: C.bgSurface,

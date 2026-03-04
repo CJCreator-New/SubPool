@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from './ui/button';
+import { logError } from '../../lib/monitoring';
 
 interface Props {
     children?: ReactNode;
@@ -19,7 +20,14 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+        // Log to console for development
         console.error('Uncaught error:', error, errorInfo);
+
+        // Send to Sentry in production (via monitoring module)
+        logError(error, {
+            componentStack: errorInfo.componentStack || 'unknown',
+            errorBoundary: true,
+        });
     }
 
     public render() {

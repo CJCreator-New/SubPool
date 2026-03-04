@@ -25,7 +25,9 @@ import { useNotifications } from '../../lib/supabase/hooks';
 import { useAuth } from '../../lib/supabase/auth';
 import { isSupabaseConnected } from '../../lib/supabase/client';
 import { NAV_ITEMS, NAV_SECTIONS, PAGE_TITLES, BOTTOM_TABS } from '../../lib/constants';
+import { useDemo } from '../components/demo-mode';
 import { Navigate } from 'react-router';
+import { CharacterCard } from '../components/character-card';
 
 // ─── Protected Route Component ──────────────────────────────────────────────
 
@@ -57,7 +59,30 @@ export function DashboardLayout() {
     const navigate = useNavigate();
     const activePath = location.pathname;
     const pageTitle = PAGE_TITLES[activePath] ?? 'SubPool';
-    const { profile, signOut } = useAuth();
+    const { user, profile, signOut } = useAuth();
+    const { isDemo } = useDemo();
+    const [isScrolled, setIsScrolled] = React.useState(false);
+
+    let demoCharacter: 'sarah' | 'marcus' | null = null;
+    let characterVisible = false;
+
+    if (isDemo) {
+        if (activePath === '/browse' || activePath === '/' || activePath === '/create' || activePath.startsWith('/ledger')) {
+            demoCharacter = 'sarah';
+            characterVisible = true;
+        } else if (activePath === '/my-pools') {
+            demoCharacter = 'marcus';
+            characterVisible = true;
+        }
+    }
+
+    React.useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 40);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     const { data: notifications } = useNotifications();
     const unreadCount = notifications.filter((n: any) => !n.read).length;
@@ -72,7 +97,10 @@ export function DashboardLayout() {
         <SidebarProvider>
             {/* ─── Sidebar ───────────────────────────────────────────────── */}
             <Sidebar
-                className="hidden md:flex border-r border-border bg-card"
+                className={cn(
+                    "hidden md:flex border-r bg-card transition-shadow duration-300",
+                    isScrolled ? "border-transparent shadow-[4px_0_24px_rgba(0,0,0,0.4)]" : "border-[#2A2A2A]"
+                )}
                 style={{ '--sidebar-width': '220px' } as React.CSSProperties}
             >
                 {/* Logo */}
@@ -149,6 +177,12 @@ export function DashboardLayout() {
                                 {profile ? '@' + profile.username : '@yourusername'}
                             </p>
                         </div>
+                        <div className="flex flex-col items-end shrink-0 ml-1">
+                            <span className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground mr-0.5">Saved</span>
+                            <span className="font-mono text-[10px] font-bold text-[#4DFF91] bg-[#4DFF91]/10 px-1 py-0.5 rounded border border-[#4DFF91]/20">
+                                $341
+                            </span>
+                        </div>
                     </div>
                     {/* Sign out button */}
                     <Button
@@ -173,6 +207,11 @@ export function DashboardLayout() {
                         <h1 className="font-display font-bold text-[15px] text-foreground">
                             {pageTitle}
                         </h1>
+                        {!user && (
+                            <span className="font-mono text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 uppercase tracking-wider">
+                                Guest mode
+                            </span>
+                        )}
                         {!isSupabaseConnected && (
                             <span className="font-mono text-[10px] text-warning bg-warning/10 px-1.5 py-0.5 rounded border border-warning/20 animate-pulse">
                                 Using offline data
@@ -238,6 +277,14 @@ export function DashboardLayout() {
                 </nav>
                 <div className="h-16 md:hidden" /> {/* Spacer for bottom tab bar */}
             </SidebarInset>
+
+            {/* ─── Demo Character Cards ────────────────────────────────────── */}
+            {demoCharacter && (
+                <CharacterCard
+                    character={demoCharacter}
+                    visible={characterVisible}
+                />
+            )}
         </SidebarProvider>
     );
 }

@@ -20,6 +20,8 @@ import { usePools, useMemberships } from '../../lib/supabase/hooks';
 import { useAuth } from '../../lib/supabase/auth';
 import { getPlatform, formatPrice, formatDate } from '../../lib/constants';
 import type { Pool, Membership } from '../../lib/types';
+import { MOCK_EARNINGS_DATA, MOCK_PAYMENT_TIMELINE } from '../../lib/mock-data';
+import { EarningsBarChart, MemberPaymentTimeline, PoolHealthGauge } from '../components/pool-analytics-charts';
 
 // ─── Toast helper ─────────────────────────────────────────────────────────────
 
@@ -43,7 +45,7 @@ export function MyPools() {
   const navigate = useNavigate();
   const { toast, show: showToast } = useToast();
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const { data: myPools, loading: poolsLoading } = usePools({ ownerId: user?.id ?? 'user-you' });
   const { data: memberships, loading: membershipsLoading } = useMemberships();
@@ -57,6 +59,21 @@ export function MyPools() {
   return (
     <div className="space-y-8 pr-1">
       {/* ─── Stats Row ───────────────────────────────────────────── */}
+      {profile?.plan === 'free' && (
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-3">
+            <span className="text-xl">🚀</span>
+            <div>
+              <p className="font-display font-bold text-sm">Level up your hosting</p>
+              <p className="font-mono text-[10px] text-muted-foreground">Host Plus members get automated approval, higher slot limits, and 0% platform fees.</p>
+            </div>
+          </div>
+          <Button size="sm" onClick={() => navigate('/plans')} className="h-8 text-[10px] font-display font-bold px-4 shrink-0">
+            View Plans
+          </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {loading ? (
           <>
@@ -70,11 +87,15 @@ export function MyPools() {
               label="POOLS OWNED"
               value={String(myPools.length)}
               sub="active"
+              sparklineData={MOCK_EARNINGS_DATA.map(d => ({ month: d.month, amount: d.earned }))}
+              sparklineColor="#C8F135"
+              accentTop
             />
             <StatCard
               label="JOINED"
               value={String(memberships.length)}
               sub="1 pending"
+              accentTop
             />
             <StatCard
               label="YOU OWE"
@@ -94,15 +115,29 @@ export function MyPools() {
         </p>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <PoolCardSkeleton />
             <PoolCardSkeleton />
           </div>
         ) : myPools.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {myPools.map((pool) => (
-              <PoolCard key={pool.id} pool={pool} />
-            ))}
+          <div className="grid grid-cols-1 gap-4">
+            {myPools.map((pool) => {
+              const fillRate = (pool.slots_filled / pool.slots_total) * 100;
+              const payRate = 85;
+              const healthScore = Math.round((fillRate * 0.6) + (payRate * 0.4));
+
+              return (
+                <div key={pool.id} className="bg-card border border-border rounded-[6px] p-4 flex flex-col lg:flex-row gap-6 items-center">
+                  <div className="flex-1 w-full max-w-sm lg:max-w-none">
+                    <PoolCard pool={pool} />
+                  </div>
+                  <div className="shrink-0 flex flex-col items-center justify-center p-6 bg-secondary/10 rounded-lg w-full lg:w-auto min-w-[200px] border border-border/30">
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-[#6B6860] mb-4">Sys Health</p>
+                    <PoolHealthGauge score={healthScore} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <EmptyState
@@ -112,6 +147,44 @@ export function MyPools() {
             action={() => navigate('/list')}
             actionLabel="List your first pool"
           />
+        )}
+      </section>
+
+      {/* ─── Analytics ──────────────────────────────────────────────── */}
+      <section className="relative">
+        <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground mb-3">
+          ANALYTICS (PRO)
+        </p>
+
+        <div className={cn(
+          "grid grid-cols-1 lg:grid-cols-2 gap-4 transition-all duration-500",
+          profile?.plan === 'free' ? "blur-md pointer-events-none opacity-40 select-none pb-12" : ""
+        )}>
+          <div className="bg-card border border-border rounded-[6px] p-5 shadow-sm">
+            <h3 className="font-display font-bold text-sm mb-6 text-foreground">Earnings & Savings</h3>
+            <EarningsBarChart data={MOCK_EARNINGS_DATA} />
+          </div>
+          <div className="bg-card border border-border rounded-[6px] p-5 shadow-sm">
+            <h3 className="font-display font-bold text-sm mb-6 text-foreground">Member Status</h3>
+            <MemberPaymentTimeline members={MOCK_PAYMENT_TIMELINE} />
+          </div>
+        </div>
+
+        {profile?.plan === 'free' && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pt-8">
+            <div className="bg-background/90 backdrop-blur-lg p-7 rounded-xl border border-primary/20 text-center max-w-sm shadow-2xl">
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl border border-primary/20">
+                🔒
+              </div>
+              <h3 className="font-display font-bold text-lg mb-2 text-foreground">Unlock Analytics</h3>
+              <p className="font-mono text-[11px] text-muted-foreground mb-6 leading-relaxed">
+                Upgrade to Pro to see detailed earnings history, payment timelines, and predictive health scores.
+              </p>
+              <Button onClick={() => navigate('/plans')} className="w-full font-display shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform">
+                Upgrade to Pro
+              </Button>
+            </div>
+          </div>
         )}
       </section>
 
@@ -211,7 +284,7 @@ export function MyPools() {
 
                         <TableCell className="px-5 py-3.5">
                           <span className="font-display text-sm text-foreground">
-                            {m.pool.owner.display_name}
+                            {m.pool.owner?.display_name ?? m.pool.owner?.username ?? 'Host'}
                           </span>
                         </TableCell>
 
@@ -316,10 +389,10 @@ export function MyPools() {
               <div className="flex items-center justify-between gap-3 pt-1">
                 <div className="flex items-center gap-2">
                   <div className="size-5 rounded-full bg-secondary flex items-center justify-center text-[8px] font-bold">
-                    {m.pool.owner.display_name.charAt(0)}
+                    {(m.pool.owner?.display_name ?? m.pool.owner?.username ?? '?').charAt(0)}
                   </div>
                   <span className="font-display text-[11px] text-muted-foreground">
-                    {m.pool.owner.display_name}
+                    {m.pool.owner?.display_name ?? m.pool.owner?.username ?? 'Host'}
                   </span>
                 </div>
                 {m.status === 'active' && (

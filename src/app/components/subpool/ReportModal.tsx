@@ -8,8 +8,7 @@ type ReportReason =
   | 'fraud'
   | 'pricing'
   | 'inappropriate'
-  | 'other'
-  | null;
+  | 'other';
 
 interface ReportModalProps {
   targetType: 'pool' | 'user';
@@ -19,7 +18,7 @@ interface ReportModalProps {
 
 export function ReportModal({ targetType, targetName, onClose }: ReportModalProps) {
   const [step, setStep] = useState<'form' | 'confirmation'>('form');
-  const [selectedReason, setSelectedReason] = useState<ReportReason>(null);
+  const [selectedReason, setSelectedReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState('');
 
   const reasons = [

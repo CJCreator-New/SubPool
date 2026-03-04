@@ -11,6 +11,7 @@ import {
     MOCK_LEDGER,
     MOCK_NOTIFICATIONS,
 } from '../mock-data';
+import { PLATFORM_PRICING_SEED, PlatformPricing } from '../pricing-seed';
 import type {
     Profile,
     Pool,
@@ -108,7 +109,7 @@ export function usePools(filters?: PoolFilters): HookState<Pool[]> {
                     return (
                         plat?.name.toLowerCase().includes(q) ||
                         p.plan_name.toLowerCase().includes(q) ||
-                        p.owner.display_name.toLowerCase().includes(q)
+                        (p.owner?.display_name ?? p.owner?.username ?? '').toLowerCase().includes(q)
                     );
                 });
             }
@@ -160,7 +161,7 @@ export function usePools(filters?: PoolFilters): HookState<Pool[]> {
                     return (
                         plat?.name.toLowerCase().includes(q) ||
                         p.plan_name.toLowerCase().includes(q) ||
-                        p.owner.display_name.toLowerCase().includes(q)
+                        (p.owner?.display_name ?? p.owner?.username ?? '').toLowerCase().includes(q)
                     );
                 });
             }
@@ -386,4 +387,45 @@ export function useNotifications(): NotificationsHookResult {
     const unreadCount = data.filter((n) => !n.read).length;
 
     return { data, loading, error, refetch: fetchData, unreadCount, markRead, markAllRead };
+}
+
+// ─── usePlatformPricing ──────────────────────────────────────────────────────
+
+export function usePlatformPricing(platformId: string, planName: string, currency: string) {
+    const [data, setData] = useState<PlatformPricing | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    const fetchPricing = useCallback(async () => {
+        setLoading(true);
+        if (isSupabaseConnected && supabase) {
+            const { data: row } = await supabase
+                .from('platform_pricing')
+                .select('*')
+                .eq('platform_id', platformId)
+                .ilike('plan_name', planName)
+                .eq('currency', currency)
+                .maybeSingle();
+
+            if (row) {
+                setData(row as PlatformPricing);
+                setLoading(false);
+                return;
+            }
+        }
+
+        // Fallback to seed data
+        const seed = PLATFORM_PRICING_SEED.find(
+            s => s.platform_id === platformId &&
+                s.plan_name.toLowerCase() === planName.toLowerCase() &&
+                s.currency === currency
+        );
+        setData(seed || null);
+        setLoading(false);
+    }, [platformId, planName, currency]);
+
+    useEffect(() => {
+        fetchPricing();
+    }, [fetchPricing]);
+
+    return { data, loading };
 }

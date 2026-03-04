@@ -4,9 +4,26 @@
 import React from 'react';
 import { Badge } from './ui/badge';
 import { Card, CardContent } from './ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { cn } from './ui/utils';
-import { getPlatform, formatPrice, timeAgo } from '../../lib/constants';
+import { getPlatform } from '../../lib/constants';
+import { analyzePricing, detectUserCurrency } from '../../lib/pricing-service';
+import { useCurrency } from '../../lib/currency-context';
 import type { Pool, Notification } from '../../lib/types';
+
+// timeAgo helper
+function timeAgo(dateStr: string): string {
+    const now = Date.now();
+    const then = new Date(dateStr).getTime();
+    const diffMs = now - then;
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+}
 
 // ─── 1. SlotBar ───────────────────────────────────────────────────────────────
 
@@ -14,9 +31,10 @@ interface SlotBarProps {
     filled: number;
     total: number;
     size?: 'sm' | 'md';
+    animate?: boolean;
 }
 
-export function SlotBar({ filled, total, size = 'md' }: SlotBarProps) {
+export function SlotBar({ filled, total, size = 'md', animate = false }: SlotBarProps) {
     const h = size === 'sm' ? 'h-1' : 'h-1.5';
 
     return (
@@ -30,6 +48,7 @@ export function SlotBar({ filled, total, size = 'md' }: SlotBarProps) {
                             h,
                             i < filled ? 'bg-primary' : 'bg-muted',
                         )}
+                        style={animate && i < filled ? { animation: `slotFill 400ms ${i * 80}ms ease-out both` } : {}}
                     />
                 ))}
             </div>
@@ -85,9 +104,10 @@ const ICON_SIZES = {
 interface PlatformIconProps {
     platformId: string;
     size?: 'sm' | 'md' | 'lg';
+    glowColor?: string;
 }
 
-export function PlatformIcon({ platformId, size = 'md' }: PlatformIconProps) {
+export function PlatformIcon({ platformId, size = 'md', glowColor }: PlatformIconProps) {
     const platform = getPlatform(platformId);
     const { box, fontSize } = ICON_SIZES[size];
 
@@ -116,6 +136,8 @@ interface StatCardProps {
     accentTop?: boolean;
     live?: boolean;
     className?: string;
+    sparklineData?: { month: string; amount: number }[];
+    sparklineColor?: string;
 }
 
 export function StatCard({
@@ -126,6 +148,8 @@ export function StatCard({
     accentTop = false,
     live = false,
     className,
+    sparklineData,
+    sparklineColor,
 }: StatCardProps) {
     return (
         <Card
@@ -169,6 +193,21 @@ export function StatCard({
                         {sub}
                     </p>
                 )}
+
+                {/* Sparkline */}
+                {sparklineData && sparklineData.length > 1 && (
+                    <div className="mt-3 h-8">
+                        <svg viewBox={`0 0 ${sparklineData.length * 20} 32`} className="w-full h-full" preserveAspectRatio="none">
+                            {(() => {
+                                const max = Math.max(...sparklineData.map(d => d.amount));
+                                const points = sparklineData.map((d, i) =>
+                                    `${i * 20},${32 - (d.amount / max) * 28}`
+                                ).join(' ');
+                                return <polyline fill="none" stroke={sparklineColor ?? '#C8F135'} strokeWidth="2" points={points} />;
+                            })()}
+                        </svg>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
@@ -178,74 +217,170 @@ export function StatCard({
 
 interface PoolCardProps {
     pool: Pool;
+    variant?: 'compact' | 'full';
+    className?: string;
     onClick?: (pool: Pool) => void;
+    animate?: boolean;
 }
 
-export function PoolCard({ pool, onClick }: PoolCardProps) {
+export function PoolCard({ pool, variant = 'full', className, onClick, animate = false }: PoolCardProps) {
     const platform = getPlatform(pool.platform_id);
+    const { formatPrice } = useCurrency();
+    const analysis = analyzePricing({
+        platformId: pool.platform_id,
+        planName: pool.plan_name,
+        userSlotPrice: pool.price_per_slot / 100,
+        totalSlots: pool.slots_total,
+        currency: detectUserCurrency(),
+        countryCode: 'GLOBAL'
+    });
+
+    const [tilt, setTilt] = React.useState({ x: 0, y: 0 });
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!animate) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = (e.clientX - cx) / (rect.width / 2);
+        const dy = (e.clientY - cy) / (rect.height / 2);
+        setTilt({ x: dy * -4, y: dx * 4 });
+    };
+
+    const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!animate) return;
+        setTilt({ x: 0, y: 0 });
+        e.currentTarget.style.willChange = 'auto';
+    };
+
+    const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!animate) return;
+        e.currentTarget.style.willChange = 'transform';
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Enter' && onClick) {
+            e.preventDefault();
+            onClick(pool);
+        }
+    };
+
+    const ownerName = pool.owner?.display_name ?? pool.owner?.username ?? 'Host';
+    const ownerInitial = ownerName.charAt(0).toUpperCase();
+    const ownerColor = pool.owner?.avatar_color ?? '#6B6860';
 
     return (
-        <Card
-            className={cn(
-                'relative cursor-pointer transition-all duration-200',
-                'hover:-translate-y-0.5 hover:border-primary/30',
-                'hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)]',
-            )}
-            onClick={() => onClick?.(pool)}
-        >
-            <CardContent className="p-5">
-                {/* Status pill — absolute top right */}
-                <div className="absolute top-3 right-3">
-                    <StatusPill status={pool.status} />
-                </div>
-
-                {/* Platform row */}
-                <div className="flex items-center gap-3 mb-4">
-                    <PlatformIcon platformId={pool.platform_id} size="md" />
-                    <div className="min-w-0">
-                        <p className="font-display font-bold text-[17px] text-foreground truncate">
-                            {platform?.name ?? pool.platform_id}
-                        </p>
-                        <p className="font-mono text-[11px] text-muted-foreground truncate">
-                            {pool.plan_name}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Slot bar */}
-                <div className="mb-4">
-                    <SlotBar filled={pool.slots_filled} total={pool.slots_total} size="sm" />
-                </div>
-
-                {/* Bottom: Price + Owner */}
-                <div className="flex items-end justify-between flex-wrap gap-y-3">
-                    <div className="shrink-0">
-                        <span className="font-display font-bold text-[22px] text-foreground">
-                            {formatPrice(pool.price_per_slot)}
-                        </span>
-                        <span className="font-mono text-[11px] text-muted-foreground ml-1">
-                            /mo per slot
-                        </span>
-                    </div>
-
-                    {/* Owner chip */}
-                    <div className="flex items-center gap-1.5 shrink-0 bg-secondary/30 px-2 py-1 rounded-full border border-border/50">
-                        <div
-                            className="size-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-                            style={{
-                                backgroundColor: pool.owner.avatar_color,
-                                color: '#0E0E0E',
-                            }}
+        <TooltipProvider>
+            <Tooltip delayDuration={300}>
+                <TooltipTrigger asChild>
+                    <div
+                        onMouseMove={handleMouseMove}
+                        onMouseLeave={handleMouseLeave}
+                        onMouseEnter={handleMouseEnter}
+                        onKeyDown={handleKeyDown}
+                        tabIndex={onClick ? 0 : -1}
+                        role="button"
+                        aria-label={`${platform?.name || 'Platform'} ${pool.plan_name} pool, ${pool.slots_filled} of ${pool.slots_total} slots filled, ${formatPrice(pool.price_per_slot / 100)} per month`}
+                        className={cn(
+                            'transition-all duration-200 ease-out',
+                            'hover:-translate-y-1 hover:border-primary/30',
+                            'hover:shadow-[0_8px_40px_rgba(200,241,53,0.06),0_2px_8px_rgba(0,0,0,0.4)]',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                            className
+                        )}
+                        style={animate ? {
+                            transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+                            transition: 'transform 150ms ease-out'
+                        } : {}}
+                    >
+                        <Card
+                            className={cn(
+                                'relative cursor-pointer',
+                            )}
+                            onClick={() => onClick?.(pool)}
                         >
-                            {pool.owner.display_name.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="font-display text-[11px] text-muted-foreground truncate max-w-[80px]">
-                            {pool.owner.display_name}
-                        </span>
+                            <CardContent className="p-5">
+                                {/* Status pill — absolute top right */}
+                                <div className="absolute top-3 right-3">
+                                    <StatusPill status={pool.status} />
+                                </div>
+
+                                {/* Platform row */}
+                                <div className="flex items-center gap-3 mb-4">
+                                    <PlatformIcon platformId={pool.platform_id} size="md" />
+                                    <div className="min-w-0">
+                                        <p className="font-display font-bold text-[17px] text-foreground truncate">
+                                            {platform?.name ?? pool.platform_id}
+                                        </p>
+                                        <p className="font-mono text-[11px] text-muted-foreground truncate">
+                                            {pool.plan_name}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Slot bar */}
+                                <div className="mb-4">
+                                    <SlotBar filled={pool.slots_filled} total={pool.slots_total} size="sm" animate={animate} />
+                                </div>
+
+                                {/* Bottom: Price + Owner */}
+                                <div className="flex items-end justify-between flex-wrap gap-y-3">
+                                    <div className="shrink-0">
+                                        <div className="flex items-center gap-3">
+                                            <div>
+                                                <span className="font-display font-bold text-[22px] text-foreground">
+                                                    {formatPrice(pool.price_per_slot / 100)}
+                                                </span>
+                                                <span className="font-mono text-[11px] text-muted-foreground ml-1">
+                                                    /mo
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-center bg-secondary/50 px-2 py-0.5 rounded-full border border-border/50">
+                                                <span
+                                                    className="size-1.5 rounded-full inline-block mr-1.5"
+                                                    style={{ backgroundColor: analysis.color }}
+                                                />
+                                                <span className="font-mono text-[10px] uppercase text-muted-foreground font-bold tracking-tight">
+                                                    {analysis.label}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {analysis.savingsPct > 0 && (
+                                            <p className="font-mono text-[10px] text-[#4DFF91] mt-1 font-bold">
+                                                Members save {analysis.savingsPct.toFixed(0)}%
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Owner chip */}
+                                    <div className="flex items-center gap-1.5 shrink-0 bg-secondary/30 px-2 py-1 rounded-full border border-border/50">
+                                        <div
+                                            className="size-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                                            style={{
+                                                backgroundColor: ownerColor,
+                                                color: '#0E0E0E',
+                                            }}
+                                        >
+                                            {ownerInitial}
+                                        </div>
+                                        <span className="font-display text-[11px] text-muted-foreground truncate max-w-[80px]">
+                                            {ownerName}
+                                        </span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
-                </div>
-            </CardContent>
-        </Card>
+                </TooltipTrigger>
+                <TooltipContent side="top" sideOffset={8} className="bg-card text-foreground border border-[#2A2A2A] shadow-xl p-3 mb-2 font-mono text-[11px] font-bold z-[100] flex gap-2">
+                    <span className="text-[#4DFF91]">Members save {analysis.savingsPct.toFixed(0)}%</span>
+                    <span className="text-muted-foreground">·</span>
+                    <span className="text-primary">Host offsets {analysis.hostOffset.toFixed(0)}% of bill</span>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
     );
 }
 

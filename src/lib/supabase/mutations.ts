@@ -1,7 +1,8 @@
 // ─── Supabase Mutations ────────────────────────────────────────────────────────
 // Write operations with mock-mode support.
-// When Supabase is not connected, mutations resolve successfully so the UI
-// (toasts, state updates) works without any env setup.
+// When Supabase is not connected AND we are in demo/dev mode, mutations resolve
+// optimistically so the UI can be exercised without env setup.
+// In production (VITE_SUPABASE_URL is set) a null client is a hard error.
 
 import { supabase, isSupabaseConnected } from './client';
 import { MOCK_POOLS, CURRENT_USER, MOCK_MEMBERSHIPS } from '../mock-data';
@@ -18,6 +19,25 @@ export interface MutationResult<T = void> {
 function ok<T>(data: T): MutationResult<T> { return { data, error: null, success: true }; }
 function fail(msg: string): MutationResult<never> { return { data: null, error: msg, success: false }; }
 function delay(ms: number) { return new Promise<void>((r) => setTimeout(r, ms)); }
+
+/**
+ * Returns true only when we are explicitly in offline/demo mode.
+ * A missing URL means dev mode; a configured URL means production → never mock.
+ */
+function isDemoMode(): boolean {
+    const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+    if (!url) return true; // no env var at all → local development, mock is fine
+    if (url.includes('placeholder') || url.includes('your_url') || url.includes('your_supabase')) return true;
+    return false; // real URL configured → never silently mock
+}
+
+/** Ensures Supabase is available; throws a user-visible error in production. */
+function requireSupabase(): NonNullable<typeof supabase> {
+    if (supabase) return supabase;
+    throw new Error(
+        'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file.'
+    );
+}
 
 // ─── Pool mutations ───────────────────────────────────────────────────────────
 
@@ -87,73 +107,28 @@ export async function joinPool(
     } catch (e) { return fail((e as Error).message); }
 }
 
-/** Approve a join request. */
+/** Approve a join request.
+ *  Delegates to the `approve_join_request` Postgres RPC which runs the entire
+ *  flow (status update, membership insert, atomic slot increment, ledger entry,
+ *  requester notification) inside a single ACID transaction.
+ *  This eliminates the previous race condition on filled_slots.
+ */
 export async function approveRequest(
     requestId: string,
 ): Promise<MutationResult> {
-    if (!isSupabaseConnected || !supabase) return ok(undefined);
+    if (isDemoMode()) { await delay(600); return ok(undefined); }
 
     try {
-        // 0. Fetch request details
-        const { data: req, error: reqErr } = await supabase!
-            .from('join_requests')
-            .select('*, pool:pools(*)')
-            .eq('id', requestId)
-            .single();
-
-        if (reqErr || !req) return fail('Request not found');
-
-        // 1. Update join_request status='approved'
-        const { error: upErr } = await supabase!
-            .from('join_requests')
-            .update({ status: 'approved' })
-            .eq('id', requestId);
-        if (upErr) return fail(upErr.message);
-
-        // 2. Insert membership (status='active')
-        const { data: mem, error: memErr } = await supabase!
-            .from('memberships')
-            .insert({
-                pool_id: req.pool_id,
-                user_id: req.requester_id,
-                status: 'active',
-                price_per_slot: req.pool.price_per_slot
-            })
-            .select('id').single();
-        if (memErr) return fail(memErr.message);
-
-        // 3. Increment pool filled_slots
-        const newFilledSlots = req.pool.filled_slots + 1;
-        const newStatus = newFilledSlots >= req.pool.total_slots ? 'full' : 'open';
-
-        await supabase!
-            .from('pools')
-            .update({
-                filled_slots: newFilledSlots,
-                status: newStatus
-            })
-            .eq('id', req.pool_id);
-
-        // 5. Insert ledger entry (due at end of month)
-        const nextMonth = new Date();
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-        nextMonth.setDate(1); // Next month's 1st
-
-        await supabase!.from('ledger').insert({
-            membership_id: mem.id,
-            amount: req.pool.price_per_slot,
-            due_date: nextMonth.toISOString().split('T')[0],
-            status: 'owed'
+        const db = requireSupabase();
+        const { data, error } = await db.rpc('approve_join_request', {
+            p_request_id: requestId,
         });
 
-        // 6. Insert notification for requester
-        await supabase!.from('notifications').insert({
-            user_id: req.requester_id,
-            type: 'request_approved',
-            title: 'Request approved! 🎉',
-            body: `You're in the ${req.pool.platform} pool`,
-            action_url: '/my-pools'
-        });
+        if (error) return fail(error.message);
+
+        // The RPC returns { ok: boolean, error?: string, ... }
+        const result = data as { ok: boolean; error?: string };
+        if (!result.ok) return fail(result.error ?? 'Approval failed');
 
         return ok(undefined);
     } catch (e) { return fail((e as Error).message); }
@@ -163,13 +138,13 @@ export async function approveRequest(
 export async function createPool(
     input: Omit<Pool, 'id' | 'owner' | 'created_at' | 'updated_at' | 'slots_filled'>,
 ): Promise<MutationResult<{ poolId: string }>> {
-    if (!isSupabaseConnected || !supabase) {
+    if (isDemoMode()) {
         await delay(600);
-        const newId = `pool-mock-${Date.now()}`;
-        return ok({ poolId: newId });
+        return ok({ poolId: `pool-mock-${Date.now()}` });
     }
     try {
-        const { data, error } = await supabase!
+        const db = requireSupabase();
+        const { data, error } = await db
             .from('pools')
             .insert({ ...input, slots_filled: 0 })
             .select('id').single();
@@ -183,9 +158,9 @@ export async function updatePoolStatus(
     poolId: string,
     status: 'open' | 'full' | 'closed',
 ): Promise<MutationResult> {
-    if (!isSupabaseConnected || !supabase) { await delay(300); return ok(undefined); }
+    if (isDemoMode()) { await delay(300); return ok(undefined); }
     try {
-        const { error } = await supabase!
+        const { error } = await requireSupabase()
             .from('pools').update({ status }).eq('id', poolId);
         return error ? fail(error.message) : ok(undefined);
     } catch (e) { return fail((e as Error).message); }
@@ -193,14 +168,18 @@ export async function updatePoolStatus(
 
 // ─── Profile mutations ───────────────────────────────────────────────────────
 
-/** Update profile fields. */
+/**
+ * Update safe profile fields.
+ * NOTE: `is_pro` is intentionally excluded — elevation to Pro must happen
+ * server-side (e.g., via a Stripe webhook) to prevent self-promotion.
+ */
 export async function updateProfile(
     userId: string,
-    updates: Partial<Pick<Profile, 'display_name' | 'bio' | 'avatar_color' | 'is_pro'>>,
+    updates: Partial<Pick<Profile, 'display_name' | 'bio' | 'avatar_color'>>,
 ): Promise<MutationResult> {
-    if (!isSupabaseConnected || !supabase) { await delay(400); return ok(undefined); }
+    if (isDemoMode()) { await delay(400); return ok(undefined); }
     try {
-        const { error } = await supabase!.from('profiles').update(updates).eq('id', userId);
+        const { error } = await requireSupabase().from('profiles').update(updates).eq('id', userId);
         return error ? fail(error.message) : ok(undefined);
     } catch (e) { return fail((e as Error).message); }
 }
@@ -208,17 +187,17 @@ export async function updateProfile(
 // ─── Notification mutations ───────────────────────────────────────────────────
 
 export async function markNotificationRead(id: string): Promise<MutationResult> {
-    if (!isSupabaseConnected || !supabase) { await delay(150); return ok(undefined); }
+    if (isDemoMode()) { await delay(150); return ok(undefined); }
     try {
-        const { error } = await supabase!.from('notifications').update({ read: true }).eq('id', id);
+        const { error } = await requireSupabase().from('notifications').update({ read: true }).eq('id', id);
         return error ? fail(error.message) : ok(undefined);
     } catch (e) { return fail((e as Error).message); }
 }
 
 export async function markAllNotificationsRead(userId: string): Promise<MutationResult> {
-    if (!isSupabaseConnected || !supabase) { await delay(200); return ok(undefined); }
+    if (isDemoMode()) { await delay(200); return ok(undefined); }
     try {
-        const { error } = await supabase!
+        const { error } = await requireSupabase()
             .from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false);
         return error ? fail(error.message) : ok(undefined);
     } catch (e) { return fail((e as Error).message); }
@@ -231,18 +210,19 @@ export async function sendMessage(
     senderId: string,
     body: string,
 ): Promise<MutationResult<{ messageId: string }>> {
-    if (!isSupabaseConnected || !supabase) {
+    if (isDemoMode()) {
         await delay(250);
         return ok({ messageId: `msg-mock-${Date.now()}` });
     }
     try {
-        const { data, error } = await supabase!
+        const db = requireSupabase();
+        const { data, error } = await db
             .from('messages')
             .insert({ thread_id: threadId, sender_id: senderId, body })
             .select('id').single();
         if (error) return fail(error.message);
 
-        await supabase!.from('threads')
+        await db.from('threads')
             .update({ last_message: body, last_message_at: new Date().toISOString() }).eq('id', threadId);
         return ok({ messageId: (data as { id: string }).id });
     } catch (e) { return fail((e as Error).message); }
@@ -251,10 +231,12 @@ export async function sendMessage(
 // ─── Ledger mutations ─────────────────────────────────────────────────────────
 
 export async function markLedgerPaid(ledgerId: string): Promise<MutationResult> {
-    if (!isSupabaseConnected || !supabase) { await delay(300); return ok(undefined); }
+    if (isDemoMode()) { await delay(300); return ok(undefined); }
     try {
+        const db = requireSupabase();
+
         // 1. Update ledger status='paid', paid_at=now()
-        const { data: led, error } = await supabase!
+        const { data: led, error } = await db
             .from('ledger')
             .update({ status: 'paid', paid_at: new Date().toISOString() })
             .eq('id', ledgerId)
@@ -263,15 +245,15 @@ export async function markLedgerPaid(ledgerId: string): Promise<MutationResult> 
 
         if (error) return fail(error.message);
 
-        // 2. Insert notification for pool owner
-        const { data: { user } } = await supabase!.auth.getUser();
+        // 2. Notify pool owner (self-reported payment — flagged for future Stripe verification)
+        const { data: { user } } = await db.auth.getUser();
         const username = user?.user_metadata?.name || 'Someone';
 
-        await supabase!.from('notifications').insert({
+        await db.from('notifications').insert({
             user_id: (led as any).membership.pool.owner_id,
             type: 'payment_received',
             title: 'Payment received 💸',
-            body: `${username} marked ${(led as any).amount} as sent`,
+            body: `${username} marked payment as sent — please verify.`,
             action_url: '/ledger'
         });
 
@@ -288,12 +270,12 @@ export async function submitRating(
     score: number,
     review: string | null,
 ): Promise<MutationResult<{ ratingId: string }>> {
-    if (!isSupabaseConnected || !supabase) {
+    if (isDemoMode()) {
         await delay(350);
         return ok({ ratingId: `rating-mock-${Date.now()}` });
     }
     try {
-        const { data, error } = await supabase!
+        const { data, error } = await requireSupabase()
             .from('ratings')
             .insert({ pool_id: poolId, rater_id: raterId, rated_id: ratedId, score, review })
             .select('id').single();

@@ -7,6 +7,7 @@ import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import { DashboardLayout, ProtectedRoute } from './layouts/DashboardLayout';
 import { useAuth } from '../lib/supabase/auth';
 import { DemoModeProvider } from './components/demo-mode';
+import { CurrencyProvider } from '../lib/currency-context';
 import { ErrorBoundary } from './components/error-boundary';
 import { PageLoadSkeleton } from './components/skeletons';
 
@@ -15,7 +16,7 @@ import { PageLoadSkeleton } from './components/skeletons';
 function PageSuspense({ children }: { children: React.ReactNode }) {
     return (
         <ErrorBoundary>
-            <Suspense fallback={<div className="p-8"><PageLoadSkeleton /></div>}>
+            <Suspense fallback={<PageLoadSkeleton />}>
                 {children}
             </Suspense>
         </ErrorBoundary>
@@ -48,13 +49,15 @@ const ProfilePage = lazy(() => import('./pages/Profile').then(m => ({ default: m
 const MarketPage = lazy(() => import('./pages/MarketIntelligence').then(m => ({ default: m.MarketIntelligence })));
 const MessagesPage = lazy(() => import('./pages/Messages').then(m => ({ default: m.Messages })));
 const WishlistPage = lazy(() => import('./pages/Wishlist').then(m => ({ default: m.Wishlist })));
-const SavingsPage = lazy(() => import('./pages/Savings').then(m => ({ default: m.Savings })));
+const SavingsPage = lazy(() => import('./pages/SavingsPage').then(m => ({ default: m.SavingsPage })));
 const BillingPage = lazy(() => import('./pages/Billing').then(m => ({ default: m.Billing })));
 const PayoutPage = lazy(() => import('./pages/PayoutDashboard').then(m => ({ default: m.PayoutDashboard })));
 const DesignSystemPage = lazy(() => import('./pages/DesignSystem').then(m => ({ default: m.DesignSystem })));
 const EmptyStatesPage = lazy(() => import('./pages/EmptyStatesShowcase').then(m => ({ default: m.EmptyStatesShowcase })));
 const NotFoundPage = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 const OnboardingPage = lazy(() => import('./pages/Onboarding').then(m => ({ default: m.Onboarding })));
+const PlansPage = lazy(() => import('./pages/PlansPage').then(m => ({ default: m.PlansPage })));
+const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
 
 // Payment pages
 const PaymentMethodPage = lazy(() => import('./pages/payment/PaymentMethodSetup').then(m => ({ default: m.PaymentMethodSetup })));
@@ -76,7 +79,7 @@ const InvestorDemoEnhancedPage = lazy(() => import('./pages/InvestorDemoEnhanced
 // ─── Suspense wrapper ─────────────────────────────────────────────────────────
 
 function Lazy({ children }: { children: React.ReactNode }) {
-    return <Suspense fallback={<LoadingFallback />}>{children}</Suspense>;
+    return <Suspense fallback={<PageLoadSkeleton />}>{children}</Suspense>;
 }
 
 // ─── Auth Redirect (for /login) ──────────────────────────────────────────────
@@ -95,9 +98,11 @@ function AuthRedirect({ children }: { children: React.ReactNode }) {
 export const router = createBrowserRouter([
     {
         element: (
-            <DemoModeProvider>
-                <Outlet />
-            </DemoModeProvider>
+            <CurrencyProvider>
+                <DemoModeProvider>
+                    <Outlet />
+                </DemoModeProvider>
+            </CurrencyProvider>
         ),
         children: [
             // Root path is now the Landing Page
@@ -165,6 +170,17 @@ export const router = createBrowserRouter([
                 path: '/payment/success',
                 element: <Lazy><PaymentSuccessPage /></Lazy>,
             },
+            {
+                path: '/admin',
+                element: <Lazy><AdminPage /></Lazy>,
+            },
+
+            {
+                element: <DashboardLayout />,
+                children: [
+                    { path: '/browse', element: <Lazy><BrowsePage /></Lazy> },
+                ],
+            },
 
             // ─── Dashboard layout wrapping all authenticated pages ──────
             {
@@ -174,7 +190,6 @@ export const router = createBrowserRouter([
                     </ProtectedRoute>
                 ),
                 children: [
-                    { path: '/browse', element: <Lazy><BrowsePage /></Lazy> },
                     { path: '/my-pools', element: <Lazy><MyPoolsPage /></Lazy> },
                     { path: '/list', element: <Lazy><CreatePoolPage /></Lazy> },
                     { path: '/create', element: <Lazy><CreatePoolPage /></Lazy> },
@@ -191,6 +206,7 @@ export const router = createBrowserRouter([
                     { path: '/empty-states', element: <Lazy><EmptyStatesPage /></Lazy> },
                     { path: '/payment/method', element: <Lazy><PaymentMethodPage /></Lazy> },
                     { path: '/payment/confirm', element: <Lazy><PaymentConfirmPage /></Lazy> },
+                    { path: '/plans', element: <Lazy><PlansPage /></Lazy> },
                     { path: '*', element: <Lazy><NotFoundPage /></Lazy> },
                 ],
             },
