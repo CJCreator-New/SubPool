@@ -179,9 +179,7 @@ function Step1({ onNext, onClose }: { onNext: () => void; onClose: () => void })
                 marginTop: 2,
                 fontWeight: 700,
               }}
-            >
-              ✓
-            </span>
+             role="img" aria-label="Check">✓</span>
             <span style={{ fontFamily: F.syne, fontWeight: 400, fontSize: 14, color: C.textPrimary }}>
               {benefit}
             </span>
@@ -311,7 +309,7 @@ function Step2({ onNext }: { onNext: () => void }) {
             flexShrink: 0,
           }}
         >
-          {useCamera && <span style={{ fontSize: 10, color: C.bgBase }}>✓</span>}
+          {useCamera && <span style={{ fontSize: 10, color: C.bgBase }} role="img" aria-label="Check">✓</span>}
         </div>
         <span style={{ fontFamily: F.syne, fontWeight: 400, fontSize: 13, color: C.textPrimary }}>
           I'd rather use my camera instead

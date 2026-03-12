@@ -20,6 +20,34 @@ interface PaywallModalProps {
 export function PaywallModal({ feature, requiredPlan, open, onClose }: PaywallModalProps) {
     const navigate = useNavigate();
 
+    const featureContext: Record<string, { blockedAction: string; outcomes: string[] }> = {
+        'Market Intelligence': {
+            blockedAction: 'View live market rates',
+            outcomes: [
+                'See pricing benchmarks before publishing pools.',
+                'Spot demand shifts across top platforms.',
+                'List with better conversion confidence.',
+            ],
+        },
+        'hosting more pools': {
+            blockedAction: 'Host additional pools',
+            outcomes: [
+                'Publish multiple pools simultaneously.',
+                'Increase member capacity with host controls.',
+                'Scale recurring savings faster.',
+            ],
+        },
+    };
+
+    const context = featureContext[feature] ?? {
+        blockedAction: feature,
+        outcomes: [
+            `Unlock ${feature} for your account.`,
+            'Get premium controls and automation.',
+            'Improve conversion with advanced host tools.',
+        ],
+    };
+
     const planInfo = {
         pro: {
             name: 'Pro',
@@ -42,7 +70,14 @@ export function PaywallModal({ feature, requiredPlan, open, onClose }: PaywallMo
     const handleUpgrade = () => {
         track('paywall_upgrade_clicked', { feature, targetPlan: requiredPlan });
         onClose();
-        navigate('/plans');
+        navigate('/plans', {
+            state: {
+                source: 'paywall',
+                feature,
+                requiredPlan,
+                blockedAction: context.blockedAction,
+            },
+        });
     };
 
     return (
@@ -73,7 +108,7 @@ export function PaywallModal({ feature, requiredPlan, open, onClose }: PaywallMo
                         <ul className="space-y-2.5">
                             {planInfo.features.map((f, i) => (
                                 <li key={i} className="flex items-center gap-2.5 font-display text-xs text-foreground">
-                                    <span className="size-4 bg-primary/20 text-primary rounded-full flex items-center justify-center text-[8px] font-bold">✓</span>
+                                    <span className="size-4 bg-primary/20 text-primary rounded-full flex items-center justify-center text-[8px] font-bold" role="img" aria-label="Check">✓</span>
                                     {f}
                                 </li>
                             ))}

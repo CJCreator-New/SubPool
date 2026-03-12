@@ -157,7 +157,7 @@ export function EmptyStatesShowcase() {
             />
             <div style={{ marginTop: 16 }}>
                 <Button variant="outline" style={{ width: '100%', gap: 8, justifyContent: 'center' }}>
-                   <span>💌</span> Notify me when a slot opens
+                   <span role="img" aria-label="icon">💌</span> Notify me when a slot opens
                 </Button>
             </div>
           </div>

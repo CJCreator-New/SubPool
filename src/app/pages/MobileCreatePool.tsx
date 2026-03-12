@@ -500,7 +500,7 @@ export function MobileCreatePool() {
                 gap: 12,
               }}
             >
-              <span style={{ fontSize: 20 }}>ℹ️</span>
+              <span style={{ fontSize: 20 }} role="img" aria-label="icon">ℹ️</span>
               <p
                 style={{
                   fontFamily: F.syne,

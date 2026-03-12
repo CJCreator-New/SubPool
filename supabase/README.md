@@ -35,3 +35,29 @@ Follow these steps to connect your SubPool instance to a live Supabase database.
    ```
 2. Your application will now detect the Supabase environment variables and start using live data (with mock fallback if connection fails).
 3. Click **"Continue with Google"** on the login page to test the authentication flow.
+
+## 6. Reminder Cadence Engine
+The app includes a reminder engine that generates:
+- Payment reminders for upcoming/overdue ledger entries
+- Weekly digest notifications
+
+### Required migration
+Apply:
+- `supabase/migrations/20260304143000_reminder_cadence_engine.sql`
+
+### Required secrets
+Set these in Supabase Edge Function secrets:
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_ANON_KEY`
+- `REMINDER_ENGINE_SECRET` (used for scheduled global runs)
+
+### Deploy the function
+```bash
+supabase functions deploy generate-reminders
+```
+
+### Scheduled execution (recommended hourly)
+Invoke `generate-reminders` from your scheduler with header:
+- `x-reminder-secret: <REMINDER_ENGINE_SECRET>`
+
+The app also invokes this function in-app (throttled) for the signed-in user to keep reminders fresh between scheduled runs.

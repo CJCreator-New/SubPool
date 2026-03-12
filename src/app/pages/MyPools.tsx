@@ -1,4 +1,4 @@
-// ─── MyPools Page ──────────────────────────────────────────────────────────────
+// ─── MyPools Page ────────────────────────────────────────────────────────────
 // Owned pools grid + memberships table with payment actions.
 
 import { useState } from 'react';
@@ -7,6 +7,17 @@ import { StatCard, PoolCard, StatusPill, PlatformIcon } from '../components/subp
 import { Button } from '../components/ui/button';
 import { EmptyState } from '../components/empty-state';
 import { PoolCardSkeleton, StatCardSkeleton, TableRowSkeleton } from '../components/skeletons';
+import { MembershipRequestCard } from '../components/membership-request-card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 import {
   Table,
   TableHeader,
@@ -16,14 +27,17 @@ import {
   TableCell,
 } from '../components/ui/table';
 import { cn } from '../components/ui/utils';
-import { usePools, useMemberships } from '../../lib/supabase/hooks';
+import { getPlatform, formatPrice, formatDate, timeAgo } from '../../lib/constants';
+import type { Pool, Membership, JoinRequest } from '../../lib/types';
+import { useJoinRequests, usePools, useMemberships } from '../../lib/supabase/hooks';
 import { useAuth } from '../../lib/supabase/auth';
-import { getPlatform, formatPrice, formatDate } from '../../lib/constants';
-import type { Pool, Membership } from '../../lib/types';
+import { approveRequest, rejectRequest } from '../../lib/supabase/mutations';
 import { MOCK_EARNINGS_DATA, MOCK_PAYMENT_TIMELINE } from '../../lib/mock-data';
 import { EarningsBarChart, MemberPaymentTimeline, PoolHealthGauge } from '../components/pool-analytics-charts';
+import { getUserFacingError } from '../../lib/error-feedback';
+import { toast as sonnerToast } from 'sonner';
 
-// ─── Toast helper ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Toast helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function useToast() {
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({
@@ -39,30 +53,101 @@ function useToast() {
   return { toast, show };
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function MyPools() {
   const navigate = useNavigate();
   const { toast, show: showToast } = useToast();
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [membershipToCancel, setMembershipToCancel] = useState<Membership | null>(null);
   const { user, profile } = useAuth();
 
   const { data: myPools, loading: poolsLoading } = usePools({ ownerId: user?.id ?? 'user-you' });
   const { data: memberships, loading: membershipsLoading } = useMemberships();
+  const {
+    data: joinRequests,
+    loading: requestsLoading,
+    error: joinRequestsError,
+    refetch: refetchRequests,
+  } = useJoinRequests();
 
-  const loading = poolsLoading || membershipsLoading;
+  const loading = poolsLoading || membershipsLoading || requestsLoading;
 
   // Derived data
   const activeMemberships = memberships.filter((m: Membership) => m.status === 'active');
-  const totalOwed = activeMemberships.reduce((sum: number, m: Membership) => sum + m.pool.price_per_slot, 0);
+  const now = Date.now();
+  const dayInMs = 24 * 60 * 60 * 1000;
+  const totalOwed = activeMemberships.reduce((sum: number, m: Membership) => {
+    if (!m.pool) return sum;
+    return sum + m.pool.price_per_slot;
+  }, 0);
+  const renewalsDueSoon = activeMemberships.filter((membership) => {
+    if (!membership.next_billing_at) return false;
+    const dueAt = new Date(membership.next_billing_at).getTime();
+    return dueAt >= now && dueAt - now <= 3 * dayInMs;
+  }).length;
+  const overduePayments = activeMemberships.filter((membership) => {
+    if (!membership.next_billing_at) return false;
+    const dueAt = new Date(membership.next_billing_at).getTime();
+    return dueAt < now;
+  }).length;
+
+  const pendingRequests = joinRequests.filter(r => r.status === 'pending');
+  const joinRequestErrorMessage = joinRequestsError
+    ? getUserFacingError(joinRequestsError, 'load join requests').message
+    : null;
+
+  const handleApprove = async (id: string) => {
+    const res = await approveRequest(id);
+    if (res.success) {
+      showToast('Request approved! Slot filled.');
+      refetchRequests();
+    } else {
+      const friendly = getUserFacingError(res.error, 'approve this request');
+      showToast(friendly.message);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    const res = await rejectRequest(id);
+    if (res.success) {
+      showToast('Request rejected.');
+      refetchRequests();
+    } else {
+      const friendly = getUserFacingError(res.error, 'reject this request');
+      showToast(friendly.message);
+    }
+  };
+
+  const requestCancelMembership = (membership: Membership) => {
+    setMembershipToCancel(membership);
+    setCancelDialogOpen(true);
+  };
+
+  const confirmCancelMembership = () => {
+    if (!membershipToCancel) return;
+
+    const platformName = getPlatform(membershipToCancel.pool.platform)?.name ?? membershipToCancel.pool.platform;
+    sonnerToast.success('Cancellation request sent.', {
+      description: `${platformName} ${membershipToCancel.pool.plan_name} will be cancelled at period end.`,
+      action: {
+        label: 'Undo',
+        onClick: () => showToast('Cancellation undone.'),
+      },
+    });
+
+    setCancelDialogOpen(false);
+    setMembershipToCancel(null);
+  };
 
   return (
     <div className="space-y-8 pr-1">
-      {/* ─── Stats Row ───────────────────────────────────────────── */}
+      {/* â”€â”€â”€ Stats Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {profile?.plan === 'free' && (
         <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-3">
-            <span className="text-xl">🚀</span>
+            <span className="text-xl" role="img" aria-label="icon">ðŸš€</span>
             <div>
               <p className="font-display font-bold text-sm">Level up your hosting</p>
               <p className="font-mono text-[10px] text-muted-foreground">Host Plus members get automated approval, higher slot limits, and 0% platform fees.</p>
@@ -108,7 +193,62 @@ export function MyPools() {
         )}
       </div>
 
-      {/* ─── Pools I Own ─────────────────────────────────────────── */}
+      {!loading && (
+        <section className="space-y-3">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+            TODAY COMMAND CENTER
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-[6px] border border-border bg-card px-4 py-3">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Renewals (72h)</p>
+              <p className="font-display text-2xl font-bold mt-1">{renewalsDueSoon}</p>
+              <p className="font-mono text-[10px] text-muted-foreground mt-1">Upcoming renewals due soon</p>
+            </div>
+            <div className="rounded-[6px] border border-warning/30 bg-warning/10 px-4 py-3">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-warning">Unpaid Members</p>
+              <p className="font-display text-2xl font-bold mt-1 text-warning">{overduePayments}</p>
+              <p className="font-mono text-[10px] text-warning/80 mt-1">Past due and needs follow-up</p>
+            </div>
+            <div className="rounded-[6px] border border-primary/30 bg-primary/10 px-4 py-3">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-primary">Pending Requests</p>
+              <p className="font-display text-2xl font-bold mt-1 text-primary">{pendingRequests.length}</p>
+              <p className="font-mono text-[10px] text-primary/80 mt-1">Awaiting host action today</p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {joinRequestErrorMessage && (
+        <div className="px-4 py-3 rounded-lg border border-warning/30 bg-warning/10 text-warning">
+          <p className="font-mono text-xs">{joinRequestErrorMessage}</p>
+        </div>
+      )}
+
+      {/* ─── Pending Requests ────────────────────────────────────────── */}
+      {pendingRequests.length > 0 && !loading && (
+        <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-primary mb-3 flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+            </span>
+            Pending Join Requests ({pendingRequests.length})
+          </p>
+
+          <div className="grid grid-cols-1 gap-3">
+            {pendingRequests.map((req) => (
+              <MembershipRequestCard
+                key={req.id}
+                request={req}
+                onApprove={async () => handleApprove(req.id)}
+                onReject={async () => handleReject(req.id)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ─── Pools I Own ────────────────────────────────────────────── */}
       <section>
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground mb-3">
           POOLS I OWN
@@ -122,7 +262,7 @@ export function MyPools() {
         ) : myPools.length > 0 ? (
           <div className="grid grid-cols-1 gap-4">
             {myPools.map((pool) => {
-              const fillRate = (pool.slots_filled / pool.slots_total) * 100;
+              const fillRate = (pool.filled_slots / pool.total_slots) * 100;
               const payRate = 85;
               const healthScore = Math.round((fillRate * 0.6) + (payRate * 0.4));
 
@@ -141,7 +281,7 @@ export function MyPools() {
           </div>
         ) : (
           <EmptyState
-            icon="🏊"
+            icon="ðŸŠ"
             title="No pools yet"
             description="Share your subscriptions and earn by listing your first pool."
             action={() => navigate('/list')}
@@ -150,7 +290,7 @@ export function MyPools() {
         )}
       </section>
 
-      {/* ─── Analytics ──────────────────────────────────────────────── */}
+      {/* â”€â”€â”€ Analytics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="relative">
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground mb-3">
           ANALYTICS (PRO)
@@ -174,7 +314,7 @@ export function MyPools() {
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pt-8">
             <div className="bg-background/90 backdrop-blur-lg p-7 rounded-xl border border-primary/20 text-center max-w-sm shadow-2xl">
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl border border-primary/20">
-                🔒
+                ðŸ”’
               </div>
               <h3 className="font-display font-bold text-lg mb-2 text-foreground">Unlock Analytics</h3>
               <p className="font-mono text-[11px] text-muted-foreground mb-6 leading-relaxed">
@@ -188,14 +328,14 @@ export function MyPools() {
         )}
       </section>
 
-      {/* ─── My Memberships ──────────────────────────────────────── */}
+      {/* â”€â”€â”€ My Memberships â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
             MY MEMBERSHIPS
           </p>
 
-          {/* View Switcher — Mobile Only */}
+          {/* View Switcher â€” Mobile Only */}
           <div className="flex md:hidden bg-secondary/50 p-1 rounded-lg border border-border">
             <button
               onClick={() => setViewMode('cards')}
@@ -258,7 +398,7 @@ export function MyPools() {
                   ))
                 ) : memberships.length > 0 ? (
                   memberships.map((m: Membership) => {
-                    const platform = getPlatform(m.pool.platform_id);
+                    const platform = getPlatform(m.pool.platform);
 
                     return (
                       <TableRow
@@ -268,12 +408,12 @@ export function MyPools() {
                         <TableCell className="px-5 py-3.5">
                           <div className="flex items-center gap-2.5">
                             <PlatformIcon
-                              platformId={m.pool.platform_id}
+                              platformId={m.pool.platform}
                               size="sm"
                             />
                             <div>
                               <p className="font-display font-semibold text-sm text-foreground">
-                                {platform?.name ?? m.pool.platform_id}
+                                {platform?.name ?? m.pool.platform}
                               </p>
                               <p className="font-mono text-[10px] text-muted-foreground">
                                 {m.pool.plan_name}
@@ -296,7 +436,7 @@ export function MyPools() {
 
                         <TableCell className="px-5 py-3.5">
                           <span className="font-mono text-sm text-foreground">
-                            {m.next_billing_at ? formatDate(m.next_billing_at) : '—'}
+                            {m.next_billing_at ? formatDate(m.next_billing_at) : 'â€”'}
                           </span>
                         </TableCell>
 
@@ -311,7 +451,7 @@ export function MyPools() {
                                 size="sm"
                                 className="font-display text-xs"
                                 onClick={() =>
-                                  showToast('Payment marked ✓')
+                                  showToast('Payment marked âœ“')
                                 }
                               >
                                 Pay {formatPrice(m.pool.price_per_slot)}
@@ -320,11 +460,7 @@ export function MyPools() {
                                 variant="ghost"
                                 size="sm"
                                 className="font-mono text-[10px] text-muted-foreground hover:text-destructive"
-                                onClick={() => {
-                                  if (window.confirm('Cancel this membership?')) {
-                                    showToast('Cancellation request sent');
-                                  }
-                                }}
+                                onClick={() => requestCancelMembership(m)}
                               >
                                 Cancel
                               </Button>
@@ -342,7 +478,7 @@ export function MyPools() {
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
                       <EmptyState
-                        icon="🚫"
+                        icon="ðŸš«"
                         title="No memberships"
                         description="You haven't joined any pools yet."
                         action={() => navigate('/browse')}
@@ -366,9 +502,9 @@ export function MyPools() {
             <div key={m.id} className="bg-card border border-border rounded-lg p-5 space-y-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <PlatformIcon platformId={m.pool.platform_id} size="sm" />
+                  <PlatformIcon platformId={m.pool.platform} size="sm" />
                   <div>
-                    <p className="font-display font-bold text-sm">{getPlatform(m.pool.platform_id)?.name}</p>
+                    <p className="font-display font-bold text-sm">{getPlatform(m.pool.platform)?.name}</p>
                     <p className="font-mono text-[10px] text-muted-foreground">{m.pool.plan_name}</p>
                   </div>
                 </div>
@@ -382,7 +518,7 @@ export function MyPools() {
                 </div>
                 <div>
                   <p className="font-mono text-[9px] uppercase text-muted-foreground mb-1">Next Due</p>
-                  <p className="font-mono text-sm">{m.next_billing_at ? formatDate(m.next_billing_at) : '—'}</p>
+                  <p className="font-mono text-sm">{m.next_billing_at ? formatDate(m.next_billing_at) : 'â€”'}</p>
                 </div>
               </div>
 
@@ -400,8 +536,8 @@ export function MyPools() {
                     <Button size="sm" className="h-8 text-xs px-3" onClick={() => showToast('Payment sent')}>
                       Pay
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-8 text-xs px-2" onClick={() => { if (window.confirm('Cancel?')) { showToast('Cancelled'); } }}>
-                      ✕
+                    <Button variant="ghost" size="sm" className="h-8 text-xs px-2" onClick={() => requestCancelMembership(m)}>
+                      âœ•
                     </Button>
                   </div>
                 )}
@@ -411,12 +547,36 @@ export function MyPools() {
         </div>
       </section>
 
-      {/* ─── Inline Toast ──────────────────────────────────────── */}
+      {/* â”€â”€â”€ Inline Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel membership?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This sends a cancellation request for{' '}
+              {membershipToCancel
+                ? `${getPlatform(membershipToCancel.pool.platform)?.name ?? membershipToCancel.pool.platform} ${membershipToCancel.pool.plan_name}`
+                : 'this membership'}
+              . You can undo immediately after confirming.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setMembershipToCancel(null)}>
+              Keep Membership
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancelMembership}>
+              Confirm Cancel
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {toast.visible && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-lg bg-card border border-success text-foreground font-display text-sm shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div role="status" aria-live="polite" className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-lg bg-card border border-success text-foreground font-display text-sm shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300">
           {toast.message}
         </div>
       )}
     </div>
   );
 }
+
+

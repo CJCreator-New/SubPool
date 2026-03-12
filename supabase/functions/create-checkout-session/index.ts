@@ -1,3 +1,4 @@
+// @ts-nocheck — This file runs in the Deno runtime (Supabase Edge Functions), not Node.js.
 // supabase/functions/create-checkout-session/index.ts
 // Creates a Stripe Checkout Session for a ledger payment.
 // Called from the client — the session URL is returned and the browser redirects to Stripe.

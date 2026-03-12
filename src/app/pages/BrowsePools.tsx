@@ -1,4 +1,4 @@
-// ─── BrowsePools Page ──────────────────────────────────────────────────────────
+// â”€â”€â”€ BrowsePools Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Filterable grid of pool cards with stats, search, and detail modal.
 
 import { useState, useEffect, useRef } from 'react';
@@ -12,7 +12,7 @@ import { EmptyState } from '../components/empty-state';
 import { PaywallModal } from '../components/paywall-modal';
 import { cn } from '../components/ui/utils';
 import { track } from '../../lib/analytics';
-import { usePools } from '../../lib/supabase/hooks';
+import { usePoolsPaginated } from '../../lib/supabase/hooks';
 import type { Pool } from '../../lib/types';
 import { useAuth } from '../../lib/supabase/auth';
 import { useNavigate } from 'react-router';
@@ -20,20 +20,22 @@ import { Insight, useDemo } from '../components/demo-mode';
 import { useCountUp } from '../../hooks/useCountUp';
 import { useCurrency } from '../../lib/currency-context';
 import { CurrencyToggle } from '../components/currency-toggle';
+import { ActivationChecklist } from '../components/activation-checklist';
 
-// ─── Filter constants ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Filter constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-type FilterKey = 'all' | 'entertainment' | 'work' | 'ai' | 'open';
+type FilterKey = 'all' | 'entertainment' | 'work' | 'ai' | 'open' | 'creative';
 
-const FILTER_CHIPS: { key: FilterKey; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'entertainment', label: 'OTT' },
+const CATEGORY_CHIPS: { key: FilterKey; label: string }[] = [
+  { key: 'all', label: 'All Pools' },
+  { key: 'open', label: 'Open only' },
+  { key: 'entertainment', label: 'Entertainment' },
   { key: 'work', label: 'Team SaaS' },
   { key: 'ai', label: 'AI Tools' },
-  { key: 'open', label: 'Open Only' },
+  { key: 'creative', label: 'Creative' },
 ];
 
-// ─── Toast helper (inline, no sonner dependency) ──────────────────────────────
+// â”€â”€â”€ Toast helper (inline, no sonner dependency) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function useToast() {
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({
@@ -51,7 +53,7 @@ function useToast() {
 
 
 
-// ─── Market Intelligence Component ────────────────────────────────────────────
+// â”€â”€â”€ Market Intelligence Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const TOP_PLATFORMS = [
   { id: 'netflix', plan: '4K', name: 'Netflix' },
@@ -111,7 +113,7 @@ function MarketIntelligenceRow() {
         }}
         className="text-xs font-mono mb-3 group"
       >
-        📊 See market rates {expanded ? '▲' : '▼'}
+        ðŸ“Š See market rates {expanded ? 'â–²' : 'â–¼'}
         {isFree && <span className="ml-2 text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">PRO</span>}
       </Button>
 
@@ -120,7 +122,9 @@ function MarketIntelligenceRow() {
           <div className={`flex overflow-x-auto gap-3 pb-2 snap-x hide-scrollbar ${isFree ? 'focus-within:blur-none transition-all' : ''}`}>
             {/* content same as before ... */}
             {!isDataLoaded ? (
-              <div className="text-sm text-muted-foreground font-mono px-2 py-4">Loading market data...</div>
+              <div className="text-sm text-muted-foreground font-mono px-2 py-4">
+                {isFree ? 'Subscribe to Pro to unlock market rates.' : 'Loading market data...'}
+              </div>
             ) : (
               metrics.map(m => (
                 <div key={m.id} className={`w-[160px] shrink-0 bg-card border border-border rounded-[6px] p-3 snap-start relative ${isFree ? 'blur-[3px] select-none pointer-events-none' : ''}`}>
@@ -140,7 +144,7 @@ function MarketIntelligenceRow() {
 
           {isFree && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-lg border border-primary/20 p-4 text-center z-10 animate-in fade-in duration-500">
-              <span className="text-xl mb-2">📊</span>
+              <span className="text-xl mb-2" role="img" aria-label="icon">ðŸ“Š</span>
               <p className="font-display font-bold text-sm mb-1">Market Intelligence</p>
               <p className="font-mono text-[10px] text-muted-foreground mb-4 max-w-[200px]">Unlock real-time market averages and demand tracking with Pro.</p>
               <Button size="sm" onClick={() => setPaywallOpen(true)} className="h-8 text-[10px] font-display font-bold px-4">
@@ -161,25 +165,38 @@ function MarketIntelligenceRow() {
   );
 }
 
-// ─── Skeletons ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Skeletons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function BrowsePools() {
   const [filter, setFilter] = useState<FilterKey>('all');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [allPools, setAllPools] = useState<Pool[]>([]);
+  const { isDemo, currentStep } = useDemo();
 
-  const { data: pools, loading } = usePools({
-    category: filter === 'all' || filter === 'open' ? undefined : filter,
-    status: filter === 'open' ? 'open' : undefined,
-    searchQuery: search
-  });
+  // Debounce search to prevent excessive queries
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const { data: pagedPools, loading } = usePoolsPaginated({
+    cursor,
+    limit: 9,
+    filters: {
+      category: filter === 'all' || filter === 'open' ? undefined : filter,
+      status: filter === 'open' ? 'open only' : undefined,
+      searchQuery: debouncedSearch,
+    },
+  }, { allowDemoFallback: true }); // Always fallback to demo data if Supabase can't load
 
   const { toast, show: showToast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { isDemo, currentStep } = useDemo();
   const mounted = useRef(false);
 
   useEffect(() => {
@@ -193,6 +210,22 @@ export function BrowsePools() {
     return () => document.body.classList.remove('demo-mode');
   }, [isDemo]);
 
+  useEffect(() => {
+    setCursor(undefined);
+    setAllPools([]);
+  }, [filter, debouncedSearch]);
+
+  useEffect(() => {
+    if (!pagedPools?.items) return;
+    setAllPools((prev) => {
+      if (!cursor) return pagedPools.items;
+      const merged = [...prev, ...pagedPools.items];
+      const deduped = new Map<string, Pool>();
+      merged.forEach((pool) => deduped.set(pool.id, pool));
+      return Array.from(deduped.values());
+    });
+  }, [cursor, pagedPools]);
+
   const openPoolsCount = Math.floor(useCountUp(142, 1200, isDemo));
   const platformsCount = Math.floor(useCountUp(28, 1200, isDemo));
   const savingsCount = Math.floor(useCountUp(67, 1200, isDemo));
@@ -205,6 +238,12 @@ export function BrowsePools() {
     return val.toLocaleString();
   };
 
+  useEffect(() => {
+    if (user) {
+      track('activation_checklist_viewed', { source: 'dashboard' });
+    }
+  }, [user]);
+
   // Demo Mode Interaction
   useEffect(() => {
     if (isDemo) {
@@ -216,27 +255,33 @@ export function BrowsePools() {
     }
   }, [isDemo, currentStep]);
 
-  const filtered = pools;
+  const filtered = allPools;
+  const hasSearchFilter = debouncedSearch.trim().length > 0;
+  const hasCategoryFilter = filter !== 'all';
+  const activeFilterCount = Number(hasSearchFilter) + Number(hasCategoryFilter);
 
   const handleRequestJoin = async (_pool: Pool) => {
     if (!user) {
-      showToast('Sign in to join pools →');
-      setTimeout(() => navigate('/login'), 1500);
+      showToast('Sign in to join pools.');
+      setTimeout(() => navigate(`/login?next=${encodeURIComponent('/browse')}`), 1500);
       return;
     }
     await new Promise((r) => setTimeout(r, 1200));
     setSelectedPool(null);
-    showToast('Request sent! Waiting for approval 🙌');
+    showToast('Request sent. Waiting for approval.');
   };
 
   const clearFilters = () => {
     setFilter('all');
     setSearch('');
+    setDebouncedSearch('');
+    setCursor(undefined);
+    setAllPools([]);
   };
 
   return (
     <div className="space-y-7">
-      {/* ─── Page Header ─────────────────────────────────────────── */}
+      {/* â”€â”€â”€ Page Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div>
         <h1 className="font-display font-bold text-[28px] tracking-tight text-foreground">
           Browse Pools
@@ -246,7 +291,9 @@ export function BrowsePools() {
         </p>
       </div>
 
-      {/* ─── Stats Row ───────────────────────────────────────────── */}
+      <ActivationChecklist />
+
+      {/* â”€â”€â”€ Stats Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {loading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => <StatCardSkeleton key={i} />)}
@@ -256,7 +303,7 @@ export function BrowsePools() {
           <StatCard
             label="OPEN POOLS"
             value={formatStat(openPoolsCount, 142)}
-            sub="↑ 12 new today"
+            sub="â†‘ 12 new today"
             subVariant="success"
             accentTop
             live
@@ -277,7 +324,7 @@ export function BrowsePools() {
           <StatCard
             label="MEMBERS"
             value={formatStat(membersCount, 3241)}
-            sub="↑ 847 this month"
+            sub="â†‘ 847 this month"
             subVariant="success"
           />
 
@@ -303,13 +350,13 @@ export function BrowsePools() {
         }
       `}</style>
 
-      {/* ─── Market Intelligence Row ─────────────────────────────── */}
+      {/* â”€â”€â”€ Market Intelligence Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <MarketIntelligenceRow />
 
-      {/* ─── Filter Row ──────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-        <div className="flex flex-wrap gap-2 items-center flex-1">
-          {FILTER_CHIPS.map((chip) => (
+      {/* â”€â”€â”€ Filter Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <div className="sticky top-[60px] z-20 flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-background/90 backdrop-blur-md border-y border-border/60 py-2 px-2 -mx-2 rounded-[6px]">
+        <div className="flex flex-wrap gap-2 items-center flex-1 overflow-x-auto pb-1">
+          {CATEGORY_CHIPS.map((chip) => (
             <button
               key={chip.key}
               onClick={() => setFilter(chip.key)}
@@ -329,7 +376,7 @@ export function BrowsePools() {
 
         {/* Search */}
         <div className="flex items-center gap-2 bg-card border border-border rounded-[6px] px-3 py-2 w-full sm:w-auto overflow-hidden">
-          <span className="text-muted-foreground text-sm">🔍</span>
+          <span className="text-muted-foreground text-sm" role="img" aria-label="icon">ðŸ”</span>
           <input
             type="text"
             placeholder="Search platforms..."
@@ -338,9 +385,22 @@ export function BrowsePools() {
             className="border-0 bg-transparent p-0 h-auto text-sm flex-1 sm:w-[180px] focus:outline-none text-foreground placeholder:text-muted-foreground"
           />
         </div>
+        {activeFilterCount > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="h-8 text-xs font-mono text-muted-foreground"
+          >
+            Clear ({activeFilterCount})
+          </Button>
+        )}
+        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          {filtered.length} results
+        </span>
       </div>
 
-      {/* ─── Pool Grid or Empty State ────────────────────────────── */}
+      {/* â”€â”€â”€ Pool Grid or Empty State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {
         loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -353,12 +413,12 @@ export function BrowsePools() {
                 <PoolCard
                   pool={pool}
                   onClick={(p) => {
-                    track('pool_card_clicked', { poolId: p.id, platformId: p.platform_id });
+                    track('pool_card_clicked', { poolId: p.id, platformId: p.platform });
                     setSelectedPool(p);
                   }}
                   animate={isDemo}
                 />
-                {pool.platform_id === 'netflix' && (
+                {pool.platform === 'netflix' && (
                   <Insight id="netflix-card" activeStep={3} className="top-1/2 -right-1/2 translate-x-4 -translate-y-1/2" />
                 )}
               </div>
@@ -366,7 +426,7 @@ export function BrowsePools() {
           </div>
         ) : (
           <EmptyState
-            icon="🔭"
+            icon="ðŸ”­"
             title="No pools found"
             description="Try a different filter or search term to find what you're looking for."
             action={clearFilters}
@@ -375,7 +435,19 @@ export function BrowsePools() {
         )
       }
 
-      {/* ─── Pool Detail Modal ───────────────────────────────────── */}
+      {pagedPools.nextCursor && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={() => setCursor(pagedPools.nextCursor)}
+            className="font-mono text-[11px] uppercase tracking-wider"
+          >
+            Load more pools
+          </Button>
+        </div>
+      )}
+
+      {/* â”€â”€â”€ Pool Detail Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <PoolDetailModal
         pool={selectedPool}
         open={!!selectedPool}
@@ -383,7 +455,7 @@ export function BrowsePools() {
         onRequestJoin={handleRequestJoin}
       />
 
-      {/* ─── Inline Toast ────────────────────────────────────────── */}
+      {/* â”€â”€â”€ Inline Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {
         toast.visible && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-lg bg-card border border-success text-foreground font-display text-sm shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -394,3 +466,4 @@ export function BrowsePools() {
     </div >
   );
 }
+

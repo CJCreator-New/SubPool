@@ -23,7 +23,7 @@ export function ProAnalytics() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <span style={{ fontSize: 18 }}>📊</span>
+        <span style={{ fontSize: 18 }} role="img" aria-label="Chart">📊</span>
         <h2 style={{ margin: 0, fontFamily: F.syne, fontWeight: 700, fontSize: 18, color: C.textPrimary }}>
           Pro Analytics
         </h2>

@@ -28,9 +28,7 @@ export function ToastNotification({ message }: ToastNotificationProps) {
           color: C.accentLime,
           flexShrink: 0,
         }}
-      >
-        ✓
-      </span>
+       role="img" aria-label="Check">✓</span>
       <span
         style={{
           fontFamily: F.syne,

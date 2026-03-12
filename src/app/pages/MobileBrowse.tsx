@@ -130,7 +130,7 @@ export function MobileBrowse() {
             gap: 10,
           }}
         >
-          <span style={{ opacity: 0.4, fontSize: 16 }}>🔍</span>
+          <span style={{ opacity: 0.4, fontSize: 16 }} role="img" aria-label="icon">🔍</span>
           <input
             type="text"
             placeholder="Search platforms..."

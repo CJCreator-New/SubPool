@@ -116,7 +116,7 @@ export function PlatformIcon({ platformId, size = 'md', glowColor }: PlatformIco
             className={cn('flex items-center justify-center shrink-0', box)}
             style={{ backgroundColor: platform?.bg ?? '#1A1A1A' }}
         >
-            <span style={{ fontSize, lineHeight: 1 }}>{platform?.icon ?? '📦'}</span>
+            <span style={{ fontSize, lineHeight: 1 }} role="img" aria-label={platform?.name ?? 'Platform icon'}>{platform?.icon ?? '📦'}</span>
         </div>
     );
 }
@@ -224,13 +224,13 @@ interface PoolCardProps {
 }
 
 export function PoolCard({ pool, variant = 'full', className, onClick, animate = false }: PoolCardProps) {
-    const platform = getPlatform(pool.platform_id);
+    const platform = getPlatform(pool.platform);
     const { formatPrice } = useCurrency();
     const analysis = analyzePricing({
-        platformId: pool.platform_id,
+        platformId: pool.platform,
         planName: pool.plan_name,
         userSlotPrice: pool.price_per_slot / 100,
-        totalSlots: pool.slots_total,
+        totalSlots: pool.total_slots,
         currency: detectUserCurrency(),
         countryCode: 'GLOBAL'
     });
@@ -280,7 +280,7 @@ export function PoolCard({ pool, variant = 'full', className, onClick, animate =
                         onKeyDown={handleKeyDown}
                         tabIndex={onClick ? 0 : -1}
                         role="button"
-                        aria-label={`${platform?.name || 'Platform'} ${pool.plan_name} pool, ${pool.slots_filled} of ${pool.slots_total} slots filled, ${formatPrice(pool.price_per_slot / 100)} per month`}
+                        aria-label={`${platform?.name || 'Platform'} ${pool.plan_name} pool, ${pool.filled_slots} of ${pool.total_slots} slots filled, ${formatPrice(pool.price_per_slot / 100)} per month`}
                         className={cn(
                             'transition-all duration-200 ease-out',
                             'hover:-translate-y-1 hover:border-primary/30',
@@ -307,10 +307,10 @@ export function PoolCard({ pool, variant = 'full', className, onClick, animate =
 
                                 {/* Platform row */}
                                 <div className="flex items-center gap-3 mb-4">
-                                    <PlatformIcon platformId={pool.platform_id} size="md" />
+                                    <PlatformIcon platformId={pool.platform} size="md" />
                                     <div className="min-w-0">
                                         <p className="font-display font-bold text-[17px] text-foreground truncate">
-                                            {platform?.name ?? pool.platform_id}
+                                            {platform?.name ?? pool.platform}
                                         </p>
                                         <p className="font-mono text-[11px] text-muted-foreground truncate">
                                             {pool.plan_name}
@@ -320,7 +320,7 @@ export function PoolCard({ pool, variant = 'full', className, onClick, animate =
 
                                 {/* Slot bar */}
                                 <div className="mb-4">
-                                    <SlotBar filled={pool.slots_filled} total={pool.slots_total} size="sm" animate={animate} />
+                                    <SlotBar filled={pool.filled_slots} total={pool.total_slots} size="sm" animate={animate} />
                                 </div>
 
                                 {/* Bottom: Price + Owner */}
@@ -376,7 +376,7 @@ export function PoolCard({ pool, variant = 'full', className, onClick, animate =
                 </TooltipTrigger>
                 <TooltipContent side="top" sideOffset={8} className="bg-card text-foreground border border-[#2A2A2A] shadow-xl p-3 mb-2 font-mono text-[11px] font-bold z-[100] flex gap-2">
                     <span className="text-[#4DFF91]">Members save {analysis.savingsPct.toFixed(0)}%</span>
-                    <span className="text-muted-foreground">·</span>
+                    <span className="text-muted-foreground" aria-hidden="true">·</span>
                     <span className="text-primary">Host offsets {analysis.hostOffset.toFixed(0)}% of bill</span>
                 </TooltipContent>
             </Tooltip>
@@ -391,6 +391,7 @@ interface NotificationItemProps {
     onRead?: (id: string) => void;
     onApprove?: (id: string) => void;
     onDecline?: (id: string) => void;
+    onDismiss?: (id: string) => void;
 }
 
 export function NotificationItem({
@@ -398,6 +399,7 @@ export function NotificationItem({
     onRead,
     onApprove,
     onDecline,
+    onDismiss,
 }: NotificationItemProps) {
     const isJoinRequest = notification.title.toLowerCase().includes('join request');
 
@@ -420,7 +422,7 @@ export function NotificationItem({
             <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                     {/* Emoji icon */}
-                    <span className="text-xl shrink-0 mt-0.5">{notification.icon}</span>
+                    <span className="text-xl shrink-0 mt-0.5" role="img" aria-label="Notification type">{notification.icon}</span>
 
                     {/* Title + Body */}
                     <div className="flex-1 min-w-0">
@@ -440,14 +442,35 @@ export function NotificationItem({
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onApprove?.(notification.id); }}
                                     className="h-7 px-3 rounded-md text-[11px] font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                                    aria-label="Approve join request"
                                 >
                                     Approve
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onDecline?.(notification.id); }}
                                     className="h-7 px-3 rounded-md text-[11px] font-medium border border-border text-muted-foreground hover:bg-muted/50 transition-colors"
+                                    aria-label="Decline join request"
                                 >
                                     Decline
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onDismiss?.(notification.id); }}
+                                    className="h-7 px-3 rounded-md text-[11px] font-medium border border-border text-muted-foreground hover:bg-muted/50 transition-colors"
+                                    aria-label="Dismiss notification"
+                                >
+                                    Dismiss
+                                </button>
+                            </div>
+                        )}
+
+                        {!isJoinRequest && !notification.read && (
+                            <div className="mt-2.5">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onDismiss?.(notification.id); }}
+                                    className="h-7 px-3 rounded-md text-[11px] font-medium border border-border text-muted-foreground hover:bg-muted/50 transition-colors"
+                                    aria-label="Dismiss notification"
+                                >
+                                    Dismiss
                                 </button>
                             </div>
                         )}

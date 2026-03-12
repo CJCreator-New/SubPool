@@ -92,10 +92,10 @@ export function EarningsBarChart({ data }: EarningsBarChartProps) {
             </div>
             <div className="flex items-center justify-center gap-4 mt-4 font-mono text-[10px] text-[#6B6860]">
                 <div className="flex items-center gap-1.5">
-                    <span className="text-[#2A2A2A]">■</span> Would pay
+                    <span className="text-[#2A2A2A]" role="img" aria-label="icon">■</span> Would pay
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <span className="text-[#C8F135]">■</span> Earned
+                    <span className="text-[#C8F135]" role="img" aria-label="icon">■</span> Earned
                 </div>
             </div>
         </div>

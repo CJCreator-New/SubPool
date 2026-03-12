@@ -27,14 +27,18 @@ export const supabase: SupabaseClient | null = isSupabaseConnected
 
 export type Tables = {
     pools: Record<string, unknown>;
-    users: Record<string, unknown>;
-    slots: Record<string, unknown>;
+    profiles: Record<string, unknown>;
+    memberships: Record<string, unknown>;
+    join_requests: Record<string, unknown>;
     ledger: Record<string, unknown>;
     notifications: Record<string, unknown>;
     messages: Record<string, unknown>;
     threads: Record<string, unknown>;
     wishlist: Record<string, unknown>;
     payouts: Record<string, unknown>;
+    analytics_events: Record<string, unknown>;
+    pool_market_metrics: Record<string, unknown>;
+    platform_pricing: Record<string, unknown>;
 };
 
 /**

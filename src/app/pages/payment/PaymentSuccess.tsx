@@ -1,130 +1,58 @@
-import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Check, Download, ArrowLeft } from 'lucide-react';
-import { motion } from 'motion/react';
-import { C, F } from '../../tokens';
-import { Button } from '../../components/subpool/Button';
+import { Check, Download } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 
 export function PaymentSuccess() {
   const navigate = useNavigate();
-  const [showContent, setShowContent] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowContent(true);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: C.bgBase,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: 20,
-      }}
-    >
-      {/* Animation */}
-      <motion.div
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: '50%',
-          backgroundColor: C.accentLime,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 32,
-        }}
-      >
-        <Check size={40} color={C.bgBase} strokeWidth={3} />
-      </motion.div>
-
-      {/* Main Content */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        style={{ textAlign: 'center', width: '100%', maxWidth: 400 }}
-      >
-        <h1
-          style={{
-            fontFamily: F.syne,
-            fontSize: 28,
-            fontWeight: 800,
-            color: C.textPrimary,
-            marginBottom: 8,
-          }}
-        >
-          $4.99 sent to Riya K
-        </h1>
-        <p
-          style={{
-            fontFamily: F.mono,
-            fontSize: 14,
-            color: C.textMuted,
-            marginBottom: 40,
-          }}
-        >
-          February 2026 · Netflix Standard 4K
-        </p>
-
-        {/* Receipt Card */}
-        <div
-          style={{
-            backgroundColor: C.bgSurface,
-            border: `1px solid ${C.borderDefault}`,
-            borderRadius: 6,
-            padding: 24,
-            marginBottom: 32,
-            textAlign: 'left',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-            <span style={{ fontFamily: F.mono, fontSize: 12, color: C.textMuted }}>Transaction ID</span>
-            <span style={{ fontFamily: F.mono, fontSize: 12, color: C.textPrimary }}>#TXN-2847364</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-            <span style={{ fontFamily: F.mono, fontSize: 12, color: C.textMuted }}>Date</span>
-            <span style={{ fontFamily: F.mono, fontSize: 12, color: C.textPrimary }}>Feb 18, 2026 · 2:34 PM</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontFamily: F.mono, fontSize: 12, color: C.textMuted }}>Method</span>
-            <span style={{ fontFamily: F.mono, fontSize: 12, color: C.textPrimary }}>Visa •••• 4242</span>
-          </div>
+    <div className="min-h-[calc(100vh-120px)] grid place-items-center px-4 py-10">
+      <div className="w-full max-w-md space-y-6 text-center">
+        <div className="mx-auto size-16 rounded-full bg-primary text-primary-foreground grid place-items-center animate-in zoom-in-90 duration-300">
+          <Check className="size-8" strokeWidth={3} />
         </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="space-y-2">
+          <h1 className="font-display font-black text-3xl tracking-tight">$4.99 sent to Riya K</h1>
+          <p className="font-mono text-xs sm:text-sm text-muted-foreground">February 2026 • Netflix Standard 4K</p>
+        </div>
+
+        <Card className="border-border text-left">
+          <CardHeader className="pb-2">
+            <CardTitle className="font-display text-base">Receipt</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center justify-between font-mono text-xs">
+              <span className="text-muted-foreground">Transaction ID</span>
+              <span>#TXN-2847364</span>
+            </div>
+            <div className="flex items-center justify-between font-mono text-xs">
+              <span className="text-muted-foreground">Date</span>
+              <span>Feb 18, 2026 • 2:34 PM</span>
+            </div>
+            <div className="flex items-center justify-between font-mono text-xs">
+              <span className="text-muted-foreground">Method</span>
+              <span>Visa •••• 4242</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-3">
           <Button
-             variant="outline" 
-             onClick={() => {}} // Download receipt logic
-             style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            variant="outline"
+            className="w-full"
+            onClick={() => toast.success('Receipt download started.')}
           >
-            <Download size={16} /> Download Receipt
+            <Download className="size-4" aria-hidden="true" />
+            Download Receipt
           </Button>
-          
-          <Button
-             variant="primary"
-             onClick={() => navigate('/ledger')}
-             style={{ width: '100%' }}
-          >
-             Back to Ledger
+          <Button className="w-full" onClick={() => navigate('/ledger')}>
+            Back to Ledger
           </Button>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

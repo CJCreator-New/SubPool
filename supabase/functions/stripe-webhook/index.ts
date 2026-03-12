@@ -1,3 +1,4 @@
+// @ts-nocheck — This file runs in the Deno runtime (Supabase Edge Functions), not Node.js.
 // supabase/functions/stripe-webhook/index.ts
 // Handles Stripe webhook events to mark ledger entries as paid.
 // Verifies the webhook signature before processing — this is CRITICAL security.

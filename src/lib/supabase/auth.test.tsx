@@ -1,21 +1,10 @@
+import React from 'react';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import { useAuth } from './auth';
-import { supabase } from './client';
 import { MemoryRouter } from 'react-router';
-import React from 'react';
+import { AuthProvider, useAuth } from './auth';
+import { supabase } from './client';
 
-// Mock navigate
-const mockNavigate = vi.fn();
-vi.mock('react-router', async (importOriginal) => {
-    const actual = await importOriginal() as any;
-    return {
-        ...actual,
-        useNavigate: () => mockNavigate,
-    };
-});
-
-// Mock Supabase client
 vi.mock('./client', () => {
     return {
         supabase: {
@@ -35,15 +24,19 @@ describe('useAuth hook', () => {
         vi.clearAllMocks();
     });
 
+    function wrapper({ children }: { children: React.ReactNode }) {
+        return (
+            <MemoryRouter>
+                <AuthProvider>{children}</AuthProvider>
+            </MemoryRouter>
+        );
+    }
+
     it('handles initial unauthenticated session', async () => {
         (supabase!.auth.getSession as Mock).mockResolvedValue({ data: { session: null } });
         (supabase!.auth.onAuthStateChange as Mock).mockReturnValue({
-            data: { subscription: { unsubscribe: vi.fn() } }
+            data: { subscription: { unsubscribe: vi.fn() } },
         });
-
-        const wrapper = ({ children }: { children: React.ReactNode }) => (
-            <MemoryRouter>{children}</MemoryRouter>
-        );
 
         const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -63,21 +56,25 @@ describe('useAuth hook', () => {
         const mockProfile = { id: 'user-123', username: 'tester' };
 
         (supabase!.auth.getSession as Mock).mockResolvedValue({
-            data: { session: { user: mockUser } }
+            data: { session: { user: mockUser } },
         });
         (supabase!.auth.onAuthStateChange as Mock).mockReturnValue({
-            data: { subscription: { unsubscribe: vi.fn() } }
+            data: { subscription: { unsubscribe: vi.fn() } },
         });
 
-        // Mock profile fetch
-        const mockSingle = vi.fn().mockResolvedValue({ data: mockProfile, error: null });
-        const mockEq = vi.fn().mockReturnValue({ single: mockSingle });
-        const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-        (supabase!.from as Mock).mockReturnValue({ select: mockSelect });
+        const profileSingle = vi.fn().mockResolvedValue({ data: mockProfile, error: null });
+        const profileEq = vi.fn().mockReturnValue({ single: profileSingle });
+        const profileSelect = vi.fn().mockReturnValue({ eq: profileEq });
 
-        const wrapper = ({ children }: { children: React.ReactNode }) => (
-            <MemoryRouter>{children}</MemoryRouter>
-        );
+        const planSingle = vi.fn().mockResolvedValue({ data: { plan_id: 'free' }, error: null });
+        const planEq = vi.fn().mockReturnValue({ single: planSingle });
+        const planSelect = vi.fn().mockReturnValue({ eq: planEq });
+
+        (supabase!.from as Mock).mockImplementation((table: string) => {
+            if (table === 'profiles') return { select: profileSelect };
+            if (table === 'user_plans') return { select: planSelect };
+            return { select: vi.fn() };
+        });
 
         const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -88,37 +85,27 @@ describe('useAuth hook', () => {
         expect(result.current.user).toEqual(mockUser);
 
         await waitFor(() => {
-            expect(result.current.profile).toEqual(mockProfile);
+            expect(result.current.profile).toEqual({ ...mockProfile, plan: 'free' });
         });
     });
 
-    it('calls signOut and redirects when signed out', async () => {
-        (supabase!.auth.signOut as Mock).mockResolvedValue({ error: null });
+    it('clears user on SIGNED_OUT event', async () => {
         (supabase!.auth.getSession as Mock).mockResolvedValue({ data: { session: null } });
 
-        let triggerAuthChange: any;
+        let triggerAuthChange: ((event: string, session: unknown) => void) | undefined;
         (supabase!.auth.onAuthStateChange as Mock).mockImplementation((callback) => {
             triggerAuthChange = callback;
             return { data: { subscription: { unsubscribe: vi.fn() } } };
         });
 
-        const wrapper = ({ children }: { children: React.ReactNode }) => (
-            <MemoryRouter>{children}</MemoryRouter>
-        );
-
         const { result } = renderHook(() => useAuth(), { wrapper });
+        await waitFor(() => expect(result.current.loading).toBe(false));
 
-        await waitFor(() => {
-            expect(result.current.loading).toBe(false);
-        });
-
-        // Trigger manual auth state change
         act(() => {
-            if (triggerAuthChange) {
-                triggerAuthChange('SIGNED_OUT', null);
-            }
+            triggerAuthChange?.('SIGNED_OUT', null);
         });
 
-        expect(mockNavigate).toHaveBeenCalledWith('/login');
+        expect(result.current.user).toBeNull();
+        expect(result.current.profile).toBeNull();
     });
 });

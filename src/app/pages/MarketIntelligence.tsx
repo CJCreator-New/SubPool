@@ -1,189 +1,134 @@
-import React from 'react';
-import { C, F } from '../tokens';
-import { Button } from '../components/subpool/Button';
+import { useNavigate } from 'react-router';
+import {
+  ArrowRight,
+  BarChart3,
+  Clock3,
+  DollarSign,
+  Flame,
+  Minus,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
 
-const platformMarketData = [
-  { icon: '🎨', name: 'Figma', demand: '🔥 Hot', avgPrice: 6.20, fillTime: '1.2 days', activePools: 124 },
-  { icon: '🎬', name: 'Netflix', demand: '📈 Rising', avgPrice: 3.50, fillTime: '0.8 days', activePools: 412 },
-  { icon: '🎵', name: 'Spotify', demand: '➡️ Stable', avgPrice: 4.10, fillTime: '2.1 days', activePools: 189 },
-  { icon: '▶️', name: 'YouTube', demand: '📈 Rising', avgPrice: 2.90, fillTime: '1.5 days', activePools: 256 },
-  { icon: '🤖', name: 'ChatGPT+', demand: '🔥 Hot', avgPrice: 5.00, fillTime: '0.5 days', activePools: 86 },
-  { icon: '🅰️', name: 'Adobe CC', demand: '➡️ Stable', avgPrice: 12.40, fillTime: '3.4 days', activePools: 67 },
-  { icon: '📋', name: 'Notion', demand: '📈 Rising', avgPrice: 4.80, fillTime: '1.9 days', activePools: 143 },
-  { icon: '🐙', name: 'GitHub', demand: '➡️ Stable', avgPrice: 4.00, fillTime: '2.5 days', activePools: 92 },
-];
+type Demand = 'hot' | 'rising' | 'stable';
 
-export function MarketIntelligence() {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-      {/* Header section */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div>
-          <h1
-            style={{
-              margin: '0 0 8px',
-              fontFamily: F.syne,
-              fontWeight: 800,
-              fontSize: 28,
-              color: C.textPrimary,
-            }}
-          >
-            Market Intelligence
-          </h1>
-          <p
-            style={{
-              margin: 0,
-              fontFamily: F.syne,
-              fontWeight: 400,
-              fontSize: 15,
-              color: C.textMuted,
-              maxWidth: 600,
-            }}
-          >
-            Real-time supply and demand data across the SubPool ecosystem.
-          </p>
-        </div>
-        <Button onClick={() => window.location.href = '/list'}>
-          List a Pool
-        </Button>
-      </div>
-
-      {/* Grid of Platform Cards */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap: 16,
-        }}
-      >
-        {platformMarketData.map((platform) => (
-          <MarketCard key={platform.name} {...platform} />
-        ))}
-      </div>
-
-      {/* Beta Notice */}
-      <div
-        style={{
-          padding: 24,
-          backgroundColor: C.bgSurface,
-          border: `1px dashed ${C.borderDefault}`,
-          borderRadius: 6,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-          alignItems: 'center',
-          textAlign: 'center',
-        }}
-      >
-        <span style={{ fontSize: 24 }}>📈</span>
-        <h3 style={{ margin: 0, fontFamily: F.syne, fontWeight: 700, fontSize: 16, color: C.textPrimary }}>
-          More data coming soon
-        </h3>
-        <p style={{ margin: 0, fontFamily: F.syne, fontSize: 13, color: C.textMuted, maxWidth: 400 }}>
-          We're currently processing data for 40+ additional subscription services. Check back next week for deeper insights.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function MarketCard({
-  icon,
-  name,
-  demand,
-  avgPrice,
-  fillTime,
-  activePools
-}: {
-  icon: string;
+type PlatformMarketData = {
   name: string;
-  demand: string;
+  demand: Demand;
   avgPrice: number;
   fillTime: string;
   activePools: number;
-}) {
+};
+
+const platformMarketData: PlatformMarketData[] = [
+  { name: 'Figma', demand: 'hot', avgPrice: 6.2, fillTime: '1.2 days', activePools: 124 },
+  { name: 'Netflix', demand: 'rising', avgPrice: 3.5, fillTime: '0.8 days', activePools: 412 },
+  { name: 'Spotify', demand: 'stable', avgPrice: 4.1, fillTime: '2.1 days', activePools: 189 },
+  { name: 'YouTube', demand: 'rising', avgPrice: 2.9, fillTime: '1.5 days', activePools: 256 },
+  { name: 'ChatGPT Plus', demand: 'hot', avgPrice: 5, fillTime: '0.5 days', activePools: 86 },
+  { name: 'Adobe CC', demand: 'stable', avgPrice: 12.4, fillTime: '3.4 days', activePools: 67 },
+  { name: 'Notion', demand: 'rising', avgPrice: 4.8, fillTime: '1.9 days', activePools: 143 },
+  { name: 'GitHub', demand: 'stable', avgPrice: 4, fillTime: '2.5 days', activePools: 92 },
+];
+
+function DemandIcon({ demand }: { demand: Demand }) {
+  if (demand === 'hot') return <Flame className="size-3.5" aria-hidden="true" />;
+  if (demand === 'rising') return <TrendingUp className="size-3.5" aria-hidden="true" />;
+  return <Minus className="size-3.5" aria-hidden="true" />;
+}
+
+function demandLabel(demand: Demand): string {
+  if (demand === 'hot') return 'Hot';
+  if (demand === 'rising') return 'Rising';
+  return 'Stable';
+}
+
+function demandClass(demand: Demand): string {
+  if (demand === 'hot') return 'text-primary border-primary/40 bg-primary/10';
+  if (demand === 'rising') return 'text-success border-success/40 bg-success/10';
+  return 'text-muted-foreground border-border bg-muted/20';
+}
+
+export function MarketIntelligence() {
+  const navigate = useNavigate();
+
   return (
-    <div
-      style={{
-        backgroundColor: C.bgSurface,
-        border: `1px solid ${C.borderDefault}`,
-        borderRadius: 6,
-        padding: 20,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 20,
-        transition: 'border-color 0.2s ease',
-      }}
-    >
-      {/* Top row: Icon + Name + Demand */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              backgroundColor: C.bgBase,
-              border: `1px solid ${C.borderDefault}`,
-              borderRadius: 6,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 20,
-            }}
-          >
-            {icon}
+    <div className="max-w-6xl mx-auto space-y-6 pb-10">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <h1 className="font-display font-black text-3xl md:text-4xl tracking-tight">Market Intelligence</h1>
+          <p className="font-mono text-xs sm:text-sm text-muted-foreground max-w-2xl">
+            Real-time supply and demand snapshots across active SubPool listings.
+          </p>
+        </div>
+        <Button onClick={() => navigate('/list')} className="w-full sm:w-auto">
+          List a Pool
+          <ArrowRight className="size-4" aria-hidden="true" />
+        </Button>
+      </header>
+
+      <Card className="border-dashed border-border bg-card/40">
+        <CardContent className="p-4 sm:p-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-foreground">
+            <BarChart3 className="size-4 text-primary" aria-hidden="true" />
+            <p className="font-mono text-xs sm:text-sm">
+              Data freshness: refreshed daily from live pool activity and fill outcomes.
+            </p>
           </div>
-          <span style={{ fontFamily: F.syne, fontWeight: 700, fontSize: 16, color: C.textPrimary }}>
-            {name}
-          </span>
-        </div>
-        <div
-          style={{
-            padding: '3px 8px',
-            borderRadius: 100,
-            border: `1px solid ${demand.includes('Hot') ? C.accentLime : demand.includes('Rising') ? C.statusSuccess : C.textMuted}`,
-            color: demand.includes('Hot') ? C.accentLime : demand.includes('Rising') ? C.statusSuccess : C.textMuted,
-            fontFamily: F.mono,
-            fontWeight: 500,
-            fontSize: 10,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-          }}
-        >
-          {demand}
-        </div>
-      </div>
+          <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+            Confidence: medium
+          </p>
+        </CardContent>
+      </Card>
 
-      {/* Stats Divider */}
-      <div style={{ height: 1, backgroundColor: C.borderDefault }} />
-
-      {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontFamily: F.mono, fontSize: 9, color: C.textMuted, textTransform: 'uppercase' }}>
-            Avg. Slot Price
-          </span>
-          <span style={{ fontFamily: F.mono, fontSize: 15, fontWeight: 600, color: C.textPrimary }}>
-            ${avgPrice.toFixed(2)}
-          </span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontFamily: F.mono, fontSize: 9, color: C.textMuted, textTransform: 'uppercase' }}>
-            Avg. Fill Time
-          </span>
-          <span style={{ fontFamily: F.mono, fontSize: 15, fontWeight: 600, color: C.textPrimary }}>
-            {fillTime}
-          </span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontFamily: F.mono, fontSize: 9, color: C.textMuted, textTransform: 'uppercase' }}>
-            Active Pools
-          </span>
-          <span style={{ fontFamily: F.mono, fontSize: 15, fontWeight: 600, color: C.textPrimary }}>
-            {activePools}
-          </span>
-        </div>
-      </div>
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {platformMarketData.map((platform) => (
+          <Card key={platform.name} className="border-border hover:border-primary/30 transition-colors">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="font-display text-lg">{platform.name}</CardTitle>
+                <Badge className={`font-mono text-[10px] uppercase tracking-wider border ${demandClass(platform.demand)}`}>
+                  <span className="inline-flex items-center gap-1">
+                    <DemandIcon demand={platform.demand} />
+                    {demandLabel(platform.demand)}
+                  </span>
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-md border border-border/60 bg-secondary/20 px-3 py-2">
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <DollarSign className="size-3" aria-hidden="true" />
+                    Avg Slot
+                  </p>
+                  <p className="font-mono font-semibold text-sm text-foreground mt-1">${platform.avgPrice.toFixed(2)}</p>
+                </div>
+                <div className="rounded-md border border-border/60 bg-secondary/20 px-3 py-2">
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Clock3 className="size-3" aria-hidden="true" />
+                    Fill Time
+                  </p>
+                  <p className="font-mono font-semibold text-sm text-foreground mt-1">{platform.fillTime}</p>
+                </div>
+                <div className="rounded-md border border-border/60 bg-secondary/20 px-3 py-2">
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Users className="size-3" aria-hidden="true" />
+                    Active
+                  </p>
+                  <p className="font-mono font-semibold text-sm text-foreground mt-1">{platform.activePools}</p>
+                </div>
+              </div>
+              <p className="font-mono text-[11px] text-muted-foreground">
+                Suggested host action: keep pricing within this band for faster fill rates.
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
     </div>
   );
 }

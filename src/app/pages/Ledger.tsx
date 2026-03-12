@@ -33,6 +33,9 @@ type LedgerFilter = 'all' | 'owed' | 'paid';
 
 export function Ledger() {
   const [filter, setFilter] = useState<LedgerFilter>('all');
+  const [iOwePage, setIOwePage] = useState(1);
+  const [owedPage, setOwedPage] = useState(1);
+  const PAGE_SIZE = 10;
   const { data: entries, loading, refetch } = useLedger();
   const { isDemo } = useDemo();
 
@@ -44,6 +47,41 @@ export function Ledger() {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const handleExportCSV = () => {
+    if (!entries || entries.length === 0) {
+      toast.info('No data to export.');
+      return;
+    }
+
+    const headers = ['Pool Name', 'Counterparty', 'Amount', 'Type', 'Due Date', 'Settled At', 'Status'];
+    const rows = entries.map(e => [
+      e.pool_name,
+      e.counterparty_name,
+      (e.amount_cents / 100).toFixed(2),
+      e.type,
+      e.due_at,
+      e.settled_at || 'N/A',
+      e.status
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${val}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `ledger_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success('Ledger exported to CSV');
   };
 
   // Split entries: "payment" = I owe (to pool owners), "payout" = owed to me
@@ -97,6 +135,15 @@ export function Ledger() {
   const filteredIOwe = filterEntries(iOwe);
   const filteredOwedToMe = filterEntries(owedToMe);
 
+  // Pagination
+  const iOwePages = Math.ceil(filteredIOwe.length / PAGE_SIZE);
+  const owedPages = Math.ceil(filteredOwedToMe.length / PAGE_SIZE);
+  const pagedIOwe = filteredIOwe.slice((iOwePage - 1) * PAGE_SIZE, iOwePage * PAGE_SIZE);
+  const pagedOwedToMe = filteredOwedToMe.slice((owedPage - 1) * PAGE_SIZE, owedPage * PAGE_SIZE);
+
+  // Reset page when filter changes
+  useMemo(() => { setIOwePage(1); setOwedPage(1); }, [filter]);
+
   // ─── Magnetic Button Component ──────────────────────────────────────────
 
   function MagneticPayButton({ entry, onClick, isDemo }: { entry: LedgerEntry, onClick: () => void, isDemo: boolean }) {
@@ -127,7 +174,7 @@ export function Ledger() {
         {/* Platform + Pool */}
         <TableCell className="px-5">
           <div className="flex items-center gap-2">
-            <PlatformIcon platformId={entry.pool_name.split(' ')[0].toLowerCase()} size="sm" />
+            <PlatformIcon platformId={entry.platform} size="sm" />
             <span className="text-sm">
               {entry.pool_name}
             </span>
@@ -166,7 +213,7 @@ export function Ledger() {
               className="md:w-auto w-9 md:h-9 h-8 p-0 md:px-3"
             >
               <span className="hidden md:inline">Remind</span>
-              <span className="md:hidden">🔔</span>
+              <span className="md:hidden" role="img" aria-label="Notification">🔔</span>
             </Button>
           ) : (
             <MagneticPayButton entry={entry} onClick={() => handleMarkPaid(entry.id)} isDemo={isDemo} />
@@ -209,23 +256,35 @@ export function Ledger() {
         )}
       </div>
 
-      {/* Filter Chips */}
-      <div className="flex gap-2">
-        {(['all', 'owed', 'paid'] as LedgerFilter[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`
-              px-3.5 py-1.5 rounded-full font-mono text-xs lowercase transition-all cursor-pointer
-              ${filter === f
-                ? 'border border-primary bg-primary/10 text-primary'
-                : 'border border-border text-muted-foreground hover:border-muted-foreground'
-              }
-            `}
-          >
-            {f}
-          </button>
-        ))}
+      {/* Filter Chips & Export */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          {(['all', 'owed', 'paid'] as LedgerFilter[]).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`
+                px-3.5 py-1.5 rounded-full font-mono text-xs lowercase transition-all cursor-pointer
+                ${filter === f
+                  ? 'border border-primary bg-primary/10 text-primary'
+                  : 'border border-border text-muted-foreground hover:border-muted-foreground'
+                }
+              `}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleExportCSV}
+          disabled={loading || entries.length === 0}
+          className="font-mono text-xs h-8"
+        >
+          ↓ Export CSV
+        </Button>
       </div>
 
       {/* Table */}
@@ -273,8 +332,8 @@ export function Ledger() {
                   </TableCell>
                 </TableRow>
               ))
-            ) : filteredIOwe.length > 0 ? (
-              filteredIOwe.map((e) => renderRow(e, 'iOwe'))
+            ) : pagedIOwe.length > 0 ? (
+              pagedIOwe.map((e) => renderRow(e, 'iOwe'))
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="h-32 text-center">
@@ -304,8 +363,8 @@ export function Ledger() {
                   </TableCell>
                 </TableRow>
               ))
-            ) : filteredOwedToMe.length > 0 ? (
-              filteredOwedToMe.map((e) => renderRow(e, 'owedToMe'))
+            ) : pagedOwedToMe.length > 0 ? (
+              pagedOwedToMe.map((e) => renderRow(e, 'owedToMe'))
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="h-32 text-center">
@@ -349,6 +408,28 @@ export function Ledger() {
           </TableFooter>
         </Table>
       </div>
+
+      {/* Pagination Controls */}
+      {(iOwePages > 1 || owedPages > 1) && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-2">
+          {iOwePages > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] text-muted-foreground uppercase">I Owe:</span>
+              <Button variant="outline" size="sm" onClick={() => setIOwePage(p => Math.max(1, p - 1))} disabled={iOwePage === 1} className="h-7 text-xs px-2" aria-label="Previous page of payments I owe">←</Button>
+              <span className="font-mono text-[11px] text-muted-foreground">{iOwePage}/{iOwePages}</span>
+              <Button variant="outline" size="sm" onClick={() => setIOwePage(p => Math.min(iOwePages, p + 1))} disabled={iOwePage === iOwePages} className="h-7 text-xs px-2" aria-label="Next page of payments I owe">→</Button>
+            </div>
+          )}
+          {owedPages > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] text-muted-foreground uppercase">Owed to me:</span>
+              <Button variant="outline" size="sm" onClick={() => setOwedPage(p => Math.max(1, p - 1))} disabled={owedPage === 1} className="h-7 text-xs px-2" aria-label="Previous page of payments owed to me">←</Button>
+              <span className="font-mono text-[11px] text-muted-foreground">{owedPage}/{owedPages}</span>
+              <Button variant="outline" size="sm" onClick={() => setOwedPage(p => Math.min(owedPages, p + 1))} disabled={owedPage === owedPages} className="h-7 text-xs px-2" aria-label="Next page of payments owed to me">→</Button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

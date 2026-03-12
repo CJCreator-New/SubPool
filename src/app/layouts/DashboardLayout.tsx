@@ -28,11 +28,14 @@ import { NAV_ITEMS, NAV_SECTIONS, PAGE_TITLES, BOTTOM_TABS } from '../../lib/con
 import { useDemo } from '../components/demo-mode';
 import { Navigate } from 'react-router';
 import { CharacterCard } from '../components/character-card';
+import { getPricingData } from '../../lib/pricing-service';
+import { toast } from 'sonner';
 
 // ─── Protected Route Component ──────────────────────────────────────────────
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
+    const location = useLocation();
 
     if (loading) {
         return (
@@ -46,7 +49,8 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
 
     if (!user) {
-        return <Navigate to="/login" replace />;
+        const next = `${location.pathname}${location.search}${location.hash}`;
+        return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
     }
 
     return <>{children}</>;
@@ -84,8 +88,16 @@ export function DashboardLayout() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    // P2-23: Prefetch pricing data
+    React.useEffect(() => {
+        void getPricingData().catch(() => {
+            // Non-blocking prefetch; ignore failures to keep layout resilient.
+        });
+    }, []);
+
     const { data: notifications } = useNotifications();
-    const unreadCount = notifications.filter((n: any) => !n.read).length;
+    const notificationsList = Array.isArray(notifications) ? notifications : [];
+    const unreadCount = notificationsList.filter((n: any) => !n.read).length;
 
     // Group NAV_ITEMS by section
     const grouped = NAV_SECTIONS.map((section) => ({
@@ -95,6 +107,12 @@ export function DashboardLayout() {
 
     return (
         <SidebarProvider>
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:font-bold focus:shadow-xl"
+            >
+                Skip to content
+            </a>
             {/* ─── Sidebar ───────────────────────────────────────────────── */}
             <Sidebar
                 className={cn(
@@ -189,7 +207,13 @@ export function DashboardLayout() {
                         variant="ghost"
                         size="sm"
                         className="w-full text-xs font-mono uppercase tracking-widest text-muted-foreground h-8 hover:text-foreground hover:bg-secondary/50"
-                        onClick={() => signOut()}
+                        onClick={async () => {
+                            try {
+                                await signOut();
+                            } catch {
+                                toast.error('Could not sign out. Please try again.');
+                            }
+                        }}
                     >
                         Sign out
                     </Button>
@@ -247,7 +271,7 @@ export function DashboardLayout() {
                 </header>
 
                 {/* Page Content */}
-                <main className="flex-1 p-4 md:p-8 pb-16 md:pb-0">
+                <main id="main-content" className="flex-1 p-4 md:p-8 pb-16 md:pb-0 outline-none" tabIndex={-1}>
                     <Outlet />
                 </main>
 

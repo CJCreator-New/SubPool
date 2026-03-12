@@ -1,25 +1,31 @@
 import React from 'react';
-import { useNavigate, Link } from 'react-router';
+import { useNavigate, Link, Navigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { PoolCard, PlatformIcon } from '../components/subpool-components';
 import { PLATFORMS } from '../../lib/constants';
 import type { Pool } from '../../lib/types';
 import { cn } from '../components/ui/utils';
+import { useAuth } from '../../lib/supabase/auth';
 
 export function LandingPage() {
     const navigate = useNavigate();
+    const { user, loading } = useAuth();
+
+    if (!loading && user) {
+        return <Navigate to="/browse" replace />;
+    }
 
     // Mock pools for the floating cards to match mission exactly
     const cardPools: Pool[] = [
         {
             id: 'hero-netflix',
-            platform_id: 'netflix',
+            platform: 'netflix',
             plan_name: 'Standard 4K',
-            slots_filled: 3,
-            slots_total: 4,
+            filled_slots: 3,
+            total_slots: 4,
             price_per_slot: 499,
             status: 'open',
-            category: 'OTT',
+            category: 'entertainment',
             owner_id: 'owner-1',
             owner: {
                 id: 'owner-1',
@@ -30,7 +36,7 @@ export function LandingPage() {
                 is_pro: false,
                 rating: 4.8,
                 review_count: 12,
-                joined_at: new Date().toISOString(),
+                created_at: new Date().toISOString(),
                 bio: null
             },
             auto_approve: true,
@@ -40,13 +46,13 @@ export function LandingPage() {
         },
         {
             id: 'hero-chatgpt',
-            platform_id: 'chatgpt',
+            platform: 'chatgpt',
             plan_name: 'Plus',
-            slots_filled: 1,
-            slots_total: 2,
+            filled_slots: 1,
+            total_slots: 2,
             price_per_slot: 999,
             status: 'open',
-            category: 'AI_IDE',
+            category: 'ai',
             owner_id: 'owner-2',
             owner: {
                 id: 'owner-2',
@@ -57,7 +63,7 @@ export function LandingPage() {
                 is_pro: true,
                 rating: 4.9,
                 review_count: 24,
-                joined_at: new Date().toISOString(),
+                created_at: new Date().toISOString(),
                 bio: null
             },
             auto_approve: false,
@@ -67,13 +73,13 @@ export function LandingPage() {
         },
         {
             id: 'hero-figma',
-            platform_id: 'figma',
+            platform: 'figma',
             plan_name: 'Professional',
-            slots_filled: 4,
-            slots_total: 5,
+            filled_slots: 4,
+            total_slots: 5,
             price_per_slot: 600,
             status: 'open',
-            category: 'TEAM_SAAS',
+            category: 'work',
             owner_id: 'owner-3',
             owner: {
                 id: 'owner-3',
@@ -84,7 +90,7 @@ export function LandingPage() {
                 is_pro: false,
                 rating: 5.0,
                 review_count: 8,
-                joined_at: new Date().toISOString(),
+                created_at: new Date().toISOString(),
                 bio: null
             },
             auto_approve: true,
@@ -97,12 +103,12 @@ export function LandingPage() {
     return (
         <div className="relative min-h-screen bg-[#0E0E0E] text-foreground overflow-x-hidden selection:bg-primary selection:text-primary-foreground">
 
-            {/* ━━━ BACKGROUND ATMOSPHERE ━━━ */}
+            {/* â”â”â” BACKGROUND ATMOSPHERE â”â”â” */}
             <div className="fixed inset-0 bg-background -z-20 aria-hidden pointer-events-none" />
             <div className="fixed top-0 right-0 w-[600px] h-[300px] bg-primary/6 blur-[120px] rounded-full -z-10 aria-hidden pointer-events-none" />
             <div className="fixed top-1/2 left-0 w-[500px] h-[400px] bg-[#0D4F3C]/10 blur-[100px] rounded-full -z-10 aria-hidden pointer-events-none" />
 
-            {/* ━━━ NAVBAR ━━━ */}
+            {/* â”â”â” NAVBAR â”â”â” */}
             <nav className="fixed top-0 left-0 right-0 h-16 flex items-center justify-between px-6 md:px-12 bg-background/80 backdrop-blur-md border-b border-[#2A2A2A]/50 z-50">
                 <Link to="/" className="flex items-center gap-0">
                     <span className="font-display font-black text-xl text-white">Sub</span>
@@ -117,15 +123,15 @@ export function LandingPage() {
                         <Link to="/login">Sign In</Link>
                     </Button>
                     <Button size="sm" className="h-9 px-4 font-display font-bold text-xs bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                        <Link to="/browse">Get Started →</Link>
+                        <Link to="/browse">Get Started â†’</Link>
                     </Button>
                 </div>
             </nav>
 
-            {/* ━━━ HERO SECTION ━━━ */}
+            {/* â”â”â” HERO SECTION â”â”â” */}
             <div className="pt-16 max-w-[1440px] mx-auto min-h-screen flex flex-col md:flex-row relative">
 
-                {/* Ambient ellipses — pointer-events-none */}
+                {/* Ambient ellipses â€” pointer-events-none */}
                 <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
                     <div className="absolute top-0 right-0 w-[600px] h-[300px] 
                         bg-primary opacity-[0.04] blur-[120px] rounded-full
@@ -160,7 +166,7 @@ export function LandingPage() {
                     <div className="mt-8 space-y-3.5">
                         {[
                             "Access Netflix, Spotify, Figma & 25+ platforms",
-                            "Save 40–75% every month vs solo pricing",
+                            "Save 40â€“75% every month vs solo pricing",
                             "Verified pools. Real ratings. Zero awkward DMs."
                         ].map((text, i) => (
                             <div key={i} className="flex items-center gap-3.5">
@@ -177,7 +183,7 @@ export function LandingPage() {
                             className="h-13 px-8 text-[15px] md:text-base font-display font-bold bg-primary text-primary-foreground shadow-[0_8px_32px_rgba(200,241,53,0.25)] hover:shadow-[0_12px_40px_rgba(200,241,53,0.35)] hover:-translate-y-0.5 transition-all"
                             onClick={() => navigate('/browse')}
                         >
-                            Get Started — It's Free
+                            Get Started â€” It's Free
                         </Button>
                         <Button
                             variant="ghost"
@@ -218,7 +224,7 @@ export function LandingPage() {
 
                     {/* Trust Badges */}
                     <div className="mt-6 flex gap-4 flex-wrap">
-                        {["🔒 No passwords", "⭐ 4.9 avg rating", "🆓 Free to join"].map((badge, i) => (
+                        {["ðŸ”’ No passwords", "â­ 4.9 avg rating", "ðŸ†“ Free to join"].map((badge, i) => (
                             <div key={i} className="border border-[#2A2A2A] rounded-full px-3 py-1 font-mono text-[11px] text-muted-foreground/60 uppercase tracking-wider">
                                 {badge}
                             </div>
@@ -254,7 +260,7 @@ export function LandingPage() {
                 </div>
             </div>
 
-            {/* ━━━ HOW IT WORKS SECTION ━━━ */}
+            {/* â”â”â” HOW IT WORKS SECTION â”â”â” */}
             <section className="py-24 border-t border-[#2A2A2A] relative overflow-hidden bg-background">
                 <div className="max-w-6xl mx-auto px-6 relative z-10">
                     <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-primary text-center mb-4">How it works</p>
@@ -266,21 +272,21 @@ export function LandingPage() {
                         {[
                             {
                                 num: '1',
-                                icon: '🔍',
+                                icon: 'ðŸ”',
                                 title: 'Browse open pools',
                                 body: 'See 100+ live subscription slots. Filter by platform, price, or category. Find your perfect match in minutes.'
                             },
                             {
                                 num: '2',
-                                icon: '🤝',
+                                icon: 'ðŸ¤',
                                 title: 'Request to join',
                                 body: 'Send a join request to the pool owner. They review your profile and rating. Most requests approved in <2 hours.'
                             },
                             {
                                 num: '3',
-                                icon: '💸',
+                                icon: 'ðŸ’¸',
                                 title: 'Split and save',
-                                body: 'Pay your share each month via the built-in ledger. Track payments, get reminders. Save 40–75% forever.'
+                                body: 'Pay your share each month via the built-in ledger. Track payments, get reminders. Save 40â€“75% forever.'
                             }
                         ].map((step, i) => (
                             <div key={i} className="bg-card border border-[#2A2A2A] rounded-[6px] p-8 relative group transition-all duration-300 hover:border-primary/20">
@@ -298,7 +304,7 @@ export function LandingPage() {
                 </div>
             </section>
 
-            {/* ━━━ PLATFORMS SECTION ━━━ */}
+            {/* â”â”â” PLATFORMS SECTION â”â”â” */}
             <section className="py-20 border-t border-[#2A2A2A] bg-background/50">
                 <div className="max-w-[1440px] mx-auto px-6 text-center">
                     <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-8">WORKS WITH</p>
@@ -314,7 +320,7 @@ export function LandingPage() {
                 </div>
             </section>
 
-            {/* ━━━ STATS SECTION ━━━ */}
+            {/* â”â”â” STATS SECTION â”â”â” */}
             <section className="py-20 border-t border-[#2A2A2A] bg-background">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-0">
@@ -323,7 +329,7 @@ export function LandingPage() {
                             { value: '142', label: 'Open pools today' },
                             { value: '64%', label: 'Average savings' },
                             { value: '$4,103', label: 'Market value matched' },
-                            { value: '₹22,560', label: 'Avg. saved per year' }
+                            { value: 'â‚¹22,560', label: 'Avg. saved per year' }
                         ].map((stat, i) => (
                             <div key={i} className="text-center px-4">
                                 <div className="font-display font-black text-[48px] text-primary tracking-[-2px] leading-tight">
@@ -338,7 +344,7 @@ export function LandingPage() {
                 </div>
             </section>
 
-            {/* ━━━ CTA SECTION ━━━ */}
+            {/* â”â”â” CTA SECTION â”â”â” */}
             <section className="py-24 border-t border-[#2A2A2A] relative overflow-hidden bg-background">
                 <div className="max-w-3xl mx-auto px-6 text-center relative z-10">
                     <h2 className="font-display font-black text-[36px] tracking-tight text-foreground mb-4">
@@ -352,12 +358,12 @@ export function LandingPage() {
                         className="h-13 px-8 text-base font-display font-bold bg-primary text-primary-foreground shadow-[0_8px_32px_rgba(200,241,53,0.25)] hover:shadow-[0_12px_40px_rgba(200,241,53,0.35)] hover:-translate-y-0.5 transition-all"
                         onClick={() => navigate('/browse')}
                     >
-                        Get Started — It's Free
+                        Get Started â€” It's Free
                     </Button>
                 </div>
             </section>
 
-            {/* ━━━ FOOTER ━━━ */}
+            {/* â”â”â” FOOTER â”â”â” */}
             <footer className="py-8 border-t border-[#2A2A2A] bg-background">
                 <div className="max-w-[1440px] mx-auto px-6 md:px-12 flex justify-between items-center">
                     <div className="flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-4">
@@ -365,7 +371,7 @@ export function LandingPage() {
                             <span className="font-display font-black text-xs text-white">Sub[lime]</span>
                             <span className="font-display font-black text-xs text-primary">Pool</span>
                         </div>
-                        <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest leading-none">© 2026 SubPool</p>
+                        <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest leading-none">Â© 2026 SubPool</p>
                     </div>
 
                     <div className="flex items-center gap-6">

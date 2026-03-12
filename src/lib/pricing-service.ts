@@ -4,6 +4,52 @@ export type { PlatformPricing } from './pricing-seed';
 import { supabase, isSupabaseConnected } from './supabase/client';
 import { MOCK_POOLS } from './mock-data';
 
+let PRICING_CACHE: any[] | null = null;
+let isFetching = false;
+
+/**
+ * Fetches pricing data from Supabase. Falls back to hardcoded seed if DB fails.
+ */
+export async function getPricingData() {
+    if (PRICING_CACHE) return PRICING_CACHE;
+    if (isFetching) {
+        // Wait for it? Or just return seed for now to keep things moving
+        return PLATFORM_PRICING_SEED;
+    }
+
+    if (isSupabaseConnected && supabase) {
+        isFetching = true;
+        try {
+            const { data, error } = await supabase.from('platform_pricing').select('*');
+            if (!error && data && data.length > 0) {
+                PRICING_CACHE = data;
+                return data;
+            }
+        } catch (e) {
+            console.error('Failed to fetch platform_pricing, using seed:', e);
+        } finally {
+            isFetching = false;
+        }
+    }
+
+    PRICING_CACHE = PLATFORM_PRICING_SEED;
+    return PLATFORM_PRICING_SEED;
+}
+
+/**
+ * Helper to find local seed data synchronously.
+ * UI components can use this to avoid async renders.
+ */
+function findPlatformPricing(platformId: string, planName: string, currency: string) {
+    const list = PRICING_CACHE || PLATFORM_PRICING_SEED;
+    return list.find(
+        (s) =>
+            s.platform_id === platformId &&
+            s.plan_name.toLowerCase() === planName.toLowerCase() &&
+            s.currency === currency
+    );
+}
+
 export type PricingBand = 'steal' | 'cheap' | 'fair' | 'aggressive' | 'overpriced';
 
 export interface PricingAnalysis {
@@ -39,12 +85,7 @@ export function analyzePricing(params: {
     currency: 'USD' | 'INR';
     countryCode: string;
 }): PricingAnalysis {
-    const seed = PLATFORM_PRICING_SEED.find(
-        (s) =>
-            s.platform_id === params.platformId &&
-            s.plan_name.toLowerCase() === params.planName.toLowerCase() &&
-            s.currency === params.currency
-    );
+    const seed = findPlatformPricing(params.platformId, params.planName, params.currency);
 
     const officialPrice = seed ? seed.official_price : 0;
     const officialSoloPrice = officialPrice; // Per instructions: official_price / 1
@@ -114,12 +155,7 @@ export function analyzePricing(params: {
 }
 
 export function getSuggestion(platformId: string, planName: string, totalSlots: number, currency: 'USD' | 'INR'): SlotPriceSuggestion {
-    const seed = PLATFORM_PRICING_SEED.find(
-        (s) =>
-            s.platform_id === platformId &&
-            s.plan_name.toLowerCase() === planName.toLowerCase() &&
-            s.currency === currency
-    );
+    const seed = findPlatformPricing(platformId, planName, currency);
 
     const officialPrice = seed ? seed.official_price : 0;
 
@@ -149,7 +185,7 @@ export async function getMarketMetrics(platformId: string, planName: string) {
     }
 
     // mock fallback
-    const pools = MOCK_POOLS.filter(p => p.platform_id === platformId && p.plan_name.toLowerCase() === planName.toLowerCase());
+    const pools = MOCK_POOLS.filter(p => p.platform === platformId && p.plan_name.toLowerCase() === planName.toLowerCase());
     if (pools.length === 0) return null;
 
     const prices = pools.map(p => p.price_per_slot / 100);
@@ -194,11 +230,7 @@ export function getPlatformSharingNote(platformId: string, planName: string): {
     note: string;
     color: string;
 } {
-    const seed = PLATFORM_PRICING_SEED.find(
-        (s) =>
-            s.platform_id === platformId &&
-            s.plan_name.toLowerCase() === planName.toLowerCase()
-    );
+    const seed = findPlatformPricing(platformId, planName, detectUserCurrency());
 
     let policy: 'allowed' | 'grey_area' | 'not_recommended' = 'allowed';
     if (seed && seed.sharing_policy) {

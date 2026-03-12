@@ -1,5 +1,5 @@
-// ─── CreatePoolPage — 3-Step Wizard ────────────────────────────────────────────
-// Step 1: Choose Platform → Step 2: Configure → Step 3: Review & Publish
+// â”€â”€â”€ CreatePoolPage â€” 3-Step Wizard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Step 1: Choose Platform â†’ Step 2: Configure â†’ Step 3: Review & Publish
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -28,14 +28,15 @@ import { PLATFORMS } from '../../lib/constants';
 import { createPool } from '../../lib/supabase/mutations';
 import type { PoolCategory } from '../../lib/types';
 import { useAuth } from '../../lib/supabase/auth';
-import { getPlatformSharingNote, analyzePricing, detectUserCurrency, getSuggestion } from '../../lib/pricing-service';
+import { getPlatformSharingNote, analyzePricing, detectUserCurrency, getSuggestion, getPricingData } from '../../lib/pricing-service';
 import { PLATFORM_PRICING_SEED } from '../../lib/pricing-seed';
 import type { PlatformPricing } from '../../lib/pricing-seed';
 import { track } from '../../lib/analytics';
 import { useCurrency } from '../../lib/currency-context';
 import { CurrencyToggle } from '../components/currency-toggle';
+import { getUserFacingError } from '../../lib/error-feedback';
 
-// ─── Step Indicator ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Step Indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StepIndicator({ step }: { step: number }) {
   return (
@@ -54,7 +55,7 @@ function StepIndicator({ step }: { step: number }) {
               }
             `}
           >
-            {step > n ? '✓' : n}
+            {step > n ? 'âœ“' : n}
           </div>
           {/* Connecting line */}
           {n < 3 && (
@@ -69,7 +70,7 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
-// ─── Main Component ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function ListAPool() {
   const navigate = useNavigate();
@@ -80,7 +81,7 @@ export function ListAPool() {
     planName: '',
     totalCost: '',
     slots: '2',
-    category: 'OTT' as PoolCategory,
+    category: 'entertainment' as PoolCategory,
     billingCycle: 'monthly' as 'monthly' | 'yearly',
   });
   const { currency, symbol: sym } = useCurrency();
@@ -186,7 +187,7 @@ export function ListAPool() {
   }, [step, analysis?.band, selectedPlatform, form.planName, form.slots, currency]);
 
 
-  // ─── Step 1 — Choose Platform ──────────────────────────────────────────────
+  // â”€â”€â”€ Step 1 â€” Choose Platform â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const sharingNote =
     selectedPlatform && form.planName
@@ -195,31 +196,81 @@ export function ListAPool() {
         ? getPlatformSharingNote(selectedPlatform, PLATFORM_PRICING_SEED.find((s: PlatformPricing) => s.platform_id === selectedPlatform)?.plan_name || '')
         : null;
 
+  // Platform Search — P3 Feature
+  const [searchQuery, setSearchQuery] = useState('');
+  const [allPricing, setAllPricing] = useState<any[]>([]);
+  const [allPlatforms, setAllPlatforms] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    getPricingData().then((data: any[]) => {
+      setAllPricing(data);
+      // Extract unique platforms from pricing data
+      const unique = Array.from(new Set(data.map((p: any) => p.platform_id))).map(id => {
+        const item = data.find((p: any) => p.platform_id === id);
+        const staticP = PLATFORMS.find(sp => sp.id === id);
+        return {
+          id,
+          name: item?.platform_name || id,
+          category: item?.category?.toLowerCase() || 'productivity',
+          icon: staticP?.icon || '📦',
+          color: staticP?.color || '#FFFFFF',
+          bg: staticP?.bg || '#1A1A1A'
+        };
+      });
+      setAllPlatforms(unique);
+    });
+  }, []);
+
+  const filteredPlatforms = allPlatforms.filter(p =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.category.includes(searchQuery.toLowerCase())
+  );
+
   const renderStep1 = () => (
     <div className="max-w-2xl mx-auto">
-      <h2 className="font-display font-bold text-xl mb-6">Choose a platform</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h2 className="font-display font-bold text-xl">Choose a platform</h2>
+        <div className="relative w-full sm:w-64">
+          <Input
+            placeholder="Search SaaS products..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="h-9 text-xs font-mono"
+          />
+        </div>
+      </div>
+
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-        {PLATFORMS.map((p) => {
+        {(searchQuery ? filteredPlatforms : PLATFORMS).map((p) => {
           const isSelected = selectedPlatform === p.id;
           return (
             <button
               key={p.id}
               onClick={() => setSelectedPlatform(p.id)}
               className={`
-                flex flex-col items-center p-3 border rounded-[6px] transition-all text-center cursor-pointer
+                flex flex-col items-center p-3 border rounded-[6px] transition-all text-center cursor-pointer min-h-[90px]
                 ${isSelected
                   ? 'border-primary bg-primary/8 text-primary'
                   : 'border-border hover:border-muted-foreground'
                 }
               `}
             >
-              <PlatformIcon platformId={p.id} size="sm" />
-              <span className="font-display font-semibold text-[11px] mt-1.5">
+              {PLATFORMS.find(sp => sp.id === p.id) ? (
+                <PlatformIcon platformId={p.id} size="sm" />
+              ) : (
+                <span className="text-xl mb-1">{p.icon}</span>
+              )}
+              <span className="font-display font-semibold text-[11px] mt-1.5 line-clamp-2">
                 {p.name}
               </span>
             </button>
           );
         })}
+
+        {/* If searching and no results found in DB either, we still allow custom? Or just show nothing. 
+            Per requirement: "search and select option for the new saas based products" 
+            The platform_pricing table has many more products now from the consolidated seed.
+        */}
       </div>
 
       {/* Sharing Policy Note */}
@@ -240,9 +291,9 @@ export function ListAPool() {
                 : 'text-[#FF4D4D]'
               }`}
           >
-            {sharingNote.policy === 'allowed' && `✅ ${platform?.name || 'Platform'} officially supports account sharing on family plans.`}
-            {sharingNote.policy === 'grey_area' && `⚠️ ${platform?.name || 'Platform'} is licensed per-user. Position this pool as cost-splitting for small teams, not credential sharing.`}
-            {sharingNote.policy === 'not_recommended' && `ℹ️ ${platform?.name || 'Platform'} requires each user to have their own seat. Use SubPool to coordinate team billing, not share one login.`}
+            {sharingNote.policy === 'allowed' && `âœ… ${platform?.name || 'Platform'} officially supports account sharing on family plans.`}
+            {sharingNote.policy === 'grey_area' && `âš ï¸  ${platform?.name || 'Platform'} is licensed per-user. Position this pool as cost-splitting for small teams, not credential sharing.`}
+            {sharingNote.policy === 'not_recommended' && `â„¹ï¸  ${platform?.name || 'Platform'} requires each user to have their own seat. Use SubPool to coordinate team billing, not share one login.`}
           </p>
         </div>
       )}
@@ -271,10 +322,10 @@ export function ListAPool() {
     </div>
   );
 
-  // ─── Step 2 — Configure ────────────────────────────────────────────────────
+  // â”€â”€â”€ Step 2 â€” Configure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const renderStep2 = () => {
-    const plans = PLATFORM_PRICING_SEED.filter((s: PlatformPricing) => s.platform_id === selectedPlatform && s.currency === currency);
+    const plans = allPricing.filter((s: any) => s.platform_id === selectedPlatform && s.currency === currency);
 
     return (
       <div className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-8">
@@ -329,9 +380,9 @@ export function ListAPool() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="OTT">OTT</SelectItem>
-                <SelectItem value="TEAM_SAAS">Team SaaS</SelectItem>
-                <SelectItem value="AI_IDE">AI/IDE</SelectItem>
+                <SelectItem value="entertainment">Entertainment (OTT)</SelectItem>
+                <SelectItem value="productivity">Productivity (SaaS)</SelectItem>
+                <SelectItem value="ai">AI/IDE</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -571,7 +622,7 @@ export function ListAPool() {
                       updateForm('totalCost', (sugg.recommended * parseInt(form.slots)).toFixed(0));
                     }}
                   >
-                    Apply suggestion →
+                    Apply suggestion â†’
                   </Button>
                 </div>
               )}
@@ -588,32 +639,47 @@ export function ListAPool() {
     );
   };
 
-  // ─── Step 3 — Review ───────────────────────────────────────────────────────
+  // â”€â”€â”€ Step 3 â€” Review â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const handlePublish = async () => {
-    if (!selectedPlatform || !platform || !user) return;
-    setSubmitting(true);
-    try {
-      await createPool({
-        platform_id: selectedPlatform,
-        owner_id: user.id,
-        category: form.category,
-        status: 'open',
-        plan_name: form.planName,
-        price_per_slot: Math.round(parseFloat(pricePerSlot!) * 100),
-        slots_total: parseInt(form.slots),
-        auto_approve: false,
-        description: null,
-      });
-      track('pool_created', { platformId: selectedPlatform, slotPrice: Math.round(parseFloat(pricePerSlot!) * 100), band: analysis?.band, totalSlots: parseInt(form.slots) });
-      navigate('/my-pools');
-      toast.success('Your pool is live! 🎉');
-    } catch {
-      toast.error('Failed to publish pool');
-    } finally {
-      setSubmitting(false);
+  if (!selectedPlatform || !platform || !user) return;
+  if (!pricePerSlot || Number.isNaN(Number(pricePerSlot))) {
+    toast.error('Please verify total cost and slots before publishing.');
+    return;
+  }
+
+  setSubmitting(true);
+  const slotPriceCents = Math.round(parseFloat(pricePerSlot) * 100);
+
+  try {
+    const result = await createPool({
+      platform: selectedPlatform,
+      owner_id: user.id,
+      category: form.category,
+      status: 'open',
+      plan_name: form.planName,
+      price_per_slot: slotPriceCents,
+      total_slots: parseInt(form.slots),
+      auto_approve: false,
+      description: null,
+    });
+
+    if (!result.success) {
+      const friendly = getUserFacingError(result.error, 'publish this pool');
+      toast.error(friendly.message);
+      return;
     }
-  };
+
+    track('pool_created', { platformId: selectedPlatform, slotPrice: slotPriceCents, band: analysis?.band, totalSlots: parseInt(form.slots) });
+    navigate('/my-pools');
+    toast.success('Your pool is live!');
+  } catch (error) {
+    const friendly = getUserFacingError(error, 'publish this pool');
+    toast.error(friendly.message);
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const summaryRows = [
     { label: 'Platform', value: platform?.name ?? '' },
@@ -719,7 +785,7 @@ export function ListAPool() {
         disabled={submitting}
         onClick={handlePublish}
       >
-        {submitting ? 'Publishing...' : '🚀 Publish Pool'}
+        {submitting ? 'Publishing...' : 'ðŸš€ Publish Pool'}
       </Button>
 
       {/* Back */}
@@ -734,7 +800,7 @@ export function ListAPool() {
     </div>
   );
 
-  // ─── Modals ────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Modals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const renderGuardModal = () => {
     if (!analysis) return null;
     const isOverpriced = analysis.band === 'overpriced' || analysis.band === 'aggressive';
@@ -752,7 +818,7 @@ export function ListAPool() {
               {isOverpriced ? (
                 <>At <span className="text-foreground font-bold">{sym}{analysis.userSlotPrice.toFixed(0)}</span>/slot, you're charging more than the typical solo plan. Most users will see better options elsewhere. Are you sure?</>
               ) : (
-                <>At <span className="text-foreground font-bold">{sym}{analysis.userSlotPrice.toFixed(0)}</span>/slot, you're essentially subsidising members. The fair range for this pool is <span className="text-[#4DFF91] font-bold">{sym}{analysis.fairRangeMin.toFixed(0)}–{sym}{analysis.fairRangeMax.toFixed(0)}</span>/slot.</>
+                <>At <span className="text-foreground font-bold">{sym}{analysis.userSlotPrice.toFixed(0)}</span>/slot, you're essentially subsidising members. The fair range for this pool is <span className="text-[#4DFF91] font-bold" role="img" aria-label="icon">{sym}{analysis.fairRangeMin.toFixed(0)}â€“{sym}{analysis.fairRangeMax.toFixed(0)}</span>/slot.</>
               )}
             </DialogDescription>
           </DialogHeader>
@@ -779,7 +845,7 @@ export function ListAPool() {
     );
   };
 
-  // ─── Render ────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="py-6">
       <StepIndicator step={step} />
@@ -790,3 +856,4 @@ export function ListAPool() {
     </div>
   );
 }
+

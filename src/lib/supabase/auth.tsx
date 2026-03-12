@@ -1,0 +1,135 @@
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
+import { User } from '@supabase/supabase-js';
+import { supabase } from './client';
+import { Profile } from '../types';
+import { resolveDataMode } from '../data-mode';
+
+export type AuthRole = 'guest' | 'member' | 'host';
+
+export interface AuthContextValue {
+    user: User | null;
+    profile: Profile | null;
+    loading: boolean;
+    role: AuthRole;
+    isDemoMode: boolean;
+    refreshProfile: () => Promise<void>;
+    signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+function deriveRole(profile: Profile | null): AuthRole {
+    if (!profile) return 'guest';
+    if (profile.plan === 'host_plus') return 'host';
+    return 'member';
+}
+
+export function AuthProvider({ children }: { children: import('react').ReactNode }) {
+    const [user, setUser] = useState<User | null>(null);
+    const [profile, setProfile] = useState<Profile | null>(null);
+    const [loading, setLoading] = useState(true);
+    const userIdRef = useRef<string | null>(null);
+
+    const fetchProfile = useCallback(async (userId: string) => {
+        if (!supabase) return;
+        try {
+            const [{ data: profileData, error: profileError }, { data: planData }] = await Promise.all([
+                supabase.from('profiles').select('*').eq('id', userId).single(),
+                supabase.from('user_plans').select('plan_id').eq('user_id', userId).single(),
+            ]);
+
+            if (profileError) throw profileError;
+
+            setProfile({
+                ...(profileData as Profile),
+                plan: (planData?.plan_id as Profile['plan']) || 'free',
+            });
+        } catch (err) {
+            console.error('Error fetching profile:', err);
+            setProfile(null);
+        }
+    }, []);
+
+    const refreshProfile = useCallback(async () => {
+        if (!userIdRef.current) return;
+        await fetchProfile(userIdRef.current);
+    }, [fetchProfile]);
+
+    useEffect(() => {
+        if (!supabase) {
+            setLoading(false);
+            return;
+        }
+
+        let mounted = true;
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
+            if (!mounted) return;
+            try {
+                const currentUser = session?.user ?? null;
+                setUser(currentUser);
+                userIdRef.current = currentUser?.id ?? null;
+                if (currentUser) {
+                    await fetchProfile(currentUser.id);
+                }
+            } catch (err) {
+                console.error('Auth initialization error:', err);
+            } finally {
+                setLoading(false);
+            }
+        }).catch((err) => {
+            console.error('Fatal auth session error:', err);
+            if (mounted) setLoading(false);
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+            userIdRef.current = currentUser?.id ?? null;
+
+            if (currentUser) {
+                await fetchProfile(currentUser.id);
+                return;
+            }
+
+            setProfile(null);
+        });
+
+        return () => {
+            mounted = false;
+            subscription.unsubscribe();
+        };
+    }, [fetchProfile]);
+
+    const signOut = useCallback(async () => {
+        if (!supabase) return;
+        await supabase.auth.signOut();
+    }, []);
+
+    const value = useMemo<AuthContextValue>(() => ({
+        user,
+        profile,
+        loading,
+        role: deriveRole(profile),
+        isDemoMode: resolveDataMode({ allowDemoFallback: true }) === 'demo',
+        refreshProfile,
+        signOut,
+    }), [loading, profile, refreshProfile, signOut, user]);
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth(): AuthContextValue {
+    const ctx = useContext(AuthContext);
+    if (!ctx) {
+        throw new Error('useAuth must be used within AuthProvider');
+    }
+    return ctx;
+}

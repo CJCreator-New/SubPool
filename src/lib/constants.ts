@@ -27,7 +27,7 @@ export const PLATFORMS: Platform[] = [
     { id: 'slack', name: 'Slack', icon: '💬', color: '#611F69', bg: '#0A0A1A', category: 'work' },
     { id: 'github', name: 'GitHub', icon: '🐙', color: '#F0F6FC', bg: '#0D1117', category: 'work' },
     { id: 'adobe', name: 'Adobe CC', icon: '🅰️', color: '#FF0000', bg: '#1A0000', category: 'work' },
-    { id: 'linear', name: 'Linear', icon: '📐', color: '#5E6AD2', bg: '#0A0A1A', category: 'productivity' },
+    { id: 'linear', name: 'Linear', icon: '🔏', color: '#5E6AD2', bg: '#0A0A1A', category: 'productivity' },
     // AI
     { id: 'chatgpt', name: 'ChatGPT', icon: '🤖', color: '#10A37F', bg: '#031A14', category: 'ai' },
     { id: 'claude', name: 'Claude', icon: '🧠', color: '#D4A574', bg: '#1A1200', category: 'ai' },
@@ -118,14 +118,16 @@ export const NAV_ITEMS: NavItem[] = [
     { icon: '🗂️', label: 'My Pools', path: '/my-pools', section: 'DISCOVER' },
     { icon: '➕', label: 'List a Pool', path: '/list', section: 'DISCOVER' },
     // MANAGE
-    { icon: '💰', label: 'Ledger', path: '/ledger', section: 'MANAGE', badge: '3' },
+    { icon: '💰', label: 'Ledger', path: '/ledger', section: 'MANAGE' },
     { icon: '💵', label: 'Payouts', path: '/payouts', section: 'MANAGE' },
     { icon: '📅', label: 'Billing', path: '/billing', section: 'MANAGE' },
-    { icon: '💬', label: 'Messages', path: '/messages', section: 'MANAGE', badge: '4' },
-    { icon: '🔔', label: 'Notifications', path: '/notifications', section: 'MANAGE', badge: '2' },
+    { icon: '📊', label: 'Subscriptions', path: '/subscriptions', section: 'MANAGE' },
+    { icon: '💬', label: 'Messages', path: '/messages', section: 'MANAGE' },
+    { icon: '🔔', label: 'Notifications', path: '/notifications', section: 'MANAGE' },
     // ACCOUNT
     { icon: '👤', label: 'Profile', path: '/profile', section: 'ACCOUNT' },
     { icon: '⭐', label: 'Plans', path: '/plans', section: 'ACCOUNT' },
+    { icon: '🛡️', label: 'Admin', path: '/admin', section: 'ACCOUNT' },
 ];
 
 export const NAV_SECTIONS = ['DISCOVER', 'MANAGE', 'ACCOUNT'] as const;
@@ -148,18 +150,22 @@ export const PROCESSING_FLAT_USD = 0.30;
 
 export const PAGE_TITLES: Record<string, string> = {
     '/': 'Browse Pools',
+    '/browse': 'Browse Pools',
     '/market': 'Market Intelligence',
     '/wishlist': 'Wishlist',
     '/my-pools': 'My Pools',
     '/list': 'List a Pool',
+    '/create': 'Create a Pool',
     '/ledger': 'Ledger',
     '/payouts': 'Payouts',
     '/billing': 'Billing',
+    '/subscriptions': 'My Subscriptions',
     '/messages': 'Messages',
     '/notifications': 'Notifications',
     '/profile': 'Profile',
     '/savings': 'Savings Hub',
     '/plans': 'Plans & Upgrades',
+    '/admin': 'Admin Panel',
     '/payment/method': 'Payment Method',
     '/payment/confirm': 'Confirm Payment',
 };

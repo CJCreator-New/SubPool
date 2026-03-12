@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -7,20 +7,34 @@ import { Separator } from '../components/ui/separator';
 import { Card, CardContent } from '../components/ui/card';
 import { supabase } from '../../lib/supabase/client';
 
+function resolveNextPath(search: string, fallback = '/browse') {
+    const params = new URLSearchParams(search);
+    const next = params.get('next')?.trim() ?? '';
+    if (!next.startsWith('/')) return fallback;
+    if (next.startsWith('//')) return fallback;
+    if (next === '/login') return fallback;
+    return next;
+}
+
 export function LoginPage() {
     const [email, setEmail] = useState('');
     const [sending, setSending] = useState(false);
     const [sent, setSent] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const navigate = useNavigate();
+    const location = useLocation();
+    const nextPath = resolveNextPath(location.search);
+    const redirectTo = `${window.location.origin}/login?next=${encodeURIComponent(nextPath)}`;
 
     const handleGoogleLogin = async () => {
-        if (!supabase) return;
+        if (!supabase) {
+            setError('Authentication is unavailable right now. Please try again later.');
+            return;
+        }
         try {
             const { error: err } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.origin + '/browse',
+                    redirectTo,
                 },
             });
             if (err) throw err;
@@ -31,14 +45,19 @@ export function LoginPage() {
 
     const handleMagicLink = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!supabase || !email) return;
+        if (!supabase || !email) {
+            if (!supabase) {
+                setError('Authentication is unavailable right now. Please try again later.');
+            }
+            return;
+        }
         setSending(true);
         setError(null);
         try {
             const { error: err } = await supabase.auth.signInWithOtp({
                 email,
                 options: {
-                    emailRedirectTo: window.location.origin + '/browse',
+                    emailRedirectTo: redirectTo,
                 },
             });
             if (err) throw err;
@@ -144,7 +163,7 @@ export function LoginPage() {
                     ) : (
                         <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 space-y-3">
                             <div className="flex items-center gap-2 text-primary">
-                                <span className="text-xl">✉️</span>
+                                <span className="text-xl" role="img" aria-label="Email">✉️</span>
                                 <p className="font-display font-bold text-sm">Magic link sent!</p>
                             </div>
                             <p className="font-mono text-[11px] leading-relaxed text-muted-foreground">
@@ -175,9 +194,9 @@ export function LoginPage() {
 
                     <div className="mt-4 flex justify-center gap-4 text-[10px] font-mono text-muted-foreground opacity-50 uppercase tracking-widest">
                         <span>🔒 No password needed</span>
-                        <span>·</span>
+                        <span role="img" aria-label="icon">·</span>
                         <span>Free</span>
-                        <span>·</span>
+                        <span role="img" aria-label="icon">·</span>
                         <span>Cancel anytime</span>
                     </div>
                 </CardContent>

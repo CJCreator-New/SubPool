@@ -1,616 +1,338 @@
-import React, { useState } from 'react';
-import { C, F } from '../tokens';
-import { Avatar } from '../components/subpool/Avatar';
-import { Button } from '../components/subpool/Button';
-import { Send, Paperclip, ArrowLeft } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Search, SendHorizontal } from 'lucide-react';
+import { useCurrentUser, useMemberships, useMessages, usePools } from '../../lib/supabase/hooks';
+import { getPlatform } from '../../lib/constants';
+import type { Pool } from '../../lib/types';
+import { getUserFacingError } from '../../lib/error-feedback';
+import { Avatar, AvatarFallback } from '../components/ui/avatar';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { EmptyState } from '../components/empty-state';
+import { CredentialVault } from '../components/credential-vault';
+import { cn } from '../components/ui/utils';
 
-interface Message {
-  id: string;
-  sender: 'you' | 'other' | 'system';
-  senderName?: string;
-  content: string;
-  timestamp: string;
-  avatar?: string;
-}
-
-interface Conversation {
-  id: string;
-  poolIcon: string;
-  poolName: string;
-  lastMessage: string;
-  timestamp: string;
-  unread: number;
-  messages: Message[];
+function initials(name: string): string {
+  const chunks = name.trim().split(/\s+/).filter(Boolean);
+  if (chunks.length === 0) return '?';
+  if (chunks.length === 1) return chunks[0].slice(0, 1).toUpperCase();
+  return (chunks[0][0] + chunks[1][0]).toUpperCase();
 }
 
 export function Messages() {
-  const [selectedConvId, setSelectedConvId] = useState('netflix');
+  const [selectedPoolId, setSelectedPoolId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 768 : false));
 
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+  const { data: currentUser } = useCurrentUser();
+  const { data: ownedPools } = usePools({ ownerId: currentUser?.id ?? 'none' });
+  const { data: memberships } = useMemberships();
+
+  const activePools = useMemo(() => {
+    const joinedPools = memberships
+      .filter((membership) => membership.status === 'active')
+      .map((membership) => membership.pool)
+      .filter((pool): pool is Pool => Boolean(pool));
+
+    return [...ownedPools, ...joinedPools].filter(
+      (pool, index, all) => all.findIndex((candidate) => candidate.id === pool.id) === index,
+    );
+  }, [ownedPools, memberships]);
+
+  const filteredPools = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return activePools;
+    return activePools.filter((pool) => {
+      const platform = getPlatform(pool.platform);
+      const label = `${platform?.name ?? pool.platform} ${pool.plan_name}`.toLowerCase();
+      return label.includes(query);
+    });
+  }, [activePools, searchQuery]);
+
+  const selectedPool = activePools.find((pool) => pool.id === selectedPoolId) ?? activePools[0];
+  const selectedPoolPlatform = selectedPool ? getPlatform(selectedPool.platform) : null;
+
+  const {
+    data: messages,
+    loading: messagesLoading,
+    error: messagesError,
+    sendMessage,
+    markAsRead,
+    typingUsers,
+    setTyping,
+  } = useMessages(selectedPool?.id);
+
+  const messagesErrorMessage = messagesError
+    ? getUserFacingError(messagesError, 'load messages').message
+    : null;
+
+  useEffect(() => {
+    if (!selectedPoolId && activePools.length > 0) {
+      setSelectedPoolId(activePools[0].id);
+    }
+  }, [activePools, selectedPoolId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const scrollToBottom = () => {
+  useEffect(() => {
+    if (!selectedPoolId) return;
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    markAsRead();
+  }, [messages, selectedPoolId, markAsRead]);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleInputChange = (value: string) => {
+    setMessageInput(value);
+    setTyping(true);
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => setTyping(false), 1800);
   };
 
-  React.useEffect(() => {
-    scrollToBottom();
-  }, [selectedConvId]);
+  const handleSend = async () => {
+    const nextMessage = messageInput.trim();
+    if (!nextMessage || !selectedPool) return;
 
-  const handleSendMessage = () => {
-    if (messageInput.trim()) {
-      // In a real app, send message here
-      setMessageInput('');
-      setTimeout(scrollToBottom, 100);
-    }
+    await sendMessage(nextMessage);
+    setMessageInput('');
+    setTyping(false);
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 20);
   };
-  const conversations: Conversation[] = [
-    {
-      id: 'netflix',
-      poolIcon: '🎬',
-      poolName: 'Netflix Standard',
-      lastMessage: 'Riya: Thanks for the quick payment! 🙏',
-      timestamp: '2h ago',
-      unread: 1,
-      messages: [
-        {
-          id: '1',
-          sender: 'other',
-          senderName: 'Riya K',
-          content: 'Hey everyone! Just a reminder that payment is due in 3 days.',
-          timestamp: '2d ago',
-          avatar: 'R',
-        },
-        {
-          id: '2',
-          sender: 'you',
-          content: 'Got it, will send tomorrow!',
-          timestamp: '2d ago',
-        },
-        {
-          id: '3',
-          sender: 'system',
-          content: 'Sam M joined the pool',
-          timestamp: '1d ago',
-        },
-        {
-          id: '4',
-          sender: 'other',
-          senderName: 'Sam M',
-          content: 'Hey all! Excited to be part of the pool. When is the next payment?',
-          timestamp: '1d ago',
-          avatar: 'S',
-        },
-        {
-          id: '5',
-          sender: 'other',
-          senderName: 'Riya K',
-          content: 'Welcome Sam! Next payment is Feb 28th.',
-          timestamp: '1d ago',
-          avatar: 'R',
-        },
-        {
-          id: '6',
-          sender: 'you',
-          content: 'Payment sent! ✅',
-          timestamp: '4h ago',
-        },
-        {
-          id: '7',
-          sender: 'other',
-          senderName: 'Riya K',
-          content: 'Thanks for the quick payment! 🙏',
-          timestamp: '2h ago',
-          avatar: 'R',
-        },
-      ],
-    },
-    {
-      id: 'spotify',
-      poolIcon: '🎵',
-      poolName: 'Spotify Duo',
-      lastMessage: 'You: Got it, will send tomorrow',
-      timestamp: 'Yesterday',
-      unread: 0,
-      messages: [],
-    },
-    {
-      id: 'figma',
-      poolIcon: '🎨',
-      poolName: 'Figma Professional',
-      lastMessage: 'Sam: New billing info...',
-      timestamp: '2d ago',
-      unread: 3,
-      messages: [],
-    },
-    {
-      id: 'youtube',
-      poolIcon: '▶️',
-      poolName: 'YouTube Premium',
-      lastMessage: 'Jay M joined the pool',
-      timestamp: '3d ago',
-      unread: 0,
-      messages: [],
-    },
-    {
-      id: 'chatgpt',
-      poolIcon: '🤖',
-      poolName: 'ChatGPT Plus',
-      lastMessage: 'Elena: Welcome to the pool!',
-      timestamp: '1w ago',
-      unread: 0,
-      messages: [],
-    },
-  ];
 
-  const selectedConv = conversations.find(c => c.id === selectedConvId) || conversations[0];
-
-  const ConversationList = ({ fullWidth }: { fullWidth?: boolean }) => (
-    <div
-      style={{
-        width: fullWidth ? '100%' : 320,
-        height: fullWidth ? 'auto' : '100%',
-        backgroundColor: C.bgSurface,
-        borderRight: fullWidth ? 'none' : `1px solid ${C.borderDefault}`,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      {/* Search */}
-      <div style={{ padding: 16, borderBottom: `1px solid ${C.borderDefault}` }}>
-        <input
-          type="text"
-          placeholder="Search conversations..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '10px 14px',
-            backgroundColor: C.bgBase,
-            border: `1px solid ${C.borderDefault}`,
-            borderRadius: 6,
-            color: C.textPrimary,
-            fontFamily: F.syne,
-            fontSize: 13,
-            outline: 'none',
-          }}
-        />
-      </div>
-
-      {/* Conversation items */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        {conversations.map((conv) => {
-          const isActive = conv.id === selectedConvId;
-          return (
-            <div
-              key={conv.id}
-              onClick={() => setSelectedConvId(conv.id)}
-              style={{
-                padding: 16,
-                borderBottom: `1px solid ${C.borderDefault}`,
-                cursor: 'pointer',
-                backgroundColor: isActive ? C.bgHover : 'transparent',
-                transition: 'background-color 0.15s ease',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 6,
-                    backgroundColor: C.bgBase,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 20,
-                    flexShrink: 0,
-                  }}
-                >
-                  {conv.poolIcon}
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span
-                      style={{
-                        fontFamily: F.syne,
-                        fontWeight: conv.unread > 0 ? 700 : 600,
-                        fontSize: 14,
-                        color: C.textPrimary,
-                      }}
-                    >
-                      {conv.poolName}
-                    </span>
-                    <span
-                      style={{
-                        fontFamily: F.mono,
-                        fontSize: 10,
-                        color: C.textMuted,
-                      }}
-                    >
-                      {conv.timestamp}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <span
-                      style={{
-                        fontFamily: F.syne,
-                        fontSize: 13,
-                        color: C.textMuted,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        flex: 1,
-                      }}
-                    >
-                      {conv.lastMessage}
-                    </span>
-                    {conv.unread > 0 && (
-                      <>
-                        <div
-                          style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: '50%',
-                            backgroundColor: C.accentLime,
-                            flexShrink: 0,
-                          }}
-                        />
-                        <div
-                          style={{
-                            padding: '2px 6px',
-                            borderRadius: 100,
-                            backgroundColor: C.accentLime,
-                            color: C.bgBase,
-                            fontFamily: F.mono,
-                            fontWeight: 600,
-                            fontSize: 10,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {conv.unread}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  const ChatView = () => (
-    <div
-      style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: C.bgBase,
-      }}
-    >
-      {/* Chat header */}
-      <div
-        style={{
-          padding: 16,
-          borderBottom: `1px solid ${C.borderDefault}`,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          backgroundColor: C.bgSurface,
-        }}
-      >
-        {isMobile && (
-          <button
-            onClick={() => setSelectedConvId('')}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: C.textPrimary,
-            }}
-          >
-            <ArrowLeft size={20} />
-          </button>
-        )}
-
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 6,
-            backgroundColor: C.bgBase,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 20,
-          }}
-        >
-          {selectedConv.poolIcon}
-        </div>
-
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              fontFamily: F.syne,
-              fontWeight: 600,
-              fontSize: 15,
-              color: C.textPrimary,
-              marginBottom: 2,
-            }}
-          >
-            {selectedConv.poolName}
-          </div>
-          <div
-            style={{
-              fontFamily: F.mono,
-              fontSize: 11,
-              color: C.textMuted,
-            }}
-          >
-            4 members
-          </div>
-        </div>
-
-        <button
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 6,
-            backgroundColor: 'transparent',
-            border: `1px solid ${C.borderDefault}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            fontSize: 16,
-          }}
-        >
-          ⚙️
-        </button>
-      </div>
-
-      {/* Messages */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: 20,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 16,
-        }}
-      >
-        {selectedConv.messages.map((msg) => {
-          if (msg.sender === 'system') {
-            return (
-              <div
-                key={msg.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  padding: '8px 0',
-                }}
-              >
-                <div
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: C.bgSurface,
-                    border: `1px solid ${C.borderDefault}`,
-                    borderRadius: 100,
-                    fontFamily: F.mono,
-                    fontSize: 11,
-                    color: C.textMuted,
-                  }}
-                >
-                  {msg.content}
-                </div>
-              </div>
-            );
-          }
-
-          const isYou = msg.sender === 'you';
-
-          return (
-            <div
-              key={msg.id}
-              style={{
-                display: 'flex',
-                flexDirection: isYou ? 'row-reverse' : 'row',
-                gap: 10,
-                alignItems: 'flex-start',
-              }}
-            >
-              {!isYou && (
-                <Avatar
-                  initials={msg.avatar || 'U'}
-                  size="sm"
-                  color={C.accentLime}
-                />
-              )}
-
-              <div
-                style={{
-                  maxWidth: '65%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
-                  alignItems: isYou ? 'flex-end' : 'flex-start',
-                }}
-              >
-                {!isYou && (
-                  <span
-                    style={{
-                      fontFamily: F.syne,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: C.textMuted,
-                      paddingLeft: 12,
-                    }}
-                  >
-                    {msg.senderName}
-                  </span>
-                )}
-
-                <div
-                  style={{
-                    padding: '12px 16px',
-                    backgroundColor: isYou
-                      ? 'rgba(200,241,53,0.15)'
-                      : C.bgHover,
-                    border: `1px solid ${isYou ? C.borderAccent : C.borderDefault
-                      }`,
-                    borderRadius: isYou
-                      ? '12px 12px 2px 12px'
-                      : '12px 12px 12px 2px',
-                  }}
-                >
-                  <p
-                    style={{
-                      fontFamily: F.syne,
-                      fontSize: 14,
-                      color: C.textPrimary,
-                      margin: 0,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {msg.content}
-                  </p>
-                </div>
-
-                <span
-                  style={{
-                    fontFamily: F.mono,
-                    fontSize: 10,
-                    color: C.textMuted,
-                    paddingLeft: isYou ? 0 : 12,
-                    paddingRight: isYou ? 12 : 0,
-                  }}
-                >
-                  {msg.timestamp}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Input bar */}
-      <div
-        style={{
-          padding: '12px 16px',
-          backgroundColor: C.bgSurface,
-          borderTop: `1px solid ${C.borderDefault}`,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-        }}
-      >
-        <button
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 6,
-            backgroundColor: 'transparent',
-            border: `1px solid ${C.borderDefault}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            color: C.textMuted,
-          }}
-        >
-          <Paperclip size={18} />
-        </button>
-
-        <input
-          type="text"
-          placeholder={`Message ${selectedConv.poolName} pool...`}
-          value={messageInput}
-          onChange={(e) => setMessageInput(e.target.value)}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleSendMessage();
-            }
-          }}
-          style={{
-            flex: 1,
-            padding: '10px 14px',
-            backgroundColor: C.bgBase,
-            border: `1px solid ${C.borderDefault}`,
-            borderRadius: 6,
-            color: C.textPrimary,
-            fontFamily: F.syne,
-            fontSize: 13,
-            outline: 'none',
-          }}
-        />
-
-        <button
-          onClick={handleSendMessage}
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: '50%',
-            backgroundColor: C.accentLime,
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            color: C.bgBase,
-          }}
-        >
-          <Send size={18} />
-        </button>
-      </div>
-    </div>
-  );
-
-  // Mobile: show either list or chat, not both
-  if (isMobile) {
+  if (activePools.length === 0) {
     return (
-      <div style={{ height: 'calc(100vh - 120px)' }}>
-        {!selectedConvId ? (
-          <ConversationList fullWidth />
-        ) : (
-          <ChatView />
-        )}
-      </div>
+      <EmptyState
+        icon="✉️"
+        title="No conversations yet"
+        description="Join or host a pool to start messaging members."
+      />
     );
   }
 
-  // Desktop: two-panel layout
+  const showListOnMobile = isMobile && !selectedPoolId;
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        height: 'calc(100vh - 120px)',
-        backgroundColor: C.bgSurface,
-        border: `1px solid ${C.borderDefault}`,
-        borderRadius: 6,
-        overflow: 'hidden',
-      }}
-    >
-      <ConversationList />
-      <ChatView />
+    <div className="h-[calc(100vh-120px)] min-h-[520px]">
+      <Card className="h-full border-border overflow-hidden">
+        <CardContent className="h-full p-0 flex">
+          <aside
+            className={cn(
+              'h-full border-r border-border bg-card/60 flex flex-col',
+              isMobile ? 'w-full' : 'w-[320px]',
+              showListOnMobile || !isMobile ? 'flex' : 'hidden',
+            )}
+          >
+            <div className="p-4 border-b border-border">
+              <label htmlFor="message-search" className="sr-only">Search conversations</label>
+              <div className="relative">
+                <Search className="size-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
+                <Input
+                  id="message-search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search conversations"
+                  className="pl-9 h-9"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {filteredPools.length === 0 && (
+                <div className="h-full grid place-items-center p-6">
+                  <p className="font-mono text-xs text-muted-foreground">No matching conversations.</p>
+                </div>
+              )}
+
+              {filteredPools.map((pool) => {
+                const platform = getPlatform(pool.platform);
+                const isActive = pool.id === selectedPool?.id;
+
+                return (
+                  <button
+                    key={pool.id}
+                    onClick={() => setSelectedPoolId(pool.id)}
+                    className={cn(
+                      'w-full text-left px-4 py-3 border-b border-border/60 transition-colors',
+                      isActive ? 'bg-primary/10' : 'hover:bg-secondary/30',
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="size-10 rounded-md bg-secondary/60 border border-border/60 grid place-items-center text-lg">
+                        {platform?.icon ?? '📦'}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-display font-semibold text-sm truncate">
+                          {platform?.name ?? pool.platform} {pool.plan_name}
+                        </p>
+                        <p className="font-mono text-[11px] text-muted-foreground mt-1 truncate">
+                          {pool.filled_slots}/{pool.total_slots} members
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
+          <section
+            className={cn(
+              'h-full flex-1 flex-col bg-background',
+              isMobile ? (showListOnMobile ? 'hidden' : 'flex') : 'flex',
+            )}
+          >
+            {!selectedPool ? (
+              <div className="h-full grid place-items-center p-6">
+                <p className="font-mono text-xs text-muted-foreground">Select a conversation.</p>
+              </div>
+            ) : (
+              <>
+                <header className="px-4 py-3 border-b border-border bg-card/50 flex items-center gap-3">
+                  {isMobile && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSelectedPoolId('')}
+                      aria-label="Back to conversations"
+                    >
+                      <ArrowLeft className="size-4" />
+                    </Button>
+                  )}
+
+                  <div className="size-10 rounded-md bg-secondary/60 border border-border/60 grid place-items-center text-lg">
+                    {selectedPoolPlatform?.icon ?? '📦'}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="font-display font-semibold text-sm truncate">
+                      {selectedPoolPlatform?.name ?? selectedPool.platform} {selectedPool.plan_name}
+                    </p>
+                    <p className="font-mono text-[11px] text-muted-foreground">
+                      {selectedPool.filled_slots}/{selectedPool.total_slots} members
+                    </p>
+                  </div>
+                </header>
+
+                {messagesErrorMessage && (
+                  <div className="mx-4 mt-4 rounded-md border border-warning/30 bg-warning/10 px-3 py-2">
+                    <p className="font-mono text-xs text-warning">{messagesErrorMessage}</p>
+                  </div>
+                )}
+
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+                  <div className="mb-6">
+                    <CredentialVault poolId={selectedPool.id} isOwner={selectedPool.owner_id === currentUser?.id} />
+                  </div>
+
+                  {messagesLoading && (
+                    <p role="status" aria-live="polite" className="font-mono text-xs text-muted-foreground">Loading messages...</p>
+                  )}
+
+                  {!messagesLoading && messages.length === 0 && (
+                    <div className="h-full min-h-[240px] grid place-items-center">
+                      <p className="font-mono text-xs text-muted-foreground">No messages yet. Start the conversation.</p>
+                    </div>
+                  )}
+
+                  {messages.map((message) => {
+                    const isYou = message.sender_id === currentUser?.id;
+                    const senderName = message.sender?.display_name ?? message.sender?.username ?? 'Member';
+
+                    return (
+                      <div
+                        key={message.id}
+                        className={cn(
+                          'flex items-end gap-2',
+                          isYou ? 'justify-end' : 'justify-start',
+                        )}
+                      >
+                        {!isYou && (
+                          <Avatar className="size-7">
+                            <AvatarFallback style={{ backgroundColor: message.sender?.avatar_color ?? '#2A2A2A' }} className="text-[10px] font-bold text-black">
+                              {initials(senderName)}
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+
+                        <div className={cn('max-w-[72%] min-w-[90px]', isYou ? 'text-right' : 'text-left')}>
+                          {!isYou && (
+                            <p className="font-mono text-[10px] text-muted-foreground mb-1">{senderName}</p>
+                          )}
+                          <div
+                            className={cn(
+                              'rounded-xl px-3 py-2 border',
+                              isYou
+                                ? 'bg-primary/15 border-primary/30 rounded-br-sm'
+                                : 'bg-secondary/30 border-border rounded-bl-sm',
+                            )}
+                          >
+                            <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                          </div>
+                          <p className="font-mono text-[10px] text-muted-foreground mt-1">
+                            {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {isYou && message.read_at ? ' • read' : ''}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {typingUsers.length > 0 && (
+                  <div role="status" aria-live="polite" className="px-4 py-2 border-t border-border/60 bg-card/40">
+                    <p className="font-mono text-[10px] text-muted-foreground">
+                      {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+                    </p>
+                  </div>
+                )}
+
+                <footer className="px-4 py-3 border-t border-border bg-card/50 flex items-center gap-2">
+                  <label htmlFor="message-compose" className="sr-only">Type a message</label>
+                  <Input
+                    id="message-compose"
+                    value={messageInput}
+                    onChange={(event) => handleInputChange(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault();
+                        handleSend();
+                      }
+                    }}
+                    placeholder={`Message ${selectedPoolPlatform?.name ?? selectedPool.platform}`}
+                    className="h-10"
+                  />
+                  <Button
+                    size="icon"
+                    onClick={handleSend}
+                    disabled={!messageInput.trim()}
+                    aria-label="Send message"
+                  >
+                    <SendHorizontal className="size-4" />
+                  </Button>
+                </footer>
+              </>
+            )}
+          </section>
+        </CardContent>
+      </Card>
     </div>
   );
 }

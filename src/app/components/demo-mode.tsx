@@ -138,7 +138,7 @@ function DemoBanner({ onClose }: { onClose: () => void }) {
             className="fixed top-0 left-0 right-0 z-[100] h-8 bg-primary text-primary-foreground flex items-center justify-center gap-3 font-mono text-[11px] uppercase tracking-wider select-none border-b border-white/10"
         >
             <span className="flex items-center gap-2">
-                <span className="animate-pulse text-background">⚡</span>
+                <span className="animate-pulse text-background" role="img" aria-label="Lightning">⚡</span>
                 INVESTOR DEMO MODE — All data is simulated
             </span>
             <button

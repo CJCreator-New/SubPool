@@ -88,7 +88,10 @@ export function PlansPage() {
 
     const handleUpgrade = (planName: string) => {
         track('upgrade_cta_clicked', { targetPlan: planName, billingCycle });
-        toast.info(`Stripe integration coming soon for ${planName}! You'll be first to know. 🚀`);
+        toast.success(`You've joined the ${planName} waitlist! We'll email you when upgrades are available. 🎉`, {
+            description: 'Expected launch: Q2 2026. Keep an eye on your notifications.',
+            duration: 5000,
+        });
     };
 
     return (
@@ -174,9 +177,9 @@ export function PlansPage() {
                                             <div className={`size-5 rounded-full flex items-center justify-center shrink-0 ${feature.included ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'
                                                 }`}>
                                                 {feature.included ? (
-                                                    <span className="text-[10px]">✓</span>
+                                                    <span className="text-[10px]" role="img" aria-label="Check">✓</span>
                                                 ) : (
-                                                    <span className="text-[10px]">−</span>
+                                                    <span className="text-[10px]" role="img" aria-label="icon">−</span>
                                                 )}
                                             </div>
                                             <span className={`font-display text-sm ${feature.included ? 'text-foreground' : 'text-muted-foreground opacity-60'}`}>

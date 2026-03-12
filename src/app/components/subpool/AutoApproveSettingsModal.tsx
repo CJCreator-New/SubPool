@@ -186,7 +186,7 @@ export function AutoApproveSettingsModal({ isOpen, onClose }: AutoApproveSetting
             {rules[0].enabled && (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <span style={{ fontSize: 16 }}>⭐⭐⭐⭐</span>
+                  <span style={{ fontSize: 16 }} role="img" aria-label="icon">⭐⭐⭐⭐</span>
                   <span
                     style={{
                       fontFamily: F.mono,

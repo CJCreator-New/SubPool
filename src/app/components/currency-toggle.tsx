@@ -1,39 +1,34 @@
-import React from 'react';
-import { useCurrency } from '../../lib/currency-context';
-import { cn } from './ui/utils';
+import { useCurrency } from "../../lib/currency-context";
+import { cn } from "./ui/utils";
 
-interface CurrencyToggleProps {
-    className?: string;
-}
-
-export function CurrencyToggle({ className }: CurrencyToggleProps) {
+export function CurrencyToggle() {
     const { currency, setCurrency } = useCurrency();
 
     return (
-        <div className={cn("bg-secondary rounded-full flex p-0.5", className)}>
+        <div className="flex bg-secondary/50 p-1 rounded-lg border border-border">
             <button
                 type="button"
                 onClick={() => setCurrency('INR')}
                 className={cn(
-                    "px-3 py-1 rounded-full text-[12px] font-mono transition-colors",
+                    "px-3 py-1.5 rounded-md text-[10px] font-bold transition-all relative z-10",
                     currency === 'INR'
-                        ? "bg-primary text-background font-bold"
-                        : "text-muted hover:text-foreground cursor-pointer"
+                        ? "bg-primary text-primary-foreground font-bold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 )}
             >
-                ₹
+                INR ₹
             </button>
             <button
                 type="button"
                 onClick={() => setCurrency('USD')}
                 className={cn(
-                    "px-3 py-1 rounded-full text-[12px] font-mono transition-colors",
+                    "px-3 py-1.5 rounded-md text-[10px] font-bold transition-all relative z-10",
                     currency === 'USD'
-                        ? "bg-primary text-background font-bold"
-                        : "text-muted hover:text-foreground cursor-pointer"
+                        ? "bg-primary text-primary-foreground font-bold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 )}
             >
-                $
+                USD $
             </button>
         </div>
     );

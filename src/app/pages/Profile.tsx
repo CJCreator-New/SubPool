@@ -13,14 +13,42 @@ import { useAuth } from '../../lib/supabase/auth';
 import { toast } from 'sonner';
 import { track } from '../../lib/analytics';
 import { Insight } from '../components/demo-mode';
+import { getUserFacingError } from '../../lib/error-feedback';
+import {
+  fetchReminderPreferences,
+  upsertReminderPreferences,
+  ReminderPreferencesRecord,
+} from '../../lib/supabase/reminder-preferences';
+import { Setup2FA } from '../components/security/setup-2fa';
+
+type ReminderPreferences = {
+  allNotifs: boolean;
+  paymentReminders: boolean;
+  weeklyDigest: boolean;
+  profilePublic: boolean;
+};
+
+const REMINDERS_KEY = 'subpool:reminders';
+
+function toPreferencePayload(userId: string, settings: ReminderPreferences): ReminderPreferencesRecord {
+  return {
+    user_id: userId,
+    all_notifs: settings.allNotifs,
+    payment_reminders: settings.paymentReminders,
+    weekly_digest: settings.weeklyDigest,
+    digest_day: 1,
+    digest_hour_utc: 9,
+  };
+}
 
 export function Profile() {
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
-  const [settings, setSettings] = useState({
-    autoApprove: false,
+  const [settings, setSettings] = useState<ReminderPreferences>({
     profilePublic: true,
     allNotifs: true,
+    paymentReminders: true,
+    weeklyDigest: true,
   });
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -39,6 +67,37 @@ export function Profile() {
     }
   }, [profile]);
 
+  useEffect(() => {
+    const raw = localStorage.getItem(REMINDERS_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as ReminderPreferences;
+      setSettings(parsed);
+    } catch {
+      // ignore malformed local state
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let mounted = true;
+    fetchReminderPreferences(user.id)
+      .then((pref) => {
+        if (!mounted) return;
+        setSettings((prev) => ({
+          ...prev,
+          allNotifs: pref.all_notifs,
+          paymentReminders: pref.payment_reminders,
+          weeklyDigest: pref.weekly_digest,
+        }));
+      })
+      .catch((error) => {
+        console.warn('Failed to load reminder preferences:', error);
+      });
+
+    return () => { mounted = false; };
+  }, [user?.id]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -50,7 +109,7 @@ export function Profile() {
   const stats = [
     { label: 'Pools Owned', value: String(profile?.review_count || 0) }, // Using review_count as a placeholder for stats
     { label: 'Rating', value: `⭐ ${profile?.rating || '0.0'}` },
-    { label: 'Member Since', value: profile?.joined_at ? new Date(profile.joined_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Jan 2025' },
+    { label: 'Member Since', value: profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Jan 2025' },
   ];
 
   const handleSaveProfile = async () => {
@@ -69,15 +128,26 @@ export function Profile() {
       toast.success('Profile updated successfully!');
       setIsEditModalOpen(false);
     } catch (error) {
-      toast.error('Failed to update profile');
+      const friendly = getUserFacingError(error, 'update your profile');
+      toast.error(friendly.message);
       console.error(error);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleToggle = (key: string, value: boolean) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+  const handleToggle = (key: keyof ReminderPreferences, value: boolean) => {
+    setSettings((prev) => {
+      const next = { ...prev, [key]: value } as ReminderPreferences;
+      localStorage.setItem(REMINDERS_KEY, JSON.stringify(next));
+      if (user?.id && (key === 'allNotifs' || key === 'paymentReminders' || key === 'weeklyDigest')) {
+        upsertReminderPreferences(toPreferencePayload(user.id, next)).catch((error) => {
+          console.warn('Failed to persist reminder preferences:', error);
+        });
+      }
+      track('activation_step_completed', { step: 'notification_interaction' });
+      return next;
+    });
   };
 
   const referralUrl = user?.id ? `subpool.app/ref/${user.id}` : 'subpool.app/ref/unknown';
@@ -98,7 +168,7 @@ export function Profile() {
               <div>
                 <h2 className="font-display font-bold text-3xl">{profile?.username ?? 'You'}</h2>
                 <p className="font-mono text-xs text-muted-foreground mt-1 uppercase tracking-wider">
-                  {profile ? `@${profile.username}` : '@yourusername'} · member since {profile?.joined_at ? new Date(profile.joined_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Jan 2025'}
+                  {profile ? `@${profile.username}` : '@yourusername'} · member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Jan 2025'}
                 </p>
                 <div className="flex items-center gap-2 mt-2.5">
                   <span className={cn(
@@ -247,6 +317,46 @@ export function Profile() {
                 onCheckedChange={(checked) => handleToggle('allNotifs', checked)}
                 className="data-[state=checked]:bg-primary"
               />
+            </div>
+
+            <div className="flex justify-between items-center py-5 border-t border-border/50">
+              <div className="space-y-1">
+                <p className="font-display font-semibold text-[15px]">Payment Reminders</p>
+                <p className="font-mono text-[11px] text-muted-foreground">
+                  Send in-app reminders before due dates
+                </p>
+              </div>
+              <Switch
+                checked={settings.paymentReminders}
+                onCheckedChange={(checked) => handleToggle('paymentReminders', checked)}
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
+
+            <div className="flex justify-between items-center py-5 border-t border-border/50">
+              <div className="space-y-1">
+                <p className="font-display font-semibold text-[15px]">Weekly Digest</p>
+                <p className="font-mono text-[11px] text-muted-foreground">
+                  Receive summary of savings and pending actions
+                </p>
+              </div>
+              <Switch
+                checked={settings.weeklyDigest}
+                onCheckedChange={(checked) => handleToggle('weeklyDigest', checked)}
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
+
+            <div className="flex flex-col py-5 border-t border-border/50 gap-3">
+              <div className="flex justify-between items-center">
+                <div className="space-y-1 overflow-hidden pr-4">
+                  <p className="font-display font-semibold text-sm">Security</p>
+                  <p className="font-mono text-[11px] text-muted-foreground truncate">
+                    Manage 2FA and account security
+                  </p>
+                </div>
+              </div>
+              <Setup2FA />
             </div>
 
             <div className="flex flex-col py-5 border-t border-border/50 gap-3">

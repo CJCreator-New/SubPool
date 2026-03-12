@@ -15,6 +15,7 @@ import { track } from '../../lib/analytics';
 import { toast } from 'sonner';
 import { useMagneticButton } from '../../hooks/useMagneticButton';
 import { celebrate } from '../../lib/confetti';
+import { OwnerTrustRibbon } from './trust-score';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -70,20 +71,17 @@ export function PoolDetailModal({
         return (hash % 8) + 2;
     }, [pool?.id]);
 
-    if (!pool) return null;
-
-    const platform = getPlatform(pool.platform_id);
-    const slotsRemaining = pool.slots_total - pool.slots_filled;
-    const analysis = analyzePricing({
-        platformId: pool.platform_id,
+    const platform = pool ? getPlatform(pool.platform) : null;
+    const analysis = pool ? analyzePricing({
+        platformId: pool.platform,
         planName: pool.plan_name,
         userSlotPrice: pool.price_per_slot / 100,
-        totalSlots: pool.slots_total,
+        totalSlots: pool.total_slots,
         currency: currency,
         countryCode: 'GLOBAL'
-    });
+    }) : { band: 'unknown', label: 'Unknown', color: '#6B6860', savingsPct: 0, officialSoloPrice: 0, fairRangeMin: 0, fairRangeMax: 0 };
 
-    const sharingNote = getPlatformSharingNote(pool.platform_id, pool.plan_name);
+    const sharingNote = pool ? getPlatformSharingNote(pool.platform, pool.plan_name) : { policy: 'unknown', color: '#6B6860' };
 
     // Tracking pool_detail_viewed
     const openTimeRef = React.useRef<number>(0);
@@ -92,13 +90,15 @@ export function PoolDetailModal({
             openTimeRef.current = Date.now();
         } else if (!open && openTimeRef.current > 0 && pool) {
             const timeOnModal = Math.round((Date.now() - openTimeRef.current) / 1000);
-            track('pool_detail_viewed', { poolId: pool.id, platformId: pool.platform_id, band: analysis.band, timeOnModal });
+            track('pool_detail_viewed', { poolId: pool.id, platformId: pool.platform, band: analysis.band, timeOnModal });
             openTimeRef.current = 0;
         }
     }, [open, pool?.id, analysis?.band]);
 
+    const magneticJoinBtn = useMagneticButton(0.3, isDemo);
+
     const handleJoin = async () => {
-        if (requestState !== 'idle' || !onRequestJoin) return;
+        if (requestState !== 'idle' || !onRequestJoin || !pool) return;
         setRequestState('loading');
         try {
             await onRequestJoin(pool);
@@ -110,12 +110,29 @@ export function PoolDetailModal({
         }
     };
 
-    const magneticJoinBtn = useMagneticButton(0.3, isDemo);
+    const handleCopyPoolLink = async () => {
+        try {
+            if (!navigator.clipboard) {
+                throw new Error('Clipboard API unavailable');
+            }
+            await navigator.clipboard.writeText(`${window.location.origin}/pool/${pool?.id}`);
+            toast.success('Pool link copied!');
+            if (pool) {
+                track('pool_link_copied', { poolId: pool.id });
+            }
+        } catch {
+            toast.error('Could not copy link. Please copy the URL manually.');
+        }
+    };
+
+    if (!pool) return null;
+
+    const slotsRemaining = pool.total_slots - pool.filled_slots;
 
     // Detail rows
     const details: { key: string; value: React.ReactNode }[] = [
         { key: 'Price', value: `${formatPrice(pool.price_per_slot / 100)}/mo per slot` },
-        { key: 'Slots', value: `${pool.slots_filled}/${pool.slots_total} filled` },
+        { key: 'Slots', value: `${pool.filled_slots}/${pool.total_slots} filled` },
         { key: 'Billing', value: 'Monthly via SubPool escrow' },
         { key: 'Category', value: pool.category.charAt(0).toUpperCase() + pool.category.slice(1) },
         {
@@ -150,10 +167,10 @@ export function PoolDetailModal({
 
                 {/* ─── Platform Header ──────────────────────────────────────── */}
                 <div className="flex items-center gap-4 mb-6">
-                    <PlatformIcon platformId={pool.platform_id} size="lg" glowColor={platform?.bg} />
+                    <PlatformIcon platformId={pool.platform} size="lg" glowColor={platform?.bg} />
                     <div className="min-w-0">
                         <p className="font-display font-bold text-xl text-foreground truncate">
-                            {platform?.name ?? pool.platform_id}
+                            {platform?.name ?? pool.platform}
                         </p>
                         <p className="font-mono text-[12px] text-muted-foreground truncate">
                             {pool.plan_name}
@@ -174,7 +191,7 @@ export function PoolDetailModal({
 
                 {/* ─── Slot Bar ─────────────────────────────────────────────── */}
                 <div className="mb-5">
-                    <SlotBar filled={pool.slots_filled} total={pool.slots_total} size="md" />
+                    <SlotBar filled={pool.filled_slots} total={pool.total_slots} size="md" />
                     {slotsRemaining <= 1 && slotsRemaining > 0 && (
                         <p className="text-[11px] font-mono mt-1" style={{ color: '#F5A623' }}>
                             🔥 Only {slotsRemaining} slot remaining — act fast!
@@ -235,9 +252,7 @@ export function PoolDetailModal({
 
                         <div className="flex justify-between items-center mb-1">
                             <span className="font-mono text-[11px] text-muted-foreground">Market range:</span>
-                            <span className="font-mono text-[11px] text-muted-foreground">
-                                {formatPrice(analysis.fairRangeMin)}–{formatPrice(analysis.fairRangeMax)}
-                            </span>
+                            <span className="font-mono text-[11px] text-muted-foreground" role="img" aria-label="icon">{formatPrice(analysis.fairRangeMin)}–{formatPrice(analysis.fairRangeMax)}</span>
                         </div>
 
                         {/* Position bar */}
@@ -280,8 +295,13 @@ export function PoolDetailModal({
                     </p>
                     <div className="bg-card border border-border rounded-lg p-3" style={{ animation: 'calloutReveal 300ms 200ms ease-out both' }}>
                         <div className="flex items-center gap-2 relative">
-                            <span className="font-mono text-[11px] text-muted-foreground">
-                                ⭐ {pool.owner.rating.toFixed(1)} owner · {pool.owner.review_count} pools hosted · Usually responds in &lt;2h
+                            <OwnerTrustRibbon
+                                rating={pool.owner?.rating ?? 0}
+                                totalHosted={pool.owner?.total_hosted ?? (pool.owner as any)?.review_count ?? 0}
+                                plan={pool.owner?.plan}
+                            />
+                            <span className="font-mono text-[10px] text-muted-foreground ml-auto">
+                                Usually responds in &lt;2h
                             </span>
                             <Insight id="pool-rating" activeStep={4} className="top-1/2 -right-4 ml-4 -translate-y-1/2" />
                         </div>
@@ -297,11 +317,11 @@ export function PoolDetailModal({
                 <details className="mb-6 group">
                     <summary className="font-mono text-[11px] text-muted-foreground cursor-pointer list-none flex justify-between items-center bg-secondary rounded-[6px] px-3 py-2">
                         <span>ℹ️ About sharing this type</span>
-                        <span className="group-open:rotate-180 transition-transform">▼</span>
+                        <span className="group-open:rotate-180 transition-transform" role="img" aria-label="icon">▼</span>
                     </summary>
                     <div className="bg-secondary/50 rounded-b-[6px] px-3 pb-3 -mt-1 pt-2 font-mono text-[11px] text-muted-foreground text-left">
-                        {pool.category === 'OTT' ? `Netflix 4K supports up to 4 screens per plan. With 3 members sharing, each slot costs ${formatPrice(pool.price_per_slot / 100)} instead of ${formatPrice(analysis.officialSoloPrice)}.` :
-                            pool.category === 'AI_IDE' ? 'ChatGPT Plus is a per-user license. This pool is for developers splitting team costs — each member uses their own account credentials.' :
+                        {pool.category === 'entertainment' ? `Netflix 4K supports up to 4 screens per plan. With 3 members sharing, each slot costs ${formatPrice(pool.price_per_slot / 100)} instead of ${formatPrice(analysis.officialSoloPrice)}.` :
+                            pool.category === 'ai' ? 'ChatGPT Plus is a per-user license. This pool is for developers splitting team costs — each member uses their own account credentials.' :
                                 'Figma Professional requires individual seats. SubPool helps teams coordinate who pays for which seat.'}
                     </div>
                 </details>
@@ -318,8 +338,7 @@ export function PoolDetailModal({
                                 {requestState === 'idle' && `Request to Join — ${formatPrice(pool.price_per_slot / 100)}/mo`}
                                 {requestState === 'loading' && (
                                     <span className="flex items-center gap-2">
-                                        <span className="size-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                                        Requesting…
+                                        <span className="size-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" role="img" aria-label="icon"></span>Requesting…
                                     </span>
                                 )}
                                 {requestState === 'success' && '✓ Request Sent'}
@@ -344,11 +363,7 @@ export function PoolDetailModal({
                         variant="ghost"
                         size="sm"
                         className="font-mono text-[11px] text-muted-foreground hover:text-foreground"
-                        onClick={async () => {
-                            await navigator.clipboard.writeText(`${window.location.origin}/pool/${pool.id}`);
-                            toast.success("Pool link copied! 🔗");
-                            track('pool_link_copied', { poolId: pool.id });
-                        }}
+                        onClick={handleCopyPoolLink}
                     >
                         🔗 Share this pool
                     </Button>

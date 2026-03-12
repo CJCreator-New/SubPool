@@ -99,7 +99,7 @@ export function PoolCard({
             borderTopRightRadius: 6,
           }}
         >
-          <span style={{ fontSize: 12 }}>⚠️</span>
+          <span style={{ fontSize: 12 }} role="img" aria-label="Warning">⚠️</span>
           <span
             style={{
               fontFamily: F.mono,
