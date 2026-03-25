@@ -16,6 +16,8 @@ import { toast } from 'sonner';
 import { useMagneticButton } from '../../hooks/useMagneticButton';
 import { celebrate } from '../../lib/confetti';
 import { OwnerTrustRibbon } from './trust-score';
+import { supabase } from '../../lib/supabase/client';
+import { useAuth } from '../../lib/supabase/auth';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -35,7 +37,9 @@ export function PoolDetailModal({
     onRequestJoin,
 }: PoolDetailModalProps) {
     const { isDemo } = useDemo();
+    const { user } = useAuth();
     const [requestState, setRequestState] = useState<'idle' | 'loading' | 'success'>('idle');
+    const [waitlistPosition, setWaitlistPosition] = useState<number | null>(null);
     const modalRef = React.useRef<HTMLDivElement>(null);
     const { currency, formatPrice } = useCurrency();
 
@@ -344,11 +348,38 @@ export function PoolDetailModal({
                                 {requestState === 'success' && '✓ Request Sent'}
                             </Button>
                         </div>
+                    ) : pool.status === 'full' ? (
+                        // Pool is full - show Join Waitlist CTA
+                        <Button
+                            className="flex-1 h-12 font-display font-bold text-[14px] border-warning/40 bg-warning/10 text-warning hover:bg-warning/20"
+                            variant="outline"
+                            onClick={async () => {
+                                if (!user) { toast.error('Sign in to join the waitlist.'); return; }
+                                if (!supabase) return;
+                                try {
+                                    const { data, error } = await supabase.rpc('join_waitlist', {
+                                        p_pool_id: pool.id,
+                                    });
+                                    if (error) throw error;
+                                    const result = data as { ok: boolean; error?: string; position?: number };
+                                    if (!result.ok) { toast.error(result.error ?? 'Could not join waitlist.'); return; }
+                                    setWaitlistPosition(result.position!);
+                                    toast.success(`You're #${result.position} on the waitlist!`, {
+                                        description: "We'll notify you when a slot opens.",
+                                    });
+                                } catch (err: any) {
+                                    toast.error(err.message ?? 'Something went wrong.');
+                                }
+                            }}
+                        >
+                            {waitlistPosition ? `⏳ You're #${waitlistPosition} on Waitlist` : '⏳ Join Waitlist'}
+                        </Button>
                     ) : (
                         <Button className="flex-1 h-12 font-display font-bold text-[14px]" disabled>
-                            {pool.status === 'full' ? 'Pool is Full' : 'Pool Closed'}
+                            Pool Closed
                         </Button>
                     )}
+
                     <Button
                         variant="outline"
                         className="h-12 px-5 font-display text-[13px]"

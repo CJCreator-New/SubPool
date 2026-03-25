@@ -150,7 +150,9 @@ export function Profile() {
     });
   };
 
-  const referralUrl = user?.id ? `subpool.app/ref/${user.id}` : 'subpool.app/ref/unknown';
+  const referralUrl = profile?.referral_code
+    ? `subpool.app/ref/${profile.referral_code}`
+    : 'subpool.app/ref/unknown';
 
   return (
     <div className="max-w-4xl mx-auto py-6 space-y-6">

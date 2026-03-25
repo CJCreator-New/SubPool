@@ -28,6 +28,7 @@ import { NAV_ITEMS, NAV_SECTIONS, PAGE_TITLES, BOTTOM_TABS } from '../../lib/con
 import { useDemo } from '../components/demo-mode';
 import { Navigate } from 'react-router';
 import { CharacterCard } from '../components/character-card';
+import { NotificationBell } from '../components/notification-bell';
 import { getPricingData } from '../../lib/pricing-service';
 import { toast } from 'sonner';
 
@@ -245,6 +246,7 @@ export function DashboardLayout() {
 
                     {/* Right actions */}
                     <div className="flex items-center gap-3">
+                        <NotificationBell />
                         {/* Notification bell */}
                         <button
                             onClick={() => navigate('/notifications')}

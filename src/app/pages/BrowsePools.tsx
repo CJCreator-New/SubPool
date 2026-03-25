@@ -12,21 +12,25 @@ import { EmptyState } from '../components/empty-state';
 import { PaywallModal } from '../components/paywall-modal';
 import { cn } from '../components/ui/utils';
 import { track } from '../../lib/analytics';
-import { usePoolsPaginated } from '../../lib/supabase/hooks';
 import type { Pool } from '../../lib/types';
+import { useCursorPagination } from '../../lib/hooks/useCursorPagination';
+import { resolveDataMode } from '../../lib/data-mode';
+import { MOCK_POOLS } from '../../lib/mock-data';
+import { getPlatform } from '../../lib/constants';
 import { useAuth } from '../../lib/supabase/auth';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { Insight, useDemo } from '../components/demo-mode';
 import { useCountUp } from '../../hooks/useCountUp';
 import { useCurrency } from '../../lib/currency-context';
 import { CurrencyToggle } from '../components/currency-toggle';
 import { ActivationChecklist } from '../components/activation-checklist';
+import type { BrowseFilterKey, BrowseSortKey } from '../components/filter-panel';
 
 // â”€â”€â”€ Filter constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-type FilterKey = 'all' | 'entertainment' | 'work' | 'ai' | 'open' | 'creative';
-
-const CATEGORY_CHIPS: { key: FilterKey; label: string }[] = [
+const FILTER_VALUES: BrowseFilterKey[] = ['all', 'entertainment', 'work', 'ai', 'open', 'creative'];
+const SORT_VALUES: BrowseSortKey[] = ['recent', 'price-asc', 'price-desc'];
+const CATEGORY_CHIPS: { key: BrowseFilterKey; label: string }[] = [
   { key: 'all', label: 'All Pools' },
   { key: 'open', label: 'Open only' },
   { key: 'entertainment', label: 'Entertainment' },
@@ -170,12 +174,19 @@ function MarketIntelligenceRow() {
 // â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function BrowsePools() {
-  const [filter, setFilter] = useState<FilterKey>('all');
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialFilter = searchParams.get('filter');
+  const initialSort = searchParams.get('sort');
+  const initialSearch = searchParams.get('q') ?? '';
+  const [filter, setFilter] = useState<BrowseFilterKey>(
+    FILTER_VALUES.includes(initialFilter as BrowseFilterKey) ? (initialFilter as BrowseFilterKey) : 'all',
+  );
+  const [sort, setSort] = useState<BrowseSortKey>(
+    SORT_VALUES.includes(initialSort as BrowseSortKey) ? (initialSort as BrowseSortKey) : 'recent',
+  );
+  const [search, setSearch] = useState(initialSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
-  const [allPools, setAllPools] = useState<Pool[]>([]);
   const { isDemo, currentStep } = useDemo();
 
   // Debounce search to prevent excessive queries
@@ -184,15 +195,88 @@ export function BrowsePools() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data: pagedPools, loading } = usePoolsPaginated({
-    cursor,
+  useEffect(() => {
+    const nextParams = new URLSearchParams();
+
+    if (filter !== 'all') nextParams.set('filter', filter);
+    if (debouncedSearch.trim()) nextParams.set('q', debouncedSearch.trim());
+    if (sort !== 'recent') nextParams.set('sort', sort);
+
+    if (nextParams.toString() !== searchParams.toString()) {
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [debouncedSearch, filter, sort, searchParams, setSearchParams]);
+
+  // Shared infinite scroll pagination hook
+  const { data: pagedPools, loading, loadMore, hasMore, refetch } = useCursorPagination<Pool>({
     limit: 9,
-    filters: {
-      category: filter === 'all' || filter === 'open' ? undefined : filter,
-      status: filter === 'open' ? 'open only' : undefined,
-      searchQuery: debouncedSearch,
+    fetchPage: async (cursorParam, limit) => {
+      const mode = resolveDataMode({ allowDemoFallback: true });
+
+      // Demo mode: filter mock data
+      if (mode !== 'production') {
+        const start = cursorParam ? Number(cursorParam) : 0;
+        const base = MOCK_POOLS;
+        const filtered = base.filter((pool) => {
+          const category = filter === 'all' || filter === 'open' ? undefined : filter;
+          const status = filter === 'open' ? 'open only' : undefined;
+
+          if (category && pool.category !== category) return false;
+          if (status === 'open only' && pool.status !== 'open') return false;
+          if (debouncedSearch) {
+            const q = debouncedSearch.toLowerCase();
+            const plat = getPlatform(pool.platform);
+            const owner = (pool.owner?.display_name ?? pool.owner?.username ?? '').toLowerCase();
+            if (!plat?.name.toLowerCase().includes(q) && !pool.plan_name.toLowerCase().includes(q) && !owner.includes(q)) {
+              return false;
+            }
+          }
+          return true;
+        });
+        const page = filtered.slice(start, start + limit);
+        const nextCursor = start + limit < filtered.length ? String(start + limit) : undefined;
+        return { items: page, nextCursor };
+      }
+
+      // Production: fetch from Supabase
+      const { supabase } = await import('../../lib/supabase/client');
+      if (!supabase) {
+        throw new Error('Supabase not available');
+      }
+      let query = supabase.from('pools').select('*, owner:profiles(*)').order('created_at', { ascending: false });
+
+      const category = filter === 'all' || filter === 'open' ? undefined : filter;
+      const status = filter === 'open' ? 'open only' : undefined;
+
+      if (category) {
+        query = query.eq('category', category);
+      }
+      if (status === 'open only') {
+        query = query.eq('status', 'open');
+      }
+      if (debouncedSearch) {
+        query = query.textSearch('search_vector', debouncedSearch, {
+          type: 'websearch',
+          config: 'english'
+        });
+      }
+
+      const start = cursorParam ? Number(cursorParam) : 0;
+      const end = start + limit - 1;
+      const { data: rows, error } = await query.range(start, end);
+
+      if (error) throw error;
+
+      const items = (rows ?? []) as Pool[];
+      const nextCursor = items.length === limit ? String(start + limit) : undefined;
+      return { items, nextCursor };
     },
-  }, { allowDemoFallback: true }); // Always fallback to demo data if Supabase can't load
+  });
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    // The useCursorPagination hook handles reset via its refetch function
+  }, [filter, debouncedSearch]);
 
   const { toast, show: showToast } = useToast();
   const { user } = useAuth();
@@ -209,22 +293,6 @@ export function BrowsePools() {
     }
     return () => document.body.classList.remove('demo-mode');
   }, [isDemo]);
-
-  useEffect(() => {
-    setCursor(undefined);
-    setAllPools([]);
-  }, [filter, debouncedSearch]);
-
-  useEffect(() => {
-    if (!pagedPools?.items) return;
-    setAllPools((prev) => {
-      if (!cursor) return pagedPools.items;
-      const merged = [...prev, ...pagedPools.items];
-      const deduped = new Map<string, Pool>();
-      merged.forEach((pool) => deduped.set(pool.id, pool));
-      return Array.from(deduped.values());
-    });
-  }, [cursor, pagedPools]);
 
   const openPoolsCount = Math.floor(useCountUp(142, 1200, isDemo));
   const platformsCount = Math.floor(useCountUp(28, 1200, isDemo));
@@ -255,10 +323,19 @@ export function BrowsePools() {
     }
   }, [isDemo, currentStep]);
 
-  const filtered = allPools;
+  const filtered = [...(pagedPools?.items || [])].sort((a, b) => {
+    if (sort === 'price-asc') {
+      return a.price_per_slot - b.price_per_slot;
+    }
+    if (sort === 'price-desc') {
+      return b.price_per_slot - a.price_per_slot;
+    }
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
   const hasSearchFilter = debouncedSearch.trim().length > 0;
   const hasCategoryFilter = filter !== 'all';
-  const activeFilterCount = Number(hasSearchFilter) + Number(hasCategoryFilter);
+  const hasSortFilter = sort !== 'recent';
+  const activeFilterCount = Number(hasSearchFilter) + Number(hasCategoryFilter) + Number(hasSortFilter);
 
   const handleRequestJoin = async (_pool: Pool) => {
     if (!user) {
@@ -273,10 +350,10 @@ export function BrowsePools() {
 
   const clearFilters = () => {
     setFilter('all');
+    setSort('recent');
     setSearch('');
     setDebouncedSearch('');
-    setCursor(undefined);
-    setAllPools([]);
+    refetch();
   };
 
   return (
@@ -374,6 +451,17 @@ export function BrowsePools() {
 
         <CurrencyToggle />
 
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as BrowseSortKey)}
+          className="h-10 rounded-[6px] border border-border bg-card px-3 text-sm text-foreground"
+          aria-label="Sort pools"
+        >
+          <option value="recent">Newest</option>
+          <option value="price-asc">Lowest price</option>
+          <option value="price-desc">Highest price</option>
+        </select>
+
         {/* Search */}
         <div className="flex items-center gap-2 bg-card border border-border rounded-[6px] px-3 py-2 w-full sm:w-auto overflow-hidden">
           <span className="text-muted-foreground text-sm" role="img" aria-label="icon">ðŸ”</span>
@@ -425,24 +513,45 @@ export function BrowsePools() {
             ))}
           </div>
         ) : (
-          <EmptyState
-            icon="ðŸ”­"
-            title="No pools found"
-            description="Try a different filter or search term to find what you're looking for."
-            action={clearFilters}
-            actionLabel="Clear filters"
-          />
+          <div className="flex flex-col items-center gap-5 py-8">
+            <EmptyState
+              icon="🔭"
+              title="No pools found"
+              description="Try a different filter or search term to find what you're looking for."
+              action={clearFilters}
+              actionLabel="Clear filters"
+            />
+            {hasSearchFilter && (
+              <div className="max-w-sm w-full rounded-xl border border-dashed border-primary/30 bg-primary/5 p-5 text-center">
+                <p className="font-display font-semibold text-sm text-foreground mb-1">
+                  Don't see what you need?
+                </p>
+                <p className="font-mono text-[11px] text-muted-foreground mb-4">
+                  Post a wishlist request and get notified when a host offers a slot.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-primary/40 text-primary hover:bg-primary/10 font-mono text-[11px] uppercase tracking-wider"
+                  onClick={() => navigate('/wishlist')}
+                >
+                  ✨ Add to Wishlist
+                </Button>
+              </div>
+            )}
+          </div>
         )
       }
 
-      {pagedPools.nextCursor && (
+      {hasMore && (
         <div className="flex justify-center">
           <Button
             variant="outline"
-            onClick={() => setCursor(pagedPools.nextCursor)}
+            onClick={loadMore}
+            disabled={loading}
             className="font-mono text-[11px] uppercase tracking-wider"
           >
-            Load more pools
+            {loading ? 'Loading...' : 'Load more pools'}
           </Button>
         </div>
       )}

@@ -721,14 +721,13 @@ export function useMessages(poolId?: string, options?: { allowDemoFallback?: boo
 
     const markAsRead = async () => {
         if (!isSupabaseConnected || !supabase || !poolId) return;
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        await supabase.from('messages')
-            .update({ read_at: new Date().toISOString() })
-            .eq('pool_id', poolId)
-            .neq('sender_id', user.id)
-            .is('read_at', null);
+        const { error } = await supabase.rpc('mark_messages_read', { p_pool_id: poolId });
+        if (!error) {
+            setData((prev) => prev.map((message) => ({
+                ...message,
+                read_by: Array.from(new Set([...(message.read_by ?? []), CURRENT_USER.id])),
+            })));
+        }
     };
 
     return {

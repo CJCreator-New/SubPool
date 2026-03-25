@@ -129,8 +129,8 @@ export function Messages() {
 
   return (
     <div className="h-[calc(100vh-120px)] min-h-[520px]">
-      <Card className="h-full border-border overflow-hidden">
-        <CardContent className="h-full p-0 flex">
+      <Card className="h-full overflow-hidden border-border">
+        <CardContent className="flex h-full p-0">
           <aside
             className={cn(
               'h-full border-r border-border bg-card/60 flex flex-col',
@@ -138,23 +138,23 @@ export function Messages() {
               showListOnMobile || !isMobile ? 'flex' : 'hidden',
             )}
           >
-            <div className="p-4 border-b border-border">
+            <div className="border-b border-border p-4">
               <label htmlFor="message-search" className="sr-only">Search conversations</label>
               <div className="relative">
-                <Search className="size-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                 <Input
                   id="message-search"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Search conversations"
-                  className="pl-9 h-9"
+                  className="h-9 pl-9"
                 />
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto">
               {filteredPools.length === 0 && (
-                <div className="h-full grid place-items-center p-6">
+                <div className="grid h-full place-items-center p-6">
                   <p className="font-mono text-xs text-muted-foreground">No matching conversations.</p>
                 </div>
               )}
@@ -168,19 +168,19 @@ export function Messages() {
                     key={pool.id}
                     onClick={() => setSelectedPoolId(pool.id)}
                     className={cn(
-                      'w-full text-left px-4 py-3 border-b border-border/60 transition-colors',
+                      'w-full border-b border-border/60 px-4 py-3 text-left transition-colors',
                       isActive ? 'bg-primary/10' : 'hover:bg-secondary/30',
                     )}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="size-10 rounded-md bg-secondary/60 border border-border/60 grid place-items-center text-lg">
+                      <div className="grid size-10 place-items-center rounded-md border border-border/60 bg-secondary/60 text-lg">
                         {platform?.icon ?? '📦'}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-display font-semibold text-sm truncate">
+                        <p className="truncate font-display text-sm font-semibold">
                           {platform?.name ?? pool.platform} {pool.plan_name}
                         </p>
-                        <p className="font-mono text-[11px] text-muted-foreground mt-1 truncate">
+                        <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground">
                           {pool.filled_slots}/{pool.total_slots} members
                         </p>
                       </div>
@@ -198,12 +198,12 @@ export function Messages() {
             )}
           >
             {!selectedPool ? (
-              <div className="h-full grid place-items-center p-6">
+              <div className="grid h-full place-items-center p-6">
                 <p className="font-mono text-xs text-muted-foreground">Select a conversation.</p>
               </div>
             ) : (
               <>
-                <header className="px-4 py-3 border-b border-border bg-card/50 flex items-center gap-3">
+                <header className="flex items-center gap-3 border-b border-border bg-card/50 px-4 py-3">
                   {isMobile && (
                     <Button
                       variant="ghost"
@@ -215,12 +215,12 @@ export function Messages() {
                     </Button>
                   )}
 
-                  <div className="size-10 rounded-md bg-secondary/60 border border-border/60 grid place-items-center text-lg">
+                  <div className="grid size-10 place-items-center rounded-md border border-border/60 bg-secondary/60 text-lg">
                     {selectedPoolPlatform?.icon ?? '📦'}
                   </div>
 
                   <div className="min-w-0">
-                    <p className="font-display font-semibold text-sm truncate">
+                    <p className="truncate font-display text-sm font-semibold">
                       {selectedPoolPlatform?.name ?? selectedPool.platform} {selectedPool.plan_name}
                     </p>
                     <p className="font-mono text-[11px] text-muted-foreground">
@@ -235,7 +235,7 @@ export function Messages() {
                   </div>
                 )}
 
-                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+                <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
                   <div className="mb-6">
                     <CredentialVault poolId={selectedPool.id} isOwner={selectedPool.owner_id === currentUser?.id} />
                   </div>
@@ -245,7 +245,7 @@ export function Messages() {
                   )}
 
                   {!messagesLoading && messages.length === 0 && (
-                    <div className="h-full min-h-[240px] grid place-items-center">
+                    <div className="grid h-full min-h-[240px] place-items-center">
                       <p className="font-mono text-xs text-muted-foreground">No messages yet. Start the conversation.</p>
                     </div>
                   )}
@@ -253,6 +253,8 @@ export function Messages() {
                   {messages.map((message) => {
                     const isYou = message.sender_id === currentUser?.id;
                     const senderName = message.sender?.display_name ?? message.sender?.username ?? 'Member';
+                    const readByOthers = (message.read_by ?? []).filter((id) => id !== currentUser?.id);
+                    const receiptText = isYou ? (readByOthers.length > 0 ? ' • ✓✓' : ' • ✓') : '';
 
                     return (
                       <div
@@ -272,21 +274,21 @@ export function Messages() {
 
                         <div className={cn('max-w-[72%] min-w-[90px]', isYou ? 'text-right' : 'text-left')}>
                           {!isYou && (
-                            <p className="font-mono text-[10px] text-muted-foreground mb-1">{senderName}</p>
+                            <p className="mb-1 font-mono text-[10px] text-muted-foreground">{senderName}</p>
                           )}
                           <div
                             className={cn(
-                              'rounded-xl px-3 py-2 border',
+                              'rounded-xl border px-3 py-2',
                               isYou
-                                ? 'bg-primary/15 border-primary/30 rounded-br-sm'
-                                : 'bg-secondary/30 border-border rounded-bl-sm',
+                                ? 'rounded-br-sm border-primary/30 bg-primary/15'
+                                : 'rounded-bl-sm border-border bg-secondary/30',
                             )}
                           >
-                            <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                            <p className="break-words text-sm leading-relaxed">{message.content}</p>
                           </div>
-                          <p className="font-mono text-[10px] text-muted-foreground mt-1">
+                          <p className="mt-1 font-mono text-[10px] text-muted-foreground">
                             {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            {isYou && message.read_at ? ' • read' : ''}
+                            {receiptText}
                           </p>
                         </div>
                       </div>
@@ -297,14 +299,14 @@ export function Messages() {
                 </div>
 
                 {typingUsers.length > 0 && (
-                  <div role="status" aria-live="polite" className="px-4 py-2 border-t border-border/60 bg-card/40">
+                  <div role="status" aria-live="polite" className="border-t border-border/60 bg-card/40 px-4 py-2">
                     <p className="font-mono text-[10px] text-muted-foreground">
                       {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
                     </p>
                   </div>
                 )}
 
-                <footer className="px-4 py-3 border-t border-border bg-card/50 flex items-center gap-2">
+                <footer className="flex items-center gap-2 border-t border-border bg-card/50 px-4 py-3">
                   <label htmlFor="message-compose" className="sr-only">Type a message</label>
                   <Input
                     id="message-compose"

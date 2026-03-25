@@ -212,7 +212,14 @@ export function createPool(
                 .insert({ ...input, slots_filled: 0 })
                 .select('id').single();
             if (error) return fail(error.message);
-            return ok({ poolId: (data as { id: string }).id });
+            const poolId = (data as { id: string }).id;
+            
+                        // Fire-and-forget: notify wishlist users who match this new pool
+                        void db.functions.invoke('match-wishlist', {
+                            body: { pool_id: poolId }
+                        }).catch(() => { /* non-critical */ });
+            
+                        return ok({ poolId });
         } catch (e) { return fail((e as Error).message); }
     });
 }
@@ -281,7 +288,6 @@ export function markAllNotificationsRead(userId: string): Promise<MutationResult
 
 export function sendMessage(
     threadId: string,
-    senderId: string,
     body: string,
     options?: { allowDemoFallback?: boolean },
 ): Promise<MutationResult<{ messageId: string }>> {
@@ -294,7 +300,7 @@ export function sendMessage(
             const db = requireSupabase();
             const { data, error } = await db
                 .from('messages')
-                .insert({ thread_id: threadId, sender_id: senderId, body })
+                .insert({ thread_id: threadId, body })
                 .select('id').single();
             if (error) return fail(error.message);
 

@@ -71,6 +71,10 @@ export interface Profile {
   total_hosted?: number;          // P2.2: trust score calculation
   disputes?: number;              // P2.2: trust score calculation
   avg_response_time_mins?: number;// P2.2: trust score calculation
+  onboarding_completed?: boolean;
+  onboarding_step?: number;
+  onboarding_role?: 'host' | 'joiner' | null;
+  referral_code?: string | null;
   created_at: string;             // DB column (was "joined_at" in old TS)
 }
 
@@ -155,6 +159,7 @@ export interface Message {
   sender?: Profile;
   content: string;
   read_at?: string | null;      // P3-34 Read Receipts
+  read_by?: string[] | null;
   created_at: string;
 }
 
@@ -169,6 +174,8 @@ export interface Notification {
   body: string;
   read: boolean;
   action_url?: string | null;
+  source_id?: string | null;
+  source_type?: string | null;
   created_at: string;
 }
 
@@ -198,6 +205,24 @@ export interface WishlistRequest {
   budget_max: number;
   urgency: WishlistUrgency;
   status: WishlistStatus;
+  created_at: string;
+}
+
+// ─── Waitlist Entry ──────────────────────────────────────────────────────────
+// Maps to the pool_waitlist table
+
+export type WaitlistStatus = 'waiting' | 'notified' | 'joined' | 'expired' | 'cancelled';
+
+export interface WaitlistEntry {
+  id: string;
+  pool_id: string;
+  pool?: Pool;                 // joined
+  user_id: string;
+  user?: Profile;              // joined
+  position: number;
+  status: WaitlistStatus;
+  joined_at: string;
+  notified_at?: string | null;
   created_at: string;
 }
 

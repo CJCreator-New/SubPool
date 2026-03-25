@@ -10,6 +10,7 @@ import { getPlatform } from '../../lib/constants';
 import { analyzePricing, detectUserCurrency } from '../../lib/pricing-service';
 import { useCurrency } from '../../lib/currency-context';
 import type { Pool, Notification } from '../../lib/types';
+import { TrustScore, TrustBadge } from './trust-score';
 
 // timeAgo helper
 function timeAgo(dateStr: string): string {
@@ -268,6 +269,18 @@ export function PoolCard({ pool, variant = 'full', className, onClick, animate =
     const ownerName = pool.owner?.display_name ?? pool.owner?.username ?? 'Host';
     const ownerInitial = ownerName.charAt(0).toUpperCase();
     const ownerColor = pool.owner?.avatar_color ?? '#6B6860';
+    const ownerRating = pool.owner?.rating ?? 0;
+    const ownerTotalHosted = pool.owner?.total_hosted ?? 0;
+
+    // Determine badge type based on rating and total hosted
+    const isPro = ownerRating >= 4.5 && ownerTotalHosted >= 5;
+    const isTrusted = ownerRating >= 4.0 && ownerTotalHosted >= 2;
+    const isNew = ownerTotalHosted === 0;
+
+    let badgeType: 'new' | 'trusted' | 'pro' | null = null;
+    if (isPro) badgeType = 'pro';
+    else if (isTrusted) badgeType = 'trusted';
+    else if (isNew) badgeType = 'new';
 
     return (
         <TooltipProvider>
@@ -355,19 +368,28 @@ export function PoolCard({ pool, variant = 'full', className, onClick, animate =
                                     </div>
 
                                     {/* Owner chip */}
-                                    <div className="flex items-center gap-1.5 shrink-0 bg-secondary/30 px-2 py-1 rounded-full border border-border/50">
-                                        <div
-                                            className="size-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-                                            style={{
-                                                backgroundColor: ownerColor,
-                                                color: '#0E0E0E',
-                                            }}
-                                        >
-                                            {ownerInitial}
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        {/* Trust Score */}
+                                        {(ownerRating > 0 || ownerTotalHosted > 0) && (
+                                            <div className="flex items-center gap-1">
+                                                <TrustScore rating={ownerRating} size="sm" />
+                                                {badgeType && <TrustBadge type={badgeType} />}
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-1.5 bg-secondary/30 px-2 py-1 rounded-full border border-border/50">
+                                            <div
+                                                className="size-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                                                style={{
+                                                    backgroundColor: ownerColor,
+                                                    color: '#0E0E0E',
+                                                }}
+                                            >
+                                                {ownerInitial}
+                                            </div>
+                                            <span className="font-display text-[11px] text-muted-foreground truncate max-w-[80px]">
+                                                {ownerName}
+                                            </span>
                                         </div>
-                                        <span className="font-display text-[11px] text-muted-foreground truncate max-w-[80px]">
-                                            {ownerName}
-                                        </span>
                                     </div>
                                 </div>
                             </CardContent>

@@ -18,3 +18,13 @@ if (sentryDsn) {
 }
 
 createRoot(document.getElementById('root')!).render(<App />);
+
+// ─── PWA: Register Service Worker ─────────────────────────────────────────────
+// Only register in production to avoid caching issues during development.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker
+            .register('/sw.js', { scope: '/' })
+            .catch((err) => console.warn('[SW] Registration failed:', err));
+    });
+}

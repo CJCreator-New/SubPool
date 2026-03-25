@@ -4,6 +4,7 @@ import { StatusPill } from './StatusPill';
 import { SlotFillBar } from './SlotFillBar';
 import { Avatar } from './Avatar';
 import { OverflowMenu } from './OverflowMenu';
+import { TrustScore, TrustBadge } from '../trust-score';
 
 interface PoolCardProps {
   status: 'open' | 'full';
@@ -17,6 +18,8 @@ interface PoolCardProps {
   ownerInitials: string;
   ownerName: string;
   ownerColor?: string;
+  ownerRating?: number;
+  ownerTotalHosted?: number;
   isFlagged?: boolean;
   onReport?: () => void;
 }
@@ -33,9 +36,20 @@ export function PoolCard({
   ownerInitials,
   ownerName,
   ownerColor = C.accentLime,
+  ownerRating = 0,
+  ownerTotalHosted = 0,
   isFlagged = false,
   onReport,
 }: PoolCardProps) {
+  // Determine badge type based on rating and total hosted
+  const isPro = ownerRating >= 4.5 && ownerTotalHosted >= 5;
+  const isTrusted = ownerRating >= 4.0 && ownerTotalHosted >= 2;
+  const isNew = ownerTotalHosted === 0;
+
+  let badgeType: 'new' | 'trusted' | 'pro' | null = null;
+  if (isPro) badgeType = 'pro';
+  else if (isTrusted) badgeType = 'trusted';
+  else if (isNew) badgeType = 'new';
   const [isHovered, setIsHovered] = useState(false);
 
   const menuOptions = [
@@ -50,7 +64,7 @@ export function PoolCard({
     {
       isDivider: true,
       label: '',
-      onClick: () => {},
+      onClick: () => { },
     },
     {
       icon: '🚩',
@@ -172,7 +186,14 @@ export function PoolCard({
               /mo per slot
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Trust Score */}
+            {(ownerRating > 0 || ownerTotalHosted > 0) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <TrustScore rating={ownerRating} size="sm" />
+                {badgeType && <TrustBadge type={badgeType} />}
+              </div>
+            )}
             <Avatar initials={ownerInitials} size="sm" color={ownerColor} />
             <span style={{ fontFamily: F.mono, fontWeight: 400, fontSize: 11, color: C.textMuted }}>
               {ownerName}

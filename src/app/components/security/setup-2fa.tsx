@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase/client';
 import { Button } from '../ui/button';
-import { Input } from '../components/ui/input'; // fixed path later if needed
+import { Input } from '../ui/input';
 import { toast } from 'sonner';
 import { ShieldCheck, ShieldAlert, KeyRound } from 'lucide-react';
 
