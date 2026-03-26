@@ -57,6 +57,8 @@ const OnboardingPage = lazy(() => import('./pages/Onboarding').then(m => ({ defa
 const PlansPage = lazy(() => import('./pages/PlansPage').then(m => ({ default: m.PlansPage })));
 const SubscriptionDetailsPage = lazy(() => import('./pages/SubscriptionDetails').then(m => ({ default: m.SubscriptionDetails })));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
+const WaitlistPage = lazy(() => import('./pages/WaitlistPage').then(m => ({ default: m.WaitlistPage })));
+const ReferralPage = lazy(() => import('./pages/ReferralPage').then(m => ({ default: m.ReferralPage })));
 
 // Payment pages
 const PaymentMethodPage = lazy(() => import('./pages/payment/PaymentMethodSetup').then(m => ({ default: m.PaymentMethodSetup })));
@@ -193,6 +195,7 @@ export const router = createBrowserRouter([
                     { path: '/savings', element: <Lazy><SavingsPage /></Lazy> },
                     { path: '/wishlist', element: <Lazy><WishlistPage /></Lazy> },
                     { path: '/plans', element: <Lazy><PlansPage /></Lazy> },
+                    { path: '/waitlist', element: <Lazy><WaitlistPage /></Lazy> },
                     { path: '/design-system', element: <Lazy><DesignSystemPage /></Lazy> },
                     { path: '/empty-states', element: <Lazy><EmptyStatesPage /></Lazy> },
                     { path: '*', element: <Lazy><NotFoundPage /></Lazy> },
@@ -215,6 +218,7 @@ export const router = createBrowserRouter([
                     { path: '/ledger', element: <Lazy><LedgerPage /></Lazy> },
                     { path: '/notifications', element: <Lazy><NotificationsPage /></Lazy> },
                     { path: '/profile', element: <Lazy><ProfilePage /></Lazy> },
+                    { path: '/referrals', element: <Lazy><ReferralPage /></Lazy> },
                     { path: '/messages', element: <Lazy><MessagesPage /></Lazy> },
                     { path: '/billing', element: <Lazy><BillingPage /></Lazy> },
                     { path: '/subscriptions', element: <Lazy><SubscriptionDetailsPage /></Lazy> },

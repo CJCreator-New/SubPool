@@ -65,6 +65,13 @@ export interface Database {
                     disputes: number | null;
                     avg_response_time_mins: number | null;
                     created_at: string | null;
+                    onboarding_completed?: boolean;
+                    onboarding_role?: string | null;
+                    referral_code?: string | null;
+                    referred_by?: string | null;
+                    is_admin?: boolean;
+                    is_banned?: boolean;
+                    ban_reason?: string | null;
                 };
                 Insert: {
                     id: string;
@@ -79,6 +86,13 @@ export interface Database {
                     disputes?: number | null;
                     avg_response_time_mins?: number | null;
                     created_at?: string | null;
+                    onboarding_completed?: boolean;
+                    onboarding_role?: string | null;
+                    referral_code?: string | null;
+                    referred_by?: string | null;
+                    is_admin?: boolean;
+                    is_banned?: boolean;
+                    ban_reason?: string | null;
                 };
                 Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
                 Relationships: [];
@@ -141,6 +155,8 @@ export interface Database {
                     body: string | null;
                     read_at: string | null;
                     read_by: string[] | null;
+                    reply_to_id: string | null;
+                    message_type: string;
                     created_at: string | null;
                 };
                 Insert: {
@@ -152,6 +168,8 @@ export interface Database {
                     body?: string | null;
                     read_at?: string | null;
                     read_by?: string[] | null;
+                    reply_to_id?: string | null;
+                    message_type?: string;
                     created_at?: string | null;
                 };
                 Update: Partial<Database['public']['Tables']['messages']['Insert']>;
@@ -485,6 +503,66 @@ export interface Database {
                 Update: Partial<Database['public']['Tables']['analytics_events']['Insert']>;
                 Relationships: [];
             };
+            message_reactions: {
+                Row: {
+                    id: string;
+                    message_id: string;
+                    user_id: string;
+                    emoji: string;
+                    created_at: string | null;
+                };
+                Insert: {
+                    id?: string;
+                    message_id: string;
+                    user_id: string;
+                    emoji: string;
+                    created_at?: string | null;
+                };
+                Update: Partial<Database['public']['Tables']['message_reactions']['Insert']>;
+                Relationships: [];
+            };
+            referrals: {
+                Row: {
+                    id: string;
+                    referrer_id: string;
+                    referred_id: string;
+                    referral_code: string;
+                    signup_at: string | null;
+                    reward_granted: boolean;
+                    reward_type: string | null;
+                };
+                Insert: {
+                    id?: string;
+                    referrer_id: string;
+                    referred_id: string;
+                    referral_code: string;
+                    signup_at?: string | null;
+                    reward_granted?: boolean;
+                    reward_type?: string | null;
+                };
+                Update: Partial<Database['public']['Tables']['referrals']['Insert']>;
+                Relationships: [];
+            };
+            waitlist: {
+                Row: {
+                    id: string;
+                    email: string;
+                    position: number;
+                    status: string;
+                    platform: string | null;
+                    joined_at: string | null;
+                };
+                Insert: {
+                    id?: string;
+                    email: string;
+                    position?: number;
+                    status?: string;
+                    platform?: string | null;
+                    joined_at?: string | null;
+                };
+                Update: Partial<Database['public']['Tables']['waitlist']['Insert']>;
+                Relationships: [];
+            };
         };
         Views: {
             pool_market_metrics: {
@@ -492,6 +570,37 @@ export interface Database {
                     platform_id: string | null;
                     active_pools: number | null;
                     avg_price_cents: number | null;
+                };
+            };
+            host_earnings_summary: {
+                Row: {
+                    host_id: string | null;
+                    pool_id: string | null;
+                    platform: string | null;
+                    plan_name: string | null;
+                    paid_count: number | null;
+                    pending_count: number | null;
+                    total_earned: number | null;
+                    total_pending: number | null;
+                    last_payout_at: string | null;
+                };
+            };
+            admin_user_overview: {
+                Row: {
+                    id: string | null;
+                    username: string | null;
+                    display_name: string | null;
+                    email: string | null;
+                    plan: string | null;
+                    is_admin: boolean | null;
+                    is_banned: boolean | null;
+                    ban_reason: string | null;
+                    referral_code: string | null;
+                    referred_by: string | null;
+                    created_at: string | null;
+                    pools_hosted: number | null;
+                    memberships_active: number | null;
+                    events_tracked: number | null;
                 };
             };
         };
@@ -510,6 +619,28 @@ export interface Database {
             };
             mark_all_notifications_read: {
                 Args: Record<PropertyKey, never>;
+                Returns: undefined;
+            };
+            get_monthly_earnings: {
+                Args: Record<PropertyKey, never>;
+                Returns: {
+                    month: string;
+                    earned: number;
+                    pending: number;
+                }[];
+            };
+            process_referral: {
+                Args: {
+                    p_referral_code: string;
+                    p_new_user_id: string;
+                };
+                Returns: Json;
+            };
+            admin_ban_user: {
+                Args: {
+                    p_user_id: string;
+                    p_reason?: string;
+                };
                 Returns: undefined;
             };
         };

@@ -605,7 +605,8 @@ export interface MessagesHookResult {
     error: string | null;
     typingUsers: string[];
     refetch: () => Promise<void>;
-    sendMessage: (content: string) => Promise<void>;
+    sendMessage: (content: string, replyToId?: string) => Promise<void>;
+    toggleReaction: (messageId: string, emoji: string) => Promise<void>;
     markAsRead: () => Promise<void>;
     setTyping: (isTyping: boolean) => void;
 }
@@ -641,7 +642,7 @@ export function useMessages(poolId?: string, options?: { allowDemoFallback?: boo
         try {
             const { data: rows, error: err } = await supabase
                 .from('messages')
-                .select('*, sender:profiles(*)')
+                .select('*, sender:profiles(*), message_reactions(*)')
                 .eq('pool_id', poolId)
                 .order('created_at', { ascending: true });
 
@@ -688,6 +689,17 @@ export function useMessages(poolId?: string, options?: { allowDemoFallback?: boo
                     });
                 }
             })
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'message_reactions'
+                },
+                () => {
+                    fetchData();
+                }
+            )
             .subscribe();
 
         return () => {
@@ -695,17 +707,43 @@ export function useMessages(poolId?: string, options?: { allowDemoFallback?: boo
         };
     }, [fetchData, poolId, options?.allowDemoFallback]);
 
-    const handleSendMessage = async (content: string) => {
+    const handleSendMessage = async (content: string, replyToId?: string) => {
         if (!isSupabaseConnected || !supabase || !poolId) return;
 
         // sender_id is set server-side via RLS and DEFAULT, never trust client
         await supabase.from('messages').insert({
             pool_id: poolId,
-            content
+            content,
+            reply_to_id: replyToId || null
         } as any);
 
         // Clear typing when message sent
         setTypingStatus(false);
+    };
+
+    const toggleReaction = async (messageId: string, emoji: string) => {
+        if (!isSupabaseConnected || !supabase) return;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Check if it already exists
+        const { data: existing } = await supabase
+            .from('message_reactions')
+            .select('id')
+            .eq('message_id', messageId)
+            .eq('user_id', user.id)
+            .eq('emoji', emoji)
+            .maybeSingle();
+
+        if (existing) {
+            await supabase.from('message_reactions').delete().eq('id', existing.id);
+        } else {
+            await supabase.from('message_reactions').insert({
+                message_id: messageId,
+                user_id: user.id,
+                emoji
+            } as any);
+        }
     };
 
     const setTypingStatus = (isTyping: boolean) => {
@@ -737,6 +775,7 @@ export function useMessages(poolId?: string, options?: { allowDemoFallback?: boo
         typingUsers,
         refetch: fetchData,
         sendMessage: handleSendMessage,
+        toggleReaction,
         markAsRead,
         setTyping: setTypingStatus
     };
@@ -768,6 +807,59 @@ export function usePushNotifications() {
     }, []);
 
     return { registerToken };
+}
+
+export interface MonthlyEarning {
+    month: string;
+    earned: number;
+    pending: number;
+}
+
+export interface HostEarningsSummaryRow {
+    pool_id: string;
+    platform: string;
+    plan_name: string;
+    paid_count: number;
+    pending_count: number;
+    total_earned: number;
+    total_pending: number;
+    last_payout_at: string | null;
+}
+
+export function useHostEarnings() {
+    const [summary, setSummary] = useState<HostEarningsSummaryRow[]>([]);
+    const [monthly, setMonthly] = useState<MonthlyEarning[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchData = useCallback(async () => {
+        if (!isSupabaseConnected || !supabase) {
+            setLoading(false);
+            return;
+        }
+        setLoading(true);
+        try {
+            const { data: summ, error: err1 } = await supabase
+                .from('host_earnings_summary')
+                .select('*');
+            if (err1) throw err1;
+
+            const { data: mnth, error: err2 } = await supabase
+                .rpc('get_monthly_earnings');
+            if (err2) throw err2;
+
+            setSummary(summ as HostEarningsSummaryRow[]);
+            setMonthly(mnth as unknown as MonthlyEarning[]);
+        } catch (e: any) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { fetchData(); }, [fetchData]);
+
+    return { summary, monthly, loading, error };
 }
 
 export { useJoinRequests } from './useJoinRequests';

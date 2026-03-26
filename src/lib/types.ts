@@ -152,6 +152,14 @@ export interface JoinRequest {
 
 // ─── Message ──────────────────────────────────────────────────────────────────
 
+export interface MessageReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+}
+
 export interface Message {
   id: string;
   pool_id: string;
@@ -160,6 +168,9 @@ export interface Message {
   content: string;
   read_at?: string | null;      // P3-34 Read Receipts
   read_by?: string[] | null;
+  reply_to_id?: string | null;  // Phase 4.3 Threading
+  message_type?: string;        // Phase 4.3 System messages
+  message_reactions?: MessageReaction[]; // Phase 4.3 Reactions
   created_at: string;
 }
 
