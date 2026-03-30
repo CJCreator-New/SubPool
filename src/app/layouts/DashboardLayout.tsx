@@ -31,12 +31,12 @@ import { CharacterCard } from '../components/character-card';
 import { NotificationBell } from '../components/notification-bell';
 import { getPricingData } from '../../lib/pricing-service';
 import { toast } from 'sonner';
+import { GuestEmptyState } from '../components/guest-empty-state';
 
 // ─── Protected Route Component ──────────────────────────────────────────────
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
-    const location = useLocation();
 
     if (loading) {
         return (
@@ -50,8 +50,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
 
     if (!user) {
-        const next = `${location.pathname}${location.search}${location.hash}`;
-        return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
+        return <DashboardLayout guestFallbackMessage="Sign in to access this feature" />;
     }
 
     return <>{children}</>;
@@ -59,7 +58,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function DashboardLayout() {
+export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage?: string }) {
     const location = useLocation();
     const navigate = useNavigate();
     const activePath = location.pathname;
@@ -135,7 +134,7 @@ export function DashboardLayout() {
                 </SidebarHeader>
 
                 {/* Nav Groups */}
-                <SidebarContent className="py-3">
+                <SidebarContent className="py-3 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
                     {grouped.map(({ section, items }) => (
                         <SidebarGroup key={section}>
                             <SidebarGroupLabel className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground px-5">
@@ -234,7 +233,7 @@ export function DashboardLayout() {
                         </h1>
                         {!user && (
                             <span className="font-mono text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 uppercase tracking-wider">
-                                Guest mode
+                                GUEST MODE
                             </span>
                         )}
                         {!isSupabaseConnected && (
@@ -247,17 +246,6 @@ export function DashboardLayout() {
                     {/* Right actions */}
                     <div className="flex items-center gap-3">
                         <NotificationBell />
-                        {/* Notification bell */}
-                        <button
-                            onClick={() => navigate('/notifications')}
-                            className="relative p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
-                            aria-label="Notifications"
-                        >
-                            <span className="text-lg">🔔</span>
-                            {unreadCount > 0 && (
-                                <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />
-                            )}
-                        </button>
 
                         {/* List a Pool — shown on browse */}
                         {(activePath === '/' || activePath === '/browse') && (
@@ -274,11 +262,11 @@ export function DashboardLayout() {
 
                 {/* Page Content */}
                 <main id="main-content" className="flex-1 p-4 md:p-8 pb-16 md:pb-0 outline-none" tabIndex={-1}>
-                    <Outlet />
+                    {guestFallbackMessage ? <GuestEmptyState message={guestFallbackMessage} /> : <Outlet />}
                 </main>
 
                 {/* ─── Mobile Bottom Tab Bar ─────────────────────────────── */}
-                <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden h-16 bg-card border-t border-[#2A2A2A] flex items-center justify-around px-2">
+                <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden h-[calc(60px+env(safe-area-inset-bottom))] bg-card/90 backdrop-blur-md border-t border-border flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)]">
                     {BOTTOM_TABS.map((tab) => {
                         const isActive =
                             activePath === tab.path ||
@@ -290,11 +278,11 @@ export function DashboardLayout() {
                                 to={tab.path}
                                 className={cn(
                                     'flex flex-col items-center gap-0.5 p-2 flex-1 rounded-lg transition-colors',
-                                    isActive ? 'text-primary' : 'text-muted-foreground',
+                                    isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/40',
                                 )}
                             >
                                 <span className="text-xl">{tab.icon}</span>
-                                <span className="font-mono text-[9px] uppercase">
+                                <span className="font-mono text-[9px] uppercase tracking-widest font-bold">
                                     {tab.label === 'Browse' ? 'Browse' : tab.label.replace('My Pools', 'Pools')}
                                 </span>
                             </Link>
@@ -307,7 +295,7 @@ export function DashboardLayout() {
             {/* ─── Demo Character Cards ────────────────────────────────────── */}
             {demoCharacter && (
                 <CharacterCard
-                    character={demoCharacter}
+                    character={demoCharacter!}
                     visible={characterVisible}
                 />
             )}

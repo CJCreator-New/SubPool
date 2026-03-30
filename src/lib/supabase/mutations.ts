@@ -1,4 +1,4 @@
-// â”€â”€â”€ Supabase Mutations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Supabase Mutations ────────────────────────────────────────────────────────
 // Write operations with mock-mode support.
 // When Supabase is not connected AND we are in demo/dev mode, mutations resolve
 // optimistically so the UI can be exercised without env setup.
@@ -8,7 +8,7 @@ import { supabase } from './client';
 import type { Pool, Profile } from '../types';
 import { resolveDataMode } from '../data-mode';
 
-// â”€â”€â”€ Result type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Result type ──────────────────────────────────────────────────────────────
 
 export interface MutationResult<T = void> {
     data: T | null;
@@ -22,7 +22,7 @@ function delay(ms: number) { return new Promise<void>((r) => setTimeout(r, ms));
 /**
  * Returns true only when we are explicitly in offline/demo mode.
 
-// â”€â”€â”€ Result type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Result type ───────────────────────────────────────────────────────────
 
 export interface MutationResult<T = void> {
     data: T | null;
@@ -35,7 +35,7 @@ function delay(ms: number) { return new Promise<void>((r) => setTimeout(r, ms));
 
 /**
  * Returns true only when we are explicitly in offline/demo mode.
- * A missing URL means dev mode; a configured URL means production â†’ never mock.
+ * A missing URL means dev mode; a configured URL means production → never mock.
  */
 function isDemoMode(allowDemoFallback = false): boolean {
     return resolveDataMode({ allowDemoFallback }) === 'demo';
@@ -76,7 +76,7 @@ async function withRateLimit<T>(
     }
 }
 
-// â”€â”€â”€ Pool mutations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Pool mutations ───────────────────────────────────────────────────────────
 
 /** Request to join a pool slot. */
 export function joinPool(
@@ -240,11 +240,11 @@ export function updatePoolStatus(
     });
 }
 
-// â”€â”€â”€ Profile mutations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Profile mutations ───────────────────────────────────────────────────────
 
 /**
  * Update safe profile fields.
- * NOTE: `is_pro` is intentionally excluded â€” elevation to Pro must happen
+ * NOTE: `is_pro` is intentionally excluded — elevation to Pro must happen
  * server-side (e.g., via a Stripe webhook) to prevent self-promotion.
  */
 export function updateProfile(
@@ -261,7 +261,7 @@ export function updateProfile(
     });
 }
 
-// â”€â”€â”€ Notification mutations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Notification mutations ───────────────────────────────────────────────────
 
 export function markNotificationRead(id: string): Promise<MutationResult> {
     return withRateLimit(`markNotificationRead:${id}`, async () => {
@@ -284,7 +284,7 @@ export function markAllNotificationsRead(userId: string): Promise<MutationResult
     });
 }
 
-// â”€â”€â”€ Message mutations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Message mutations ────────────────────────────────────────────────────────
 
 export function sendMessage(
     threadId: string,
@@ -311,7 +311,7 @@ export function sendMessage(
     });
 }
 
-// â”€â”€â”€ Ledger mutations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Ledger mutations ─────────────────────────────────────────────────────────
 
 export function markLedgerPaid(ledgerId: string): Promise<MutationResult> {
     return withRateLimit(`markLedgerPaid:${ledgerId}`, async () => {
@@ -346,7 +346,7 @@ export function markLedgerPaid(ledgerId: string): Promise<MutationResult> {
     });
 }
 
-// â”€â”€â”€ Rating mutations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Rating mutations ─────────────────────────────────────────────────────────
 
 export function submitRating(
     poolId: string,

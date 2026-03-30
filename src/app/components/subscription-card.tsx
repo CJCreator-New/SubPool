@@ -1,4 +1,4 @@
-// â”€â”€â”€ SubscriptionCard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── SubscriptionCard ─────────────────────────────────────────────────────────
 // Rich subscription card displaying platform, plan, billing info, renewal
 // countdown, savings badge, and expandable payment history.
 
@@ -59,7 +59,7 @@ export function SubscriptionCard({ subscription: sub, className }: SubscriptionC
             />
 
             <CardContent className="p-5 space-y-4">
-                {/* â”€â”€ Row 1: Platform + Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+                {/* ── Row 1: Platform + Status ──────────────────────────────────── */}
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                         <PlatformIcon platformId={sub.platform.id} size="md" glowColor={sub.platform.color} />
@@ -76,7 +76,7 @@ export function SubscriptionCard({ subscription: sub, className }: SubscriptionC
                                 <span className="font-mono text-[10px] text-muted-foreground">
                                     Hosted by {pool.owner?.display_name ?? pool.owner?.username ?? 'Unknown'}
                                 </span>
-                                <span className="text-border" role="img" aria-label="icon">Â·</span>
+                                <span className="text-border" role="img" aria-label="icon">·</span>
                                 <span className="font-mono text-[10px] text-muted-foreground capitalize">
                                     {sub.billingCycle}
                                 </span>
@@ -92,7 +92,7 @@ export function SubscriptionCard({ subscription: sub, className }: SubscriptionC
                     </Badge>
                 </div>
 
-                {/* â”€â”€ Row 2: Pricing + Savings + Slot Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+                {/* ── Row 2: Pricing + Savings + Slot Bar ──────────────────────── */}
                 <div className="flex items-center justify-between gap-4">
                     <div className="flex items-baseline gap-2">
                         <span className="font-display font-black text-2xl text-foreground tracking-tight">
@@ -109,7 +109,7 @@ export function SubscriptionCard({ subscription: sub, className }: SubscriptionC
                     <div className="flex items-center gap-3">
                         {sub.savingsVsRetail > 0 && (
                             <Badge className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-mono text-[10px] font-bold px-2.5 py-1 hover:bg-emerald-500/10">
-                                â†“ {sub.savingsVsRetail}% saved
+                                ↓ {sub.savingsVsRetail}% saved
                             </Badge>
                         )}
                         <div className="w-20">
@@ -118,7 +118,7 @@ export function SubscriptionCard({ subscription: sub, className }: SubscriptionC
                     </div>
                 </div>
 
-                {/* â”€â”€ Row 3: Renewal countdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+                {/* ── Row 3: Renewal countdown ─────────────────────────────────── */}
                 <div className={cn(
                     'flex items-center justify-between px-4 py-3 rounded-lg border transition-colors',
                     isUrgent ? 'border-red-500/20 bg-red-500/5' :
@@ -149,7 +149,7 @@ export function SubscriptionCard({ subscription: sub, className }: SubscriptionC
                     )}
                 </div>
 
-                {/* â”€â”€ Row 4: Payment History Toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+                {/* ── Row 4: Payment History Toggle ─────────────────────────────── */}
                 {sub.paymentHistory.length > 0 && (
                     <>
                         <button
@@ -160,8 +160,8 @@ export function SubscriptionCard({ subscription: sub, className }: SubscriptionC
                                 Payment History ({sub.paymentHistory.length})
                             </span>
                             {expanded
-                                ? <span className="text-muted-foreground text-sm" role="img" aria-label="icon">â–²</span>
-                                : <span className="text-muted-foreground text-sm" role="img" aria-label="icon">â–¼</span>
+                                ? <span className="text-muted-foreground text-sm" role="img" aria-label="icon">▲</span>
+                                : <span className="text-muted-foreground text-sm" role="img" aria-label="icon">▼</span>
                             }
                         </button>
 

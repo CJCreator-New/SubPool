@@ -1,4 +1,4 @@
-// â”€â”€â”€ useSubscriptionDetails â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── useSubscriptionDetails ───────────────────────────────────────────────────
 // Real-time subscription details hook.
 // Aggregates memberships + ledger + platform_pricing into enriched
 // SubscriptionDetail objects with renewal tracking, payment history,
@@ -12,7 +12,7 @@ import { getPlatform } from '../constants';
 import { PLATFORM_PRICING_SEED } from '../pricing-seed';
 import { MOCK_SUBSCRIPTION_DETAILS } from '../mock-data';
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface UseSubscriptionDetailsOptions {
     userId?: string;
@@ -32,7 +32,7 @@ interface UseSubscriptionDetailsResult {
     alerts: SubscriptionDetail[];  // subs needing attention
 }
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function computeRenewalStatus(membership: Membership): { status: RenewalStatus; daysUntil: number | null } {
     if (membership.status === 'cancelled') return { status: 'cancelled', daysUntil: null };
@@ -101,7 +101,7 @@ function enrichMembership(
         membership,
         platform: platformInfo
             ? { id: platformInfo.id, name: platformInfo.name, icon: platformInfo.icon, color: platformInfo.color, bg: platformInfo.bg }
-            : { id: pool.platform, name: pool.platform, icon: 'ðŸ“¦', color: '#888', bg: '#1A1A1A' },
+            : { id: pool.platform, name: pool.platform, icon: '📦', color: '#888', bg: '#1A1A1A' },
         planPricing: pricing,
         renewalStatus,
         daysUntilRenewal: daysUntil,
@@ -114,7 +114,7 @@ function enrichMembership(
     };
 }
 
-// â”€â”€â”€ Main Hook â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Hook ────────────────────────────────────────────────────────────────
 
 export function useSubscriptionDetails(
     options?: UseSubscriptionDetailsOptions,
@@ -130,14 +130,14 @@ export function useSubscriptionDetails(
 
         const mode = resolveDataMode({ allowDemoFallback: options?.allowDemoFallback ?? true });
 
-        // â”€â”€ Demo mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Demo mode ─────────────────────────────────────────────────────────
         if (mode === 'demo') {
             setSubscriptions(MOCK_SUBSCRIPTION_DETAILS);
             setLoading(false);
             return;
         }
 
-        // â”€â”€ No Supabase â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── No Supabase ───────────────────────────────────────────────────────
         if (!isSupabaseConnected || !supabase) {
             setError(getHybridModeError('subscriptions'));
             setSubscriptions([]);
@@ -145,7 +145,7 @@ export function useSubscriptionDetails(
             return;
         }
 
-        // â”€â”€ Live data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Live data ─────────────────────────────────────────────────────────
         try {
             const userId = options?.userId;
 
@@ -194,12 +194,12 @@ export function useSubscriptionDetails(
         }
     }, [options?.userId, options?.allowDemoFallback]);
 
-    // â”€â”€ Initial fetch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Initial fetch ─────────────────────────────────────────────────────────
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
-    // â”€â”€ Realtime subscription â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Realtime subscription ─────────────────────────────────────────────────
     useEffect(() => {
         if (!isSupabaseConnected || !supabase) return;
 
@@ -220,7 +220,7 @@ export function useSubscriptionDetails(
         };
     }, [fetchData]);
 
-    // â”€â”€ Computed aggregates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Computed aggregates ─────────────────────────────────────────────────────
     const activeCount = useMemo(
         () => subscriptions.filter((s) => s.membership.status === 'active').length,
         [subscriptions]

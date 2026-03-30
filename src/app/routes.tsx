@@ -10,6 +10,7 @@ import { DemoModeProvider } from './components/demo-mode';
 import { CurrencyProvider } from '../lib/currency-context';
 import { ErrorBoundary } from './components/error-boundary';
 import { PageLoadSkeleton } from './components/skeletons';
+import { GuestEmptyState } from './components/guest-empty-state';
 
 // ─── Suspense wrapper ─────────────────────────────────────────────────────────
 
@@ -176,10 +177,6 @@ export const router = createBrowserRouter([
                 path: '/payment/success',
                 element: <Lazy><PaymentSuccessPage /></Lazy>,
             },
-            {
-                path: '/admin',
-                element: <Lazy><AdminPage /></Lazy>,
-            },
 
             // ─── Semi-public pages (guests allowed, no auth required) ────
             // The sidebar is shown but no redirect if user is not logged in.
@@ -196,6 +193,7 @@ export const router = createBrowserRouter([
                     { path: '/wishlist', element: <Lazy><WishlistPage /></Lazy> },
                     { path: '/plans', element: <Lazy><PlansPage /></Lazy> },
                     { path: '/waitlist', element: <Lazy><WaitlistPage /></Lazy> },
+                    { path: '/admin', element: <GuestEmptyState message="Admin access requires an authenticated account and admin PIN." /> },
                     { path: '/design-system', element: <Lazy><DesignSystemPage /></Lazy> },
                     { path: '/empty-states', element: <Lazy><EmptyStatesPage /></Lazy> },
                     { path: '*', element: <Lazy><NotFoundPage /></Lazy> },
@@ -223,6 +221,7 @@ export const router = createBrowserRouter([
                     { path: '/billing', element: <Lazy><BillingPage /></Lazy> },
                     { path: '/subscriptions', element: <Lazy><SubscriptionDetailsPage /></Lazy> },
                     { path: '/payouts', element: <Lazy><PayoutPage /></Lazy> },
+                    { path: '/admin', element: <Lazy><AdminPage /></Lazy> },
                     { path: '/payment/method', element: <Lazy><PaymentMethodPage /></Lazy> },
                     { path: '/payment/confirm', element: <Lazy><PaymentConfirmPage /></Lazy> },
                 ],

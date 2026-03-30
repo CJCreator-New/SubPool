@@ -47,10 +47,11 @@ export function useCursorPagination<T>(options: CursorPaginationOptions<T>) {
         fetchPageData(undefined);
     }, [reset, fetchPageData]);
 
-    // Initial load
+    // Reload from the first page when the fetcher changes, such as after filters update.
     useEffect(() => {
-        fetchPageData(undefined);
-    }, [fetchPageData]);
+        reset();
+        void fetchPageData(undefined);
+    }, [fetchPageData, reset]);
 
     return {
         data: { items: data, nextCursor: cursor, totalApprox },

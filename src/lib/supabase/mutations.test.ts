@@ -9,6 +9,7 @@ vi.mock('./client', () => {
             from: vi.fn(),
             rpc: vi.fn(),
             auth: { getUser: vi.fn() },
+            functions: { invoke: vi.fn() },
         },
         // Force true to avoid demo mode
         isSupabaseConnected: true,
@@ -66,17 +67,19 @@ describe('Supabase Mutations', () => {
     });
 
     describe('approveRequest', () => {
-        it('calls the approve_join_request RPC function', async () => {
-            (supabase!.rpc as Mock).mockResolvedValue({ data: { ok: true }, error: null });
+        it('calls the manage-membership edge function', async () => {
+            (supabase!.functions.invoke as Mock).mockResolvedValue({ data: { ok: true }, error: null });
 
             const result = await approveRequest('req-123');
 
-            expect(supabase!.rpc).toHaveBeenCalledWith('approve_join_request', { p_request_id: 'req-123' });
+            expect(supabase!.functions.invoke).toHaveBeenCalledWith('manage-membership', {
+                body: { joinRequestId: 'req-123', action: 'approve' },
+            });
             expect(result.success).toBe(true);
         });
 
-        it('handles RPC errors gracefully', async () => {
-            (supabase!.rpc as Mock).mockResolvedValue({ data: null, error: { message: 'DB Error' } });
+        it('handles edge function errors gracefully', async () => {
+            (supabase!.functions.invoke as Mock).mockResolvedValue({ data: null, error: { message: 'DB Error' } });
 
             const result = await approveRequest('req-123');
 

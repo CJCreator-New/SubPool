@@ -17,7 +17,11 @@ if (sentryDsn) {
   });
 }
 
-createRoot(document.getElementById('root')!).render(<App />);
+const root = document.getElementById('root')!;
+const splash = document.getElementById('splash');
+if (splash) splash.remove();
+
+createRoot(root).render(<App />);
 
 // ─── PWA: Register Service Worker ─────────────────────────────────────────────
 // Only register in production to avoid caching issues during development.

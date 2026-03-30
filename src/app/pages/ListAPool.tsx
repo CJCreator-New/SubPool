@@ -1,5 +1,5 @@
-// â”€â”€â”€ CreatePoolPage â€” 3-Step Wizard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Step 1: Choose Platform â†’ Step 2: Configure â†’ Step 3: Review & Publish
+// ─── CreatePoolPage — 3-Step Wizard ────────────────────────────────────────────
+// Step 1: Choose Platform → Step 2: Configure → Step 3: Review & Publish
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -36,7 +36,7 @@ import { useCurrency } from '../../lib/currency-context';
 import { CurrencyToggle } from '../components/currency-toggle';
 import { getUserFacingError } from '../../lib/error-feedback';
 
-// â”€â”€â”€ Step Indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Step Indicator ────────────────────────────────────────────────────────────
 
 function StepIndicator({ step }: { step: number }) {
   return (
@@ -55,7 +55,7 @@ function StepIndicator({ step }: { step: number }) {
               }
             `}
           >
-            {step > n ? 'âœ“' : n}
+            {step > n ? '✓' : n}
           </div>
           {/* Connecting line */}
           {n < 3 && (
@@ -70,7 +70,7 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
-// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Component ────────────────────────────────────────────────────────────
 
 export function ListAPool() {
   const navigate = useNavigate();
@@ -187,7 +187,7 @@ export function ListAPool() {
   }, [step, analysis?.band, selectedPlatform, form.planName, form.slots, currency]);
 
 
-  // â”€â”€â”€ Step 1 â€” Choose Platform â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Step 1 — Choose Platform ──────────────────────────────────────────────
 
   const sharingNote =
     selectedPlatform && form.planName
@@ -291,9 +291,9 @@ export function ListAPool() {
                 : 'text-[#FF4D4D]'
               }`}
           >
-            {sharingNote.policy === 'allowed' && `âœ… ${platform?.name || 'Platform'} officially supports account sharing on family plans.`}
-            {sharingNote.policy === 'grey_area' && `âš ï¸  ${platform?.name || 'Platform'} is licensed per-user. Position this pool as cost-splitting for small teams, not credential sharing.`}
-            {sharingNote.policy === 'not_recommended' && `â„¹ï¸  ${platform?.name || 'Platform'} requires each user to have their own seat. Use SubPool to coordinate team billing, not share one login.`}
+            {sharingNote.policy === 'allowed' && `✅ ${platform?.name || 'Platform'} officially supports account sharing on family plans.`}
+            {sharingNote.policy === 'grey_area' && `⚠ï¸  ${platform?.name || 'Platform'} is licensed per-user. Position this pool as cost-splitting for small teams, not credential sharing.`}
+            {sharingNote.policy === 'not_recommended' && `ℹï¸  ${platform?.name || 'Platform'} requires each user to have their own seat. Use SubPool to coordinate team billing, not share one login.`}
           </p>
         </div>
       )}
@@ -322,7 +322,7 @@ export function ListAPool() {
     </div>
   );
 
-  // â”€â”€â”€ Step 2 â€” Configure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Step 2 — Configure ────────────────────────────────────────────────────
 
   const renderStep2 = () => {
     const plans = allPricing.filter((s: any) => s.platform_id === selectedPlatform && s.currency === currency);
@@ -622,7 +622,7 @@ export function ListAPool() {
                       updateForm('totalCost', (sugg.recommended * parseInt(form.slots)).toFixed(0));
                     }}
                   >
-                    Apply suggestion â†’
+                    Apply suggestion →
                   </Button>
                 </div>
               )}
@@ -639,7 +639,7 @@ export function ListAPool() {
     );
   };
 
-  // â”€â”€â”€ Step 3 â€” Review â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Step 3 — Review ───────────────────────────────────────────────────────
 
   const handlePublish = async () => {
   if (!selectedPlatform || !platform || !user) return;
@@ -785,7 +785,7 @@ export function ListAPool() {
         disabled={submitting}
         onClick={handlePublish}
       >
-        {submitting ? 'Publishing...' : 'ðŸš€ Publish Pool'}
+        {submitting ? 'Publishing...' : '🚀 Publish Pool'}
       </Button>
 
       {/* Back */}
@@ -800,7 +800,7 @@ export function ListAPool() {
     </div>
   );
 
-  // â”€â”€â”€ Modals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Modals ────────────────────────────────────────────────────────────────
   const renderGuardModal = () => {
     if (!analysis) return null;
     const isOverpriced = analysis.band === 'overpriced' || analysis.band === 'aggressive';
@@ -818,7 +818,7 @@ export function ListAPool() {
               {isOverpriced ? (
                 <>At <span className="text-foreground font-bold">{sym}{analysis.userSlotPrice.toFixed(0)}</span>/slot, you're charging more than the typical solo plan. Most users will see better options elsewhere. Are you sure?</>
               ) : (
-                <>At <span className="text-foreground font-bold">{sym}{analysis.userSlotPrice.toFixed(0)}</span>/slot, you're essentially subsidising members. The fair range for this pool is <span className="text-[#4DFF91] font-bold" role="img" aria-label="icon">{sym}{analysis.fairRangeMin.toFixed(0)}â€“{sym}{analysis.fairRangeMax.toFixed(0)}</span>/slot.</>
+                <>At <span className="text-foreground font-bold">{sym}{analysis.userSlotPrice.toFixed(0)}</span>/slot, you're essentially subsidising members. The fair range for this pool is <span className="text-[#4DFF91] font-bold" role="img" aria-label="icon">{sym}{analysis.fairRangeMin.toFixed(0)}–{sym}{analysis.fairRangeMax.toFixed(0)}</span>/slot.</>
               )}
             </DialogDescription>
           </DialogHeader>
@@ -845,7 +845,7 @@ export function ListAPool() {
     );
   };
 
-  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="py-6">
       <StepIndicator step={step} />

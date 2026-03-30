@@ -1,7 +1,7 @@
-// â”€â”€â”€ BrowsePools Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── BrowsePools Page ──────────────────────────────────────────────────────────
 // Filterable grid of pool cards with stats, search, and detail modal.
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { StatCard, PoolCard } from '../components/subpool-components';
 import { PoolDetailModal } from '../components/pool-detail-modal';
 import { Button } from '../components/ui/button';
@@ -26,7 +26,7 @@ import { CurrencyToggle } from '../components/currency-toggle';
 import { ActivationChecklist } from '../components/activation-checklist';
 import type { BrowseFilterKey, BrowseSortKey } from '../components/filter-panel';
 
-// â”€â”€â”€ Filter constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Filter constants ─────────────────────────────────────────────────────────
 
 const FILTER_VALUES: BrowseFilterKey[] = ['all', 'entertainment', 'work', 'ai', 'open', 'creative'];
 const SORT_VALUES: BrowseSortKey[] = ['recent', 'price-asc', 'price-desc'];
@@ -39,7 +39,7 @@ const CATEGORY_CHIPS: { key: BrowseFilterKey; label: string }[] = [
   { key: 'creative', label: 'Creative' },
 ];
 
-// â”€â”€â”€ Toast helper (inline, no sonner dependency) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Toast helper (inline, no sonner dependency) ──────────────────────────────
 
 function useToast() {
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({
@@ -57,7 +57,7 @@ function useToast() {
 
 
 
-// â”€â”€â”€ Market Intelligence Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Market Intelligence Component ────────────────────────────────────────────
 
 const TOP_PLATFORMS = [
   { id: 'netflix', plan: '4K', name: 'Netflix' },
@@ -117,7 +117,7 @@ function MarketIntelligenceRow() {
         }}
         className="text-xs font-mono mb-3 group"
       >
-        ðŸ“Š See market rates {expanded ? 'â–²' : 'â–¼'}
+        📊 See market rates {expanded ? '▲' : '▼'}
         {isFree && <span className="ml-2 text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">PRO</span>}
       </Button>
 
@@ -148,7 +148,7 @@ function MarketIntelligenceRow() {
 
           {isFree && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-lg border border-primary/20 p-4 text-center z-10 animate-in fade-in duration-500">
-              <span className="text-xl mb-2" role="img" aria-label="icon">ðŸ“Š</span>
+              <span className="text-xl mb-2" role="img" aria-label="icon">📊</span>
               <p className="font-display font-bold text-sm mb-1">Market Intelligence</p>
               <p className="font-mono text-[10px] text-muted-foreground mb-4 max-w-[200px]">Unlock real-time market averages and demand tracking with Pro.</p>
               <Button size="sm" onClick={() => setPaywallOpen(true)} className="h-8 text-[10px] font-display font-bold px-4">
@@ -169,9 +169,9 @@ function MarketIntelligenceRow() {
   );
 }
 
-// â”€â”€â”€ Skeletons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Skeletons ──────────────────────────────────────────────────────────────
 
-// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function BrowsePools() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -207,76 +207,80 @@ export function BrowsePools() {
     }
   }, [debouncedSearch, filter, sort, searchParams, setSearchParams]);
 
+    const buildDemoPage = useCallback((cursorParam: string | undefined, limit: number) => {
+      const start = cursorParam ? Number(cursorParam) : 0;
+      const base = MOCK_POOLS;
+      const filteredResult = base.filter((pool) => {
+        const category = filter === 'all' || filter === 'open' ? undefined : filter;
+        const status = filter === 'open' ? 'open only' : undefined;
+
+        if (category && pool.category !== category) return false;
+        if (status === 'open only' && pool.status !== 'open') return false;
+        if (debouncedSearch) {
+          const q = debouncedSearch.toLowerCase();
+          const plat = getPlatform(pool.platform);
+          const owner = (pool.owner?.display_name ?? pool.owner?.username ?? '').toLowerCase();
+          if (!plat?.name.toLowerCase().includes(q) && !pool.plan_name.toLowerCase().includes(q) && !owner.includes(q)) {
+            return false;
+          }
+        }
+        return true;
+      });
+      const page = filteredResult.slice(start, start + limit);
+      const nextCursor = start + limit < filteredResult.length ? String(start + limit) : undefined;
+      return { items: page, nextCursor };
+    }, [debouncedSearch, filter]);
+
+    const fetchPage = useCallback(async (cursorParam: string | undefined, limit: number) => {
+    const mode = resolveDataMode({ allowDemoFallback: true });
+
+    // Demo mode: filter mock data
+    if (mode !== 'production') {
+      return buildDemoPage(cursorParam, limit);
+    }
+
+    // Production: fetch from Supabase
+    const { supabase: supabaseClient } = await import('../../lib/supabase/client');
+    if (!supabaseClient) {
+      throw new Error('Supabase not available');
+    }
+    let query = supabaseClient.from('pools').select('*, owner:profiles(*)').order('created_at', { ascending: false });
+
+    const category = filter === 'all' || filter === 'open' ? undefined : filter;
+    const status = filter === 'open' ? 'open only' : undefined;
+
+    if (category) {
+      query = query.eq('category', category);
+    }
+    if (status === 'open only') {
+      query = query.eq('status', 'open');
+    }
+    if (debouncedSearch) {
+      query = query.textSearch('search_vector', debouncedSearch, {
+        type: 'websearch',
+        config: 'english'
+      });
+    }
+
+    const start = cursorParam ? Number(cursorParam) : 0;
+    const end = start + limit - 1;
+    const { data: rows, error } = await query.range(start, end);
+
+    if (error) {
+      console.warn('BrowsePools: falling back to demo data for guest/public listing fetch.', error);
+      return buildDemoPage(cursorParam, limit);
+    }
+
+    const items = (rows ?? []) as Pool[];
+    const nextCursor = items.length === limit ? String(start + limit) : undefined;
+    return { items, nextCursor };
+  }, [buildDemoPage, debouncedSearch, filter]);
+
   // Shared infinite scroll pagination hook
   const { data: pagedPools, loading, loadMore, hasMore, refetch } = useCursorPagination<Pool>({
     limit: 9,
-    fetchPage: async (cursorParam, limit) => {
-      const mode = resolveDataMode({ allowDemoFallback: true });
-
-      // Demo mode: filter mock data
-      if (mode !== 'production') {
-        const start = cursorParam ? Number(cursorParam) : 0;
-        const base = MOCK_POOLS;
-        const filtered = base.filter((pool) => {
-          const category = filter === 'all' || filter === 'open' ? undefined : filter;
-          const status = filter === 'open' ? 'open only' : undefined;
-
-          if (category && pool.category !== category) return false;
-          if (status === 'open only' && pool.status !== 'open') return false;
-          if (debouncedSearch) {
-            const q = debouncedSearch.toLowerCase();
-            const plat = getPlatform(pool.platform);
-            const owner = (pool.owner?.display_name ?? pool.owner?.username ?? '').toLowerCase();
-            if (!plat?.name.toLowerCase().includes(q) && !pool.plan_name.toLowerCase().includes(q) && !owner.includes(q)) {
-              return false;
-            }
-          }
-          return true;
-        });
-        const page = filtered.slice(start, start + limit);
-        const nextCursor = start + limit < filtered.length ? String(start + limit) : undefined;
-        return { items: page, nextCursor };
-      }
-
-      // Production: fetch from Supabase
-      const { supabase } = await import('../../lib/supabase/client');
-      if (!supabase) {
-        throw new Error('Supabase not available');
-      }
-      let query = supabase.from('pools').select('*, owner:profiles(*)').order('created_at', { ascending: false });
-
-      const category = filter === 'all' || filter === 'open' ? undefined : filter;
-      const status = filter === 'open' ? 'open only' : undefined;
-
-      if (category) {
-        query = query.eq('category', category);
-      }
-      if (status === 'open only') {
-        query = query.eq('status', 'open');
-      }
-      if (debouncedSearch) {
-        query = query.textSearch('search_vector', debouncedSearch, {
-          type: 'websearch',
-          config: 'english'
-        });
-      }
-
-      const start = cursorParam ? Number(cursorParam) : 0;
-      const end = start + limit - 1;
-      const { data: rows, error } = await query.range(start, end);
-
-      if (error) throw error;
-
-      const items = (rows ?? []) as Pool[];
-      const nextCursor = items.length === limit ? String(start + limit) : undefined;
-      return { items, nextCursor };
-    },
+    fetchPage,
   });
-
-  // Reset pagination when filters change
-  useEffect(() => {
-    // The useCursorPagination hook handles reset via its refetch function
-  }, [filter, debouncedSearch]);
 
   const { toast, show: showToast } = useToast();
   const { user } = useAuth();
@@ -358,7 +362,7 @@ export function BrowsePools() {
 
   return (
     <div className="space-y-7">
-      {/* â”€â”€â”€ Page Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Page Header ─────────────────────────────────────────── */}
       <div>
         <h1 className="font-display font-bold text-[28px] tracking-tight text-foreground">
           Browse Pools
@@ -370,7 +374,7 @@ export function BrowsePools() {
 
       <ActivationChecklist />
 
-      {/* â”€â”€â”€ Stats Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Stats Row ───────────────────────────────────────────── */}
       {loading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => <StatCardSkeleton key={i} />)}
@@ -380,7 +384,7 @@ export function BrowsePools() {
           <StatCard
             label="OPEN POOLS"
             value={formatStat(openPoolsCount, 142)}
-            sub="â†‘ 12 new today"
+            sub="↑ 12 new today"
             subVariant="success"
             accentTop
             live
@@ -401,7 +405,7 @@ export function BrowsePools() {
           <StatCard
             label="MEMBERS"
             value={formatStat(membersCount, 3241)}
-            sub="â†‘ 847 this month"
+            sub="↑ 847 this month"
             subVariant="success"
           />
 
@@ -427,10 +431,10 @@ export function BrowsePools() {
         }
       `}</style>
 
-      {/* â”€â”€â”€ Market Intelligence Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Market Intelligence Row ─────────────────────────────── */}
       <MarketIntelligenceRow />
 
-      {/* â”€â”€â”€ Filter Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Filter Row ──────────────────────────────────────────── */}
       <div className="sticky top-[60px] z-20 flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-background/90 backdrop-blur-md border-y border-border/60 py-2 px-2 -mx-2 rounded-[6px]">
         <div className="flex flex-wrap gap-2 items-center flex-1 overflow-x-auto pb-1">
           {CATEGORY_CHIPS.map((chip) => (
@@ -464,7 +468,7 @@ export function BrowsePools() {
 
         {/* Search */}
         <div className="flex items-center gap-2 bg-card border border-border rounded-[6px] px-3 py-2 w-full sm:w-auto overflow-hidden">
-          <span className="text-muted-foreground text-sm" role="img" aria-label="icon">ðŸ”</span>
+          <span className="text-muted-foreground text-sm" role="img" aria-label="icon">🔍</span>
           <input
             type="text"
             placeholder="Search platforms..."
@@ -488,7 +492,7 @@ export function BrowsePools() {
         </span>
       </div>
 
-      {/* â”€â”€â”€ Pool Grid or Empty State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Pool Grid or Empty State ────────────────────────────── */}
       {
         loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -556,7 +560,7 @@ export function BrowsePools() {
         </div>
       )}
 
-      {/* â”€â”€â”€ Pool Detail Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Pool Detail Modal ───────────────────────────────────── */}
       <PoolDetailModal
         pool={selectedPool}
         open={!!selectedPool}
@@ -564,7 +568,7 @@ export function BrowsePools() {
         onRequestJoin={handleRequestJoin}
       />
 
-      {/* â”€â”€â”€ Inline Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Inline Toast ────────────────────────────────────────── */}
       {
         toast.visible && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-lg bg-card border border-success text-foreground font-display text-sm shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300">

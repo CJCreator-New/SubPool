@@ -13,6 +13,7 @@ import { Profile } from '../types';
 import { resolveDataMode } from '../data-mode';
 
 export type AuthRole = 'guest' | 'member' | 'host';
+const AUTH_BOOT_TIMEOUT_MS = 4000;
 
 export interface AuthContextValue {
     user: User | null;
@@ -63,6 +64,17 @@ export function AuthProvider({ children }: { children: import('react').ReactNode
         await fetchProfile(userIdRef.current);
     }, [fetchProfile]);
 
+    const applySession = useCallback(async (session: { user?: User | null } | null) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        userIdRef.current = currentUser?.id ?? null;
+        if (currentUser) {
+            await fetchProfile(currentUser.id);
+            return;
+        }
+        setProfile(null);
+    }, [fetchProfile]);
+
     useEffect(() => {
         if (!supabase) {
             setLoading(false);
@@ -70,15 +82,19 @@ export function AuthProvider({ children }: { children: import('react').ReactNode
         }
 
         let mounted = true;
-        supabase.auth.getSession().then(async ({ data: { session } }) => {
+        const timeoutId = window.setTimeout(() => {
             if (!mounted) return;
+            console.warn('Auth initialization timed out; continuing in guest mode.');
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+        }, AUTH_BOOT_TIMEOUT_MS);
+
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
             try {
-                const currentUser = session?.user ?? null;
-                setUser(currentUser);
-                userIdRef.current = currentUser?.id ?? null;
-                if (currentUser) {
-                    await fetchProfile(currentUser.id);
-                }
+                if (!mounted) return;
+                window.clearTimeout(timeoutId);
+                await applySession(session);
             } catch (err) {
                 console.error('Auth initialization error:', err);
             } finally {
@@ -86,27 +102,28 @@ export function AuthProvider({ children }: { children: import('react').ReactNode
             }
         }).catch((err) => {
             console.error('Fatal auth session error:', err);
-            if (mounted) setLoading(false);
+            window.clearTimeout(timeoutId);
+            setLoading(false);
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            const currentUser = session?.user ?? null;
-            setUser(currentUser);
-            userIdRef.current = currentUser?.id ?? null;
-
-            if (currentUser) {
-                await fetchProfile(currentUser.id);
-                return;
+            try {
+                await applySession(session);
+            } catch (err) {
+                console.error('Auth state change error:', err);
+                setUser(null);
+                setProfile(null);
+            } finally {
+                setLoading(false);
             }
-
-            setProfile(null);
         });
 
         return () => {
             mounted = false;
+            window.clearTimeout(timeoutId);
             subscription.unsubscribe();
         };
-    }, [fetchProfile]);
+    }, [applySession]);
 
     const signOut = useCallback(async () => {
         if (!supabase) return;

@@ -37,7 +37,7 @@ import { EarningsBarChart, MemberPaymentTimeline, PoolHealthGauge } from '../com
 import { getUserFacingError } from '../../lib/error-feedback';
 import { toast as sonnerToast } from 'sonner';
 
-// â”€â”€â”€ Toast helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Toast helper ─────────────────────────────────────────────────────────────
 
 function useToast() {
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({
@@ -53,7 +53,7 @@ function useToast() {
   return { toast, show };
 }
 
-// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function MyPools() {
   const navigate = useNavigate();
@@ -143,11 +143,11 @@ export function MyPools() {
 
   return (
     <div className="space-y-8 pr-1">
-      {/* â”€â”€â”€ Stats Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Stats Row ───────────────────────────────────────────── */}
       {profile?.plan === 'free' && (
         <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-3">
-            <span className="text-xl" role="img" aria-label="icon">ðŸš€</span>
+            <span className="text-xl" role="img" aria-label="icon">🚀</span>
             <div>
               <p className="font-display font-bold text-sm">Level up your hosting</p>
               <p className="font-mono text-[10px] text-muted-foreground">Host Plus members get automated approval, higher slot limits, and 0% platform fees.</p>
@@ -281,7 +281,7 @@ export function MyPools() {
           </div>
         ) : (
           <EmptyState
-            icon="ðŸŠ"
+            icon="🏊"
             title="No pools yet"
             description="Share your subscriptions and earn by listing your first pool."
             action={() => navigate('/list')}
@@ -290,7 +290,7 @@ export function MyPools() {
         )}
       </section>
 
-      {/* â”€â”€â”€ Analytics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Analytics ──────────────────────────────────────────────── */}
       <section className="relative">
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground mb-3">
           ANALYTICS (PRO)
@@ -314,7 +314,7 @@ export function MyPools() {
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pt-8">
             <div className="bg-background/90 backdrop-blur-lg p-7 rounded-xl border border-primary/20 text-center max-w-sm shadow-2xl">
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl border border-primary/20">
-                ðŸ”’
+                🔒
               </div>
               <h3 className="font-display font-bold text-lg mb-2 text-foreground">Unlock Analytics</h3>
               <p className="font-mono text-[11px] text-muted-foreground mb-6 leading-relaxed">
@@ -328,14 +328,14 @@ export function MyPools() {
         )}
       </section>
 
-      {/* â”€â”€â”€ My Memberships â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── My Memberships ──────────────────────────────────────── */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
             MY MEMBERSHIPS
           </p>
 
-          {/* View Switcher â€” Mobile Only */}
+          {/* View Switcher — Mobile Only */}
           <div className="flex md:hidden bg-secondary/50 p-1 rounded-lg border border-border">
             <button
               onClick={() => setViewMode('cards')}
@@ -436,7 +436,7 @@ export function MyPools() {
 
                         <TableCell className="px-5 py-3.5">
                           <span className="font-mono text-sm text-foreground">
-                            {m.next_billing_at ? formatDate(m.next_billing_at) : 'â€”'}
+                            {m.next_billing_at ? formatDate(m.next_billing_at) : '—'}
                           </span>
                         </TableCell>
 
@@ -451,7 +451,7 @@ export function MyPools() {
                                 size="sm"
                                 className="font-display text-xs"
                                 onClick={() =>
-                                  showToast('Payment marked âœ“')
+                                  showToast('Payment marked ✓')
                                 }
                               >
                                 Pay {formatPrice(m.pool.price_per_slot)}
@@ -478,7 +478,7 @@ export function MyPools() {
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
                       <EmptyState
-                        icon="ðŸš«"
+                        icon="🚫"
                         title="No memberships"
                         description="You haven't joined any pools yet."
                         action={() => navigate('/browse')}
@@ -518,7 +518,7 @@ export function MyPools() {
                 </div>
                 <div>
                   <p className="font-mono text-[9px] uppercase text-muted-foreground mb-1">Next Due</p>
-                  <p className="font-mono text-sm">{m.next_billing_at ? formatDate(m.next_billing_at) : 'â€”'}</p>
+                  <p className="font-mono text-sm">{m.next_billing_at ? formatDate(m.next_billing_at) : '—'}</p>
                 </div>
               </div>
 
@@ -537,7 +537,7 @@ export function MyPools() {
                       Pay
                     </Button>
                     <Button variant="ghost" size="sm" className="h-8 text-xs px-2" onClick={() => requestCancelMembership(m)}>
-                      âœ•
+                      ✕
                     </Button>
                   </div>
                 )}
@@ -547,7 +547,7 @@ export function MyPools() {
         </div>
       </section>
 
-      {/* â”€â”€â”€ Inline Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Inline Toast ──────────────────────────────────────── */}
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

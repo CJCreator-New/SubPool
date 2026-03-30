@@ -157,7 +157,7 @@ export function AdminPage() {
                             <div key={p.id} className="flex justify-between items-center border-b border-border pb-3">
                                 <div>
                                     <p className="font-display font-semibold">{p.name}</p>
-                                    <p className="font-mono text-[10px] text-muted-foreground">Source: Auto Â· Last checked: Today</p>
+                                    <p className="font-mono text-[10px] text-muted-foreground">Source: Auto · Last checked: Today</p>
                                 </div>
                                 <Button size="sm" variant="outline" onClick={() => refreshPricing(p.id)}>
                                     Refresh

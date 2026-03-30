@@ -1,4 +1,4 @@
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ SubPool Ã¢â‚¬â€ Mock Data Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// â”€â”€â”€ SubPool â€” Mock Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // All data uses the typed interfaces from src/lib/types.ts.
 // Loaded by Supabase hooks as fallback when no env vars are configured.
 
@@ -11,7 +11,7 @@ import type {
     SubscriptionDetail,
 } from './types';
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Profiles Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// â”€â”€â”€ Profiles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const CURRENT_USER: Profile = {
     id: 'user-you',
@@ -62,7 +62,7 @@ const ELENA_V: Profile = {
     rating: 4.9, review_count: 21, created_at: '2024-05-01T00:00:00Z', bio: null,
 };
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Pools Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// â”€â”€â”€ Pools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const MOCK_POOLS: Pool[] = [
     {
@@ -78,7 +78,7 @@ export const MOCK_POOLS: Pool[] = [
         category: 'entertainment', status: 'open', plan_name: 'Duo',
         price_per_slot: 349, total_slots: 2, filled_slots: 1,
         auto_approve: true,
-        description: 'Spotify Duo Ã¢â‚¬â€ 1 slot remaining. Instant approval.',
+        description: 'Spotify Duo â€” 1 slot remaining. Instant approval.',
         created_at: '2024-12-10T09:00:00Z', updated_at: '2025-01-20T11:00:00Z',
     },
     {
@@ -94,7 +94,7 @@ export const MOCK_POOLS: Pool[] = [
         category: 'work', status: 'open', plan_name: 'Plus',
         price_per_slot: 400, total_slots: 4, filled_slots: 2,
         auto_approve: true,
-        description: 'Notion Team plan Ã¢â‚¬â€ 2 slots open. Great for solo devs.',
+        description: 'Notion Team plan â€” 2 slots open. Great for solo devs.',
         created_at: '2025-01-05T08:30:00Z', updated_at: '2025-01-25T09:00:00Z',
     },
     {
@@ -131,7 +131,7 @@ export const MOCK_POOLS: Pool[] = [
     },
 ];
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Memberships Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// â”€â”€â”€ Memberships â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const MOCK_MEMBERSHIPS: Membership[] = [
     {
@@ -160,7 +160,7 @@ export const MOCK_MEMBERSHIPS: Membership[] = [
     },
 ];
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Ledger Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// â”€â”€â”€ Ledger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const MOCK_LEDGER: LedgerEntry[] = [
     {
@@ -221,47 +221,47 @@ export const MOCK_LEDGER: LedgerEntry[] = [
     },
 ];
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Notifications Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// â”€â”€â”€ Notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const MOCK_NOTIFICATIONS: Notification[] = [
     {
         id: 'notif-1', user_id: CURRENT_USER.id, type: 'success',
-        icon: 'Ã¢Å“â€¦', title: 'Payment received',
+        icon: 'âœ…', title: 'Payment received',
         body: 'Maya P paid $3.49 for YouTube Premium Family.',
         read: false, action_url: '/ledger',
         created_at: '2025-01-30T09:15:00Z',
     },
     {
         id: 'notif-2', user_id: CURRENT_USER.id, type: 'warning',
-        icon: 'Ã¢Å¡Â Ã¯Â¸Â', title: 'Overdue payment',
+        icon: '⚠️', title: 'Overdue payment',
         body: "Liam K's $3.49 payment is 3 days overdue.",
         read: false, action_url: '/ledger',
         created_at: '2025-01-31T08:00:00Z',
     },
     {
         id: 'notif-3', user_id: CURRENT_USER.id, type: 'info',
-        icon: 'Ã°Å¸â„¢â€¹', title: 'New join request',
+        icon: 'ðŸ™‹', title: 'New join request',
         body: 'Someone wants to join your YouTube Premium Family pool.',
         read: true, action_url: '/my-pools',
         created_at: '2025-01-31T11:30:00Z',
     },
     {
         id: 'notif-4', user_id: CURRENT_USER.id, type: 'info',
-        icon: 'Ã°Å¸â€œÂ¢', title: 'Slot available',
+        icon: 'ðŸ“¢', title: 'Slot available',
         body: 'A Spotify Duo slot you wishlisted is now open.',
         read: true, action_url: '/',
         created_at: '2025-01-29T14:00:00Z',
     },
     {
         id: 'notif-5', user_id: CURRENT_USER.id, type: 'success',
-        icon: 'Ã°Å¸Å½â€°', title: 'You saved $12 this month',
+        icon: 'ðŸŽ‰', title: 'You saved $12 this month',
         body: 'Your active pools saved you $12.47 vs retail pricing.',
         read: true, action_url: '/savings',
         created_at: '2025-01-28T10:00:00Z',
     },
 ];
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Analytics Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// â”€â”€â”€ Analytics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const MOCK_EARNINGS_DATA = [
     { month: 'Mar', earned: 85, would_have_paid: 120 },
@@ -329,7 +329,7 @@ export const MOCK_PAYMENT_TIMELINE = [
     },
 ];
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Mock Subscription Details Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// â”€â”€â”€ Mock Subscription Details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function _mockPayments(poolName: string, emoji: string, cents: number, months: number): import('./types').PaymentRecord[] {
     const records: import('./types').PaymentRecord[] = [];
@@ -349,21 +349,21 @@ function _mockPayments(poolName: string, emoji: string, cents: number, months: n
 }
 
 export const MOCK_SUBSCRIPTION_DETAILS: SubscriptionDetail[] = [
-    // 1. Netflix 4K Ã¢â‚¬â€ Active, renewing soon
+    // 1. Netflix 4K â€” Active, renewing soon
     {
         membership: MOCK_MEMBERSHIPS[0],
-        platform: { id: 'netflix', name: 'Netflix', icon: 'Ã°Å¸Å½Â¬', color: '#E50914', bg: '#1A0203' },
+        platform: { id: 'netflix', name: 'Netflix', icon: '🎬', color: '#E50914', bg: '#1A0203' },
         planPricing: { official_price: 22.99, currency: 'USD' },
         renewalStatus: 'renewing_soon',
         daysUntilRenewal: 5,
         billingCycle: 'monthly',
         totalPaid: 499 * 4,
         savingsVsRetail: 78,
-        paymentHistory: _mockPayments('netflix', 'Ã°Å¸Å½Â¬', 499, 5),
+        paymentHistory: _mockPayments('netflix', '🎬', 499, 5),
         lastPaymentAt: new Date(Date.now() - 25 * 86400000).toISOString(),
         memberSince: '2025-10-01T10:00:00Z',
     },
-    // 2. Spotify Duo Ã¢â‚¬â€ Active, healthy
+    // 2. Spotify Duo â€” Active, healthy
     {
         membership: {
             ...MOCK_MEMBERSHIPS[0],
@@ -375,35 +375,35 @@ export const MOCK_SUBSCRIPTION_DETAILS: SubscriptionDetail[] = [
             next_billing_at: new Date(Date.now() + 18 * 86400000).toISOString(),
             billing_anchor_day: 15,
         },
-        platform: { id: 'spotify', name: 'Spotify', icon: 'Ã°Å¸Å½Âµ', color: '#1DB954', bg: '#011B09' },
+        platform: { id: 'spotify', name: 'Spotify', icon: '🎵', color: '#1DB954', bg: '#011B09' },
         planPricing: { official_price: 14.99, currency: 'USD' },
         renewalStatus: 'active',
         daysUntilRenewal: 18,
         billingCycle: 'monthly',
         totalPaid: 349 * 5,
         savingsVsRetail: 77,
-        paymentHistory: _mockPayments('spotify', 'Ã°Å¸Å½Âµ', 349, 6),
+        paymentHistory: _mockPayments('spotify', '🎵', 349, 6),
         lastPaymentAt: new Date(Date.now() - 12 * 86400000).toISOString(),
         memberSince: '2025-09-15T00:00:00Z',
     },
-    // 3. Figma Professional Ã¢â‚¬â€ Active, healthy
+    // 3. Figma Professional â€” Active, healthy
     {
         membership: MOCK_MEMBERSHIPS[1],
-        platform: { id: 'figma', name: 'Figma', icon: 'Ã°Å¸Å½Â¨', color: '#A259FF', bg: '#140A24' },
+        platform: { id: 'figma', name: 'Figma', icon: '🎨', color: '#A259FF', bg: '#140A24' },
         planPricing: { official_price: 15.00, currency: 'USD' },
         renewalStatus: 'active',
         daysUntilRenewal: 22,
         billingCycle: 'monthly',
         totalPaid: 600 * 6,
         savingsVsRetail: 60,
-        paymentHistory: _mockPayments('figma', 'Ã°Å¸Å½Â¨', 600, 6),
+        paymentHistory: _mockPayments('figma', '🎨', 600, 6),
         lastPaymentAt: new Date(Date.now() - 8 * 86400000).toISOString(),
         memberSince: '2024-11-01T00:00:00Z',
     },
-    // 4. ChatGPT Plus Ã¢â‚¬â€ Pending activation
+    // 4. ChatGPT Plus â€” Pending activation
     {
         membership: MOCK_MEMBERSHIPS[2],
-        platform: { id: 'chatgpt', name: 'ChatGPT', icon: 'Ã°Å¸Â¤â€“', color: '#10A37F', bg: '#031A14' },
+        platform: { id: 'chatgpt', name: 'ChatGPT', icon: '🤖', color: '#10A37F', bg: '#031A14' },
         planPricing: { official_price: 20.00, currency: 'USD' },
         renewalStatus: 'active',
         daysUntilRenewal: null,
@@ -414,7 +414,7 @@ export const MOCK_SUBSCRIPTION_DETAILS: SubscriptionDetail[] = [
         lastPaymentAt: null,
         memberSince: '2026-01-30T09:00:00Z',
     },
-    // 5. YouTube Premium Family Ã¢â‚¬â€ Active, overdue alert
+    // 5. YouTube Premium Family â€” Active, overdue alert
     {
         membership: {
             ...MOCK_MEMBERSHIPS[0],
@@ -426,7 +426,7 @@ export const MOCK_SUBSCRIPTION_DETAILS: SubscriptionDetail[] = [
             next_billing_at: new Date(Date.now() - 2 * 86400000).toISOString(),
             billing_anchor_day: 1,
         },
-        platform: { id: 'youtube', name: 'YouTube', icon: 'Ã¢â€“Â¶Ã¯Â¸Â', color: '#FF0000', bg: '#1A0000' },
+        platform: { id: 'youtube', name: 'YouTube', icon: '▶️', color: '#FF0000', bg: '#1A0000' },
         planPricing: { official_price: 22.99, currency: 'USD' },
         renewalStatus: 'overdue',
         daysUntilRenewal: -2,
@@ -435,12 +435,12 @@ export const MOCK_SUBSCRIPTION_DETAILS: SubscriptionDetail[] = [
         savingsVsRetail: 85,
         paymentHistory: [
             { id: 'pay-yt-0', amount_cents: 349, status: 'overdue', due_at: new Date(Date.now() - 2 * 86400000).toISOString(), settled_at: null },
-            ..._mockPayments('youtube', 'Ã¢â€“Â¶Ã¯Â¸Â', 349, 5).slice(1),
+            ..._mockPayments('youtube', '▶️', 349, 5).slice(1),
         ],
         lastPaymentAt: new Date(Date.now() - 32 * 86400000).toISOString(),
         memberSince: '2025-06-01T00:00:00Z',
     },
-    // 6. Notion Plus Ã¢â‚¬â€ Active, healthy
+    // 6. Notion Plus â€” Active, healthy
     {
         membership: {
             ...MOCK_MEMBERSHIPS[0],
@@ -452,18 +452,18 @@ export const MOCK_SUBSCRIPTION_DETAILS: SubscriptionDetail[] = [
             next_billing_at: new Date(Date.now() + 12 * 86400000).toISOString(),
             billing_anchor_day: 1,
         },
-        platform: { id: 'notion', name: 'Notion', icon: 'Ã°Å¸â€œâ€¹', color: '#FFFFFF', bg: '#1A1A1A' },
+        platform: { id: 'notion', name: 'Notion', icon: 'ðŸ“‹', color: '#FFFFFF', bg: '#1A1A1A' },
         planPricing: { official_price: 10.00, currency: 'USD' },
         renewalStatus: 'active',
         daysUntilRenewal: 12,
         billingCycle: 'monthly',
         totalPaid: 400 * 7,
         savingsVsRetail: 60,
-        paymentHistory: _mockPayments('notion', 'Ã°Å¸â€œâ€¹', 400, 6),
+        paymentHistory: _mockPayments('notion', 'ðŸ“‹', 400, 6),
         lastPaymentAt: new Date(Date.now() - 18 * 86400000).toISOString(),
         memberSince: '2025-08-01T00:00:00Z',
     },
-    // 7. Adobe CC All Apps Ã¢â‚¬â€ Active, expiring soon
+    // 7. Adobe CC All Apps â€” Active, expiring soon
     {
         membership: {
             ...MOCK_MEMBERSHIPS[0],
@@ -475,18 +475,18 @@ export const MOCK_SUBSCRIPTION_DETAILS: SubscriptionDetail[] = [
             next_billing_at: new Date(Date.now() + 2 * 86400000).toISOString(),
             billing_anchor_day: 1,
         },
-        platform: { id: 'adobe', name: 'Adobe CC', icon: 'Ã°Å¸â€¦Â°Ã¯Â¸Â', color: '#FF0000', bg: '#1A0000' },
+        platform: { id: 'adobe', name: 'Adobe CC', icon: 'ðŸ…°️', color: '#FF0000', bg: '#1A0000' },
         planPricing: { official_price: 59.99, currency: 'USD' },
         renewalStatus: 'expiring',
         daysUntilRenewal: 2,
         billingCycle: 'monthly',
         totalPaid: 1800 * 11,
         savingsVsRetail: 70,
-        paymentHistory: _mockPayments('adobe', 'Ã°Å¸â€¦Â°Ã¯Â¸Â', 1800, 6),
+        paymentHistory: _mockPayments('adobe', 'ðŸ…°️', 1800, 6),
         lastPaymentAt: new Date(Date.now() - 28 * 86400000).toISOString(),
         memberSince: '2025-03-01T00:00:00Z',
     },
-    // 8. Cursor Pro Ã¢â‚¬â€ Active, healthy
+    // 8. Cursor Pro â€” Active, healthy
     {
         membership: {
             ...MOCK_MEMBERSHIPS[0],
@@ -500,7 +500,7 @@ export const MOCK_SUBSCRIPTION_DETAILS: SubscriptionDetail[] = [
                 },
                 category: 'ai', status: 'open', plan_name: 'Pro',
                 price_per_slot: 999, total_slots: 2, filled_slots: 2,
-                auto_approve: false, description: 'Cursor Pro split Ã¢â‚¬â€ full AI coding.',
+                auto_approve: false, description: 'Cursor Pro split â€” full AI coding.',
                 created_at: '2025-07-01T00:00:00Z', updated_at: '2026-01-15T00:00:00Z',
             },
             price_per_slot: 999,
@@ -508,14 +508,14 @@ export const MOCK_SUBSCRIPTION_DETAILS: SubscriptionDetail[] = [
             next_billing_at: new Date(Date.now() + 14 * 86400000).toISOString(),
             billing_anchor_day: 15,
         },
-        platform: { id: 'cursor', name: 'Cursor', icon: 'Ã¢Å’Â¨Ã¯Â¸Â', color: '#8B5CF6', bg: '#0D0A1A' },
+        platform: { id: 'cursor', name: 'Cursor', icon: 'âŒ¨️', color: '#8B5CF6', bg: '#0D0A1A' },
         planPricing: { official_price: 20.00, currency: 'USD' },
         renewalStatus: 'active',
         daysUntilRenewal: 14,
         billingCycle: 'monthly',
         totalPaid: 999 * 6,
         savingsVsRetail: 50,
-        paymentHistory: _mockPayments('cursor', 'Ã¢Å’Â¨Ã¯Â¸Â', 999, 6),
+        paymentHistory: _mockPayments('cursor', 'âŒ¨️', 999, 6),
         lastPaymentAt: new Date(Date.now() - 16 * 86400000).toISOString(),
         memberSince: '2025-08-15T00:00:00Z',
     },

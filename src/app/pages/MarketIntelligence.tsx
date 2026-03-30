@@ -12,6 +12,7 @@ import {
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { useAuth } from '../../lib/supabase/auth';
 
 type Demand = 'hot' | 'rising' | 'stable';
 
@@ -54,13 +55,23 @@ function demandClass(demand: Demand): string {
 
 export function MarketIntelligence() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-10">
+      {!user && (
+        <div className="bg-primary/5 text-primary border border-primary/20 p-4 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="font-display font-bold text-sm uppercase mb-1">Guest Mode</p>
+            <p className="font-mono text-xs opacity-90">Sign in to unlock personalized market intelligence tracking and alerts.</p>
+          </div>
+          <Button onClick={() => navigate('/login')} size="sm" variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">Sign In</Button>
+        </div>
+      )}
+
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-2">
-          <h1 className="font-display font-black text-3xl md:text-4xl tracking-tight">Market Intelligence</h1>
-          <p className="font-mono text-xs sm:text-sm text-muted-foreground max-w-2xl">
+        <div className="space-y-1">
+          <p className="font-mono text-sm text-muted-foreground max-w-2xl">
             Real-time supply and demand snapshots across active SubPool listings.
           </p>
         </div>

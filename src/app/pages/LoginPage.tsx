@@ -33,9 +33,7 @@ export function LoginPage() {
         try {
             const { error: err } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
-                options: {
-                    redirectTo,
-                },
+                options: { redirectTo },
             });
             if (err) throw err;
         } catch (e) {
@@ -56,9 +54,7 @@ export function LoginPage() {
         try {
             const { error: err } = await supabase.auth.signInWithOtp({
                 email,
-                options: {
-                    emailRedirectTo: redirectTo,
-                },
+                options: { emailRedirectTo: redirectTo },
             });
             if (err) throw err;
             setSent(true);
@@ -70,64 +66,46 @@ export function LoginPage() {
     };
 
     return (
-        <div className="relative min-h-screen flex items-center justify-center p-4 bg-background overflow-hidden">
-            {/* ─── Background Atmosphere ─────────────────────────────────────── */}
-            <div className="fixed inset-0 pointer-events-none aria-hidden -z-10" aria-hidden="true">
-                <div className="absolute top-0 right-0 w-[500px] h-[250px] bg-primary/10 blur-[100px] rounded-full" />
-                <div className="absolute top-1/2 left-0 w-[400px] h-[300px] bg-[#0D4F3C]/10 blur-[80px] rounded-full" />
+        <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-4">
+            <div className="fixed inset-0 -z-10 pointer-events-none" aria-hidden="true">
+                <div className="absolute right-0 top-0 h-[250px] w-[500px] rounded-full bg-primary/10 blur-[100px]" />
+                <div className="absolute left-0 top-1/2 h-[300px] w-[400px] rounded-full bg-[#0D4F3C]/10 blur-[80px]" />
             </div>
 
-            {/* ─── Centered Card ────────────────────────────────────────────── */}
             <Card className="w-full max-w-[480px] rounded-xl border-border bg-card/50 backdrop-blur-md">
                 <CardContent className="p-10">
-                    {/* Logo */}
-                    <div className="flex items-center gap-0.5 mb-8">
-                        <span className="font-display font-black text-2xl text-foreground">Sub</span>
-                        <span className="font-display font-black text-2xl text-primary">Pool</span>
+                    <div className="mb-8 flex items-center gap-0.5">
+                        <span className="font-display text-2xl font-black text-foreground">Sub</span>
+                        <span className="font-display text-2xl font-black text-primary">Pool</span>
                     </div>
 
-                    <h2 className="font-display font-bold text-2xl text-foreground">Welcome back</h2>
-                    <p className="text-muted-foreground text-sm mt-1 mb-8">Save on subscriptions today</p>
+                    <h2 className="font-display text-2xl font-bold text-foreground">Welcome back</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">Save on subscriptions today</p>
 
-                    {/* Google OAuth */}
                     <Button
                         variant="outline"
-                        className="w-full h-12 rounded-lg bg-white text-[#1A1A1A] hover:bg-white/90 border-transparent font-display font-semibold text-sm gap-3"
+                        className="mt-8 h-12 w-full gap-3 rounded-lg border-transparent bg-white font-display text-sm font-semibold text-[#1A1A1A] hover:bg-white/90"
                         onClick={handleGoogleLogin}
                         disabled={sending}
                     >
                         <svg className="size-5" viewBox="0 0 24 24">
-                            <path
-                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                                fill="#4285F4"
-                            />
-                            <path
-                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                                fill="#34A853"
-                            />
-                            <path
-                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
-                                fill="#FBBC05"
-                            />
-                            <path
-                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                                fill="#EA4335"
-                            />
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                         </svg>
                         Continue with Google
                     </Button>
 
-                    {/* Separator */}
-                    <div className="relative mt-8 mb-8">
+                    <div className="relative mb-8 mt-8">
                         <div className="absolute inset-0 flex items-center">
                             <Separator />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-card px-3 text-muted-foreground font-mono">or</span>
+                            <span className="bg-card px-3 font-mono text-muted-foreground">or</span>
                         </div>
                     </div>
 
-                    {/* Email Magic Link */}
                     {!sent ? (
                         <form onSubmit={handleMagicLink} className="space-y-4">
                             <div className="space-y-2">
@@ -142,61 +120,40 @@ export function LoginPage() {
                                     required
                                 />
                             </div>
-                            <Button
-                                type="submit"
-                                className="w-full h-11 font-display font-bold"
-                                disabled={sending}
-                            >
-                                {sending ? (
-                                    <span className="flex items-center gap-2">
-                                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Sending...
-                                    </span>
-                                ) : (
-                                    "Send magic link →"
-                                )}
+                            <Button type="submit" className="h-11 w-full font-display font-bold" disabled={sending}>
+                                {sending ? 'Sending...' : 'Send magic link →'}
                             </Button>
                         </form>
                     ) : (
-                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 space-y-3">
+                        <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-6">
                             <div className="flex items-center gap-2 text-primary">
-                                <span className="text-xl" role="img" aria-label="Email">✉️</span>
-                                <p className="font-display font-bold text-sm">Magic link sent!</p>
+                                <span aria-label="Email" className="text-xl" role="img">✉️</span>
+                                <p className="font-display text-sm font-bold">Magic link sent</p>
                             </div>
-                            <p className="font-mono text-[11px] leading-relaxed text-muted-foreground">
-                                Check <span className="text-foreground font-bold">{email}</span> and click the link to sign in automatically.
+                            <p className="text-[11px] leading-relaxed text-muted-foreground">
+                                Check <span className="font-bold text-foreground">{email}</span> and click the link to sign in automatically.
                             </p>
-                            <Button
-                                variant="ghost"
-                                className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
-                                onClick={() => setSent(false)}
-                            >
+                            <Button variant="ghost" className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground" onClick={() => setSent(false)}>
                                 Use a different email
                             </Button>
                         </div>
                     )}
 
                     {error && (
-                        <p className="mt-4 text-xs text-destructive text-center font-mono">
+                        <p className="mt-4 text-center font-mono text-xs text-destructive">
                             {error}
                         </p>
                     )}
 
-                    <Link
-                        to="/browse"
-                        className="mt-8 block text-center text-sm font-display text-muted-foreground hover:text-foreground transition-colors"
-                    >
+                    <Link to="/browse" className="mt-8 block text-center text-sm font-display text-muted-foreground transition-colors hover:text-foreground">
                         No account? Browse as guest →
                     </Link>
 
-                    <div className="mt-4 flex justify-center gap-4 text-[10px] font-mono text-muted-foreground opacity-50 uppercase tracking-widest">
+                    <div className="mt-4 flex justify-center gap-4 text-[10px] uppercase tracking-widest text-muted-foreground opacity-60">
                         <span>🔒 No password needed</span>
-                        <span role="img" aria-label="icon">·</span>
+                        <span aria-hidden="true">·</span>
                         <span>Free</span>
-                        <span role="img" aria-label="icon">·</span>
+                        <span aria-hidden="true">·</span>
                         <span>Cancel anytime</span>
                     </div>
                 </CardContent>

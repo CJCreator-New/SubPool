@@ -22,7 +22,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { BeforeAfterSlider } from '../components/before-after-slider';
 import { PlatformIcon } from '../components/subpool-components';
 
-// â”€â”€â”€ Subcomponents â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Subcomponents ──────────────────────────────────────────────────────────
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub: string }) {
     return (
@@ -42,7 +42,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     );
 }
 
-// â”€â”€â”€ Savings Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Savings Page ─────────────────────────────────────────────────────────────
 
 export function SavingsPage() {
     const { profile } = useAuth();
@@ -77,9 +77,9 @@ export function SavingsPage() {
     return (
         <div className="max-w-4xl mx-auto space-y-12 pb-20">
 
-            {/* â”€â”€â”€ Hero Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ─── Hero Section ───────────────────────────────────────────────── */}
             <section className="text-center pt-8 pb-12 border-b border-border">
-                <div className="text-4xl mb-4">ðŸ’¡</div>
+                <div className="text-4xl mb-4">💡</div>
                 <h1 className="font-display font-black text-[32px] md:text-[40px] tracking-tight leading-tight mb-3">
                     How SubPool saves you money
                 </h1>
@@ -93,7 +93,7 @@ export function SavingsPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
                     <StatCard label="Avg. Savings" value="67%" sub="vs official solo plans" />
-                    <StatCard label="Avg. Saved/Year" value={currency === 'INR' ? 'â‚¹4,200' : '$480'} sub="per active member" />
+                    <StatCard label="Avg. Saved/Year" value={currency === 'INR' ? '₹4,200' : '$480'} sub="per active member" />
                     <StatCard label="Open Pools" value="142" sub="live results right now" />
                 </div>
 
@@ -109,7 +109,7 @@ export function SavingsPage() {
                 </Card>
             </section>
 
-            {/* â”€â”€â”€ Before / After Demo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ─── Before / After Demo ───────────────────────────────────────── */}
             <section>
                 <SectionLabel>THE DIFFERENCE</SectionLabel>
                 <BeforeAfterSlider
@@ -121,12 +121,12 @@ export function SavingsPage() {
                                 <div className="flex items-center gap-3">
                                     <PlatformIcon platformId="netflix" size="sm" />
                                     <span className="font-display font-bold text-sm text-foreground">Netflix</span>
-                                    <span className="font-mono text-xs text-muted-foreground ml-auto" role="img" aria-label="icon">â‚¹649/mo</span>
+                                    <span className="font-mono text-xs text-muted-foreground ml-auto" role="img" aria-label="icon">₹649/mo</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <PlatformIcon platformId="chatgpt" size="sm" />
                                     <span className="font-display font-bold text-sm text-foreground">ChatGPT</span>
-                                    <span className="font-mono text-xs text-muted-foreground ml-auto" role="img" aria-label="icon">â‚¹1,699/mo</span>
+                                    <span className="font-mono text-xs text-muted-foreground ml-auto" role="img" aria-label="icon">₹1,699/mo</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <PlatformIcon platformId="figma" size="sm" />
@@ -135,8 +135,8 @@ export function SavingsPage() {
                                 </div>
                             </div>
                             <div className="mt-8">
-                                <p className="font-mono text-[11px] text-muted-foreground mb-1">Paying full price ðŸ˜”</p>
-                                <p className="font-display font-bold text-[32px] text-[#FF4D4D] leading-none">â‚¹2,840/mo</p>
+                                <p className="font-mono text-[11px] text-muted-foreground mb-1">Paying full price 😔</p>
+                                <p className="font-display font-bold text-[32px] text-[#FF4D4D] leading-none">₹2,840/mo</p>
                             </div>
                         </div>
                     }
@@ -146,12 +146,12 @@ export function SavingsPage() {
                                 <div className="flex items-center gap-3">
                                     <PlatformIcon platformId="netflix" size="sm" />
                                     <span className="font-display font-bold text-sm text-foreground">Netflix</span>
-                                    <span className="font-mono text-xs text-muted-foreground ml-auto" role="img" aria-label="icon">â‚¹162/mo</span>
+                                    <span className="font-mono text-xs text-muted-foreground ml-auto" role="img" aria-label="icon">₹162/mo</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <PlatformIcon platformId="chatgpt" size="sm" />
                                     <span className="font-display font-bold text-sm text-foreground">ChatGPT</span>
-                                    <span className="font-mono text-xs text-muted-foreground ml-auto" role="img" aria-label="icon">â‚¹425/mo</span>
+                                    <span className="font-mono text-xs text-muted-foreground ml-auto" role="img" aria-label="icon">₹425/mo</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <PlatformIcon platformId="figma" size="sm" />
@@ -161,23 +161,23 @@ export function SavingsPage() {
                             </div>
                             <div className="mt-8 flex justify-between items-end">
                                 <div>
-                                    <p className="font-mono text-[11px] text-muted-foreground mb-1">Shared via SubPool ðŸŽ‰</p>
-                                    <p className="font-display font-bold text-[32px] text-primary leading-none">â‚¹810/mo</p>
+                                    <p className="font-mono text-[11px] text-muted-foreground mb-1">Shared via SubPool 🎉</p>
+                                    <p className="font-display font-bold text-[32px] text-primary leading-none">₹810/mo</p>
                                 </div>
                                 <div className="text-right pb-1 hidden sm:block">
-                                    <p className="font-mono text-[12px] text-[#4DFF91]">Save â‚¹2,030/mo Â· â‚¹24,360/year</p>
+                                    <p className="font-mono text-[12px] text-[#4DFF91]">Save ₹2,030/mo · ₹24,360/year</p>
                                 </div>
                             </div>
                             {/* Mobile savings callout */}
                             <div className="mt-2 text-left block sm:hidden">
-                                <p className="font-mono text-[12px] text-[#4DFF91]">Save â‚¹2,030/mo Â· â‚¹24,360/year</p>
+                                <p className="font-mono text-[12px] text-[#4DFF91]">Save ₹2,030/mo · ₹24,360/year</p>
                             </div>
                         </div>
                     }
                 />
             </section>
 
-            {/* â”€â”€â”€ Calculator Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ─── Calculator Section ────────────────────────────────────────── */}
             <section>
                 <SectionLabel>TRY IT YOURSELF</SectionLabel>
                 <Card className="border-border bg-card overflow-hidden">
@@ -218,7 +218,7 @@ export function SavingsPage() {
                                         onClick={() => setCurrency('INR')}
                                         className={`px-4 py-1.5 rounded text-sm font-display font-bold transition-colors ${currency === 'INR' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                                     >
-                                        â‚¹
+                                        ₹
                                     </button>
                                     <button
                                         onClick={() => setCurrency('USD')}
@@ -239,7 +239,7 @@ export function SavingsPage() {
                                 <span className="text-muted-foreground text-sm ml-1">/mo</span>
                             </div>
 
-                            <div className="text-3xl text-primary animate-pulse hidden md:block">â†’</div>
+                            <div className="text-3xl text-primary animate-pulse hidden md:block">→</div>
 
                             <div className="text-center">
                                 <span className="block font-mono text-[10px] uppercase text-primary mb-2">With SubPool</span>
@@ -264,14 +264,14 @@ export function SavingsPage() {
                                 animate={{ y: 0, opacity: 1 }}
                                 className="font-display font-bold text-xl text-primary mb-1"
                             >
-                                You save {formatPrice(monthlySavings)}/mo Â· {formatPrice(annualSavings)}/year Â· {savingsPct.toFixed(0)}% less
+                                You save {formatPrice(monthlySavings)}/mo · {formatPrice(annualSavings)}/year · {savingsPct.toFixed(0)}% less
                             </motion.div>
                             <p className="font-mono text-[11px] text-muted-foreground italic">
                                 At {formatPrice(subPoolPrice)}/slot with {memberCount} people sharing a {currentSeed?.platform_name || selectedPlatformId} {currentSeed?.plan_name} plan
                             </p>
                         </div>
 
-                        {/* â”€â”€â”€ Share Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+                        {/* ─── Share Section ────────────── */}
                         <div className="mt-8 pt-6 border-t border-border/50 flex flex-col items-center">
                             <span className="font-mono text-[11px] uppercase text-muted-foreground mb-4">Share this</span>
 
@@ -291,11 +291,11 @@ export function SavingsPage() {
                                             I save {savingsPct.toFixed(0)}% on {currentSeed?.platform_name || selectedPlatformId}
                                         </div>
                                         <div className="font-mono text-[14px] text-muted-foreground mt-2">
-                                            {formatPrice(monthlySavings)}/mo Â· {formatPrice(annualSavings)}/year
+                                            {formatPrice(monthlySavings)}/mo · {formatPrice(annualSavings)}/year
                                         </div>
                                     </div>
                                     <div className="bg-primary/5 rounded-[4px] py-1.5 text-center w-full">
-                                        <span className="font-mono text-[10px] text-primary/70">Powered by SubPool â€” subpool.app</span>
+                                        <span className="font-mono text-[10px] text-primary/70">Powered by SubPool — subpool.app</span>
                                     </div>
                                 </div>
                             </div>
@@ -322,7 +322,7 @@ export function SavingsPage() {
                                         }
                                     }}
                                 >
-                                    ðŸ“‹ Copy image
+                                    📋 Copy image
                                 </Button>
                                 <Button
                                     variant="ghost"
@@ -332,7 +332,7 @@ export function SavingsPage() {
                                         track('savings_twitter_share', { platformId: selectedPlatformId, savingsPct });
                                     }}
                                 >
-                                    ð• Twitter
+                                    𝕏 Twitter
                                 </Button>
                                 <Button
                                     variant="ghost"
@@ -341,7 +341,7 @@ export function SavingsPage() {
                                         window.open(`https://wa.me/?text=I save ${savingsPct.toFixed(0)}% on ${currentSeed?.platform_name || selectedPlatformId} with SubPool! Check it out: https://subpool.app`);
                                     }}
                                 >
-                                    ðŸ’¬ WhatsApp
+                                    💬 WhatsApp
                                 </Button>
                             </div>
                         </div>
@@ -350,7 +350,7 @@ export function SavingsPage() {
                 </Card>
             </section>
 
-            {/* â”€â”€â”€ Comparison Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ─── Comparison Table ────────────────────────────────────────── */}
             <section>
                 <SectionLabel>WHO SAVES THE MOST</SectionLabel>
                 <div className="bg-card border border-border rounded-[6px] overflow-hidden shadow-sm">
@@ -367,10 +367,10 @@ export function SavingsPage() {
                             </thead>
                             <tbody className="divide-y divide-border/50">
                                 {[
-                                    { name: "ðŸŽ¬ Solo binge watcher", solo: "â‚¹1,200", sub: "â‚¹360", monthly: "â‚¹840", annual: "â‚¹10,080", pct: "70%" },
-                                    { name: "âš¡ Dev using AI tools", solo: "$60", sub: "$18", monthly: "$42", annual: "$504", pct: "70%" },
-                                    { name: "ðŸš€ Startup team (4 ppl)", solo: "$200", sub: "$80", monthly: "$120", annual: "$1,440", pct: "60%" },
-                                    { name: "ðŸŒ India + global mix", solo: "â‚¹2,800", sub: "â‚¹920", monthly: "â‚¹1,880", annual: "â‚¹22,560", pct: "67%" },
+                                    { name: "🎬 Solo binge watcher", solo: "₹1,200", sub: "₹360", monthly: "₹840", annual: "₹10,080", pct: "70%" },
+                                    { name: "⚡ Dev using AI tools", solo: "$60", sub: "$18", monthly: "$42", annual: "$504", pct: "70%" },
+                                    { name: "🚀 Startup team (4 ppl)", solo: "$200", sub: "$80", monthly: "$120", annual: "$1,440", pct: "60%" },
+                                    { name: "🌍 India + global mix", solo: "₹2,800", sub: "₹920", monthly: "₹1,880", annual: "₹22,560", pct: "67%" },
                                 ].map((row, i) => (
                                     <tr key={i} className="hover:bg-secondary/30 transition-colors group">
                                         <td className="px-6 py-5">
@@ -394,58 +394,58 @@ export function SavingsPage() {
                 </div>
             </section>
 
-            {/* â”€â”€â”€ Smart Tips Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ─── Smart Tips Grid ────────────────────────────────────────── */}
             <section>
                 <SectionLabel>SMART PRICING TIPS</SectionLabel>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="bg-card border border-border rounded-[6px] p-6 flex flex-col">
-                        <div className="text-2xl mb-4">ðŸ’¡</div>
+                        <div className="text-2xl mb-4">💡</div>
                         <h4 className="font-display font-bold text-lg mb-3">Look for "Fair" rated pools</h4>
                         <p className="font-mono text-[12px] text-muted-foreground leading-relaxed flex-1">
-                            Pools priced in the 65â€“85% range of solo cost fill fastest and offer the best value. Use markers like <span className="text-primary italic">"STEAL"</span> to find early-bird deals.
+                            Pools priced in the 65–85% range of solo cost fill fastest and offer the best value. Use markers like <span className="text-primary italic">"STEAL"</span> to find early-bird deals.
                         </p>
                         <div className="mt-6 pt-4 border-t border-border/50">
                             <span className="inline-block bg-primary/10 text-primary font-mono text-[10px] font-bold rounded-full px-3 py-1">
-                                ðŸ’° Best savings: 65â€“85% cost
+                                💰 Best savings: 65–85% cost
                             </span>
                         </div>
                     </div>
 
                     <div className="bg-card border border-border rounded-[6px] p-6 flex flex-col">
-                        <div className="text-2xl mb-4">ðŸŽ¬</div>
+                        <div className="text-2xl mb-4">🎬</div>
                         <h4 className="font-display font-bold text-lg mb-3">Price for speed, not profit</h4>
                         <p className="font-mono text-[12px] text-muted-foreground leading-relaxed flex-1">
-                            For Netflix 4K, set slots at â‚¹130â€“165. This attracts members instantly, meaning your own bill gets offset in less than 24 hours.
+                            For Netflix 4K, set slots at ₹130–165. This attracts members instantly, meaning your own bill gets offset in less than 24 hours.
                         </p>
                         <div className="mt-6 pt-4 border-t border-border/50">
                             <span className="inline-block bg-primary/10 text-primary font-mono text-[10px] font-bold rounded-full px-3 py-1">
-                                âš¡ Sweet spot: 75% market rate
+                                ⚡ Sweet spot: 75% market rate
                             </span>
                         </div>
                     </div>
 
                     <div className="bg-card border border-border rounded-[6px] p-6 flex flex-col">
-                        <div className="text-2xl mb-4">âš¡</div>
+                        <div className="text-2xl mb-4">⚡</div>
                         <h4 className="font-display font-bold text-lg mb-3">Team plans are the future</h4>
                         <p className="font-mono text-[12px] text-muted-foreground leading-relaxed flex-1">
                             For AI tools like ChatGPT or Cursor, use "Team" plans. They offer better features and are designed for splitting per seat officially.
                         </p>
                         <div className="mt-6 pt-4 border-t border-border/50">
                             <span className="inline-block bg-primary/10 text-primary font-mono text-[10px] font-bold rounded-full px-3 py-1">
-                                âœ… Use Team plans, not Personal
+                                ✅ Use Team plans, not Personal
                             </span>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* â”€â”€â”€ Platform Guide â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ─── Platform Guide ─────────────────────────────────────────── */}
             <section>
                 <SectionLabel>PLATFORM QUICK GUIDE</SectionLabel>
                 <Tabs defaultValue="global-ott" className="w-full">
                     <TabsList className="grid w-full grid-cols-4 bg-secondary/20 h-12 p-1 border border-border rounded-lg mb-8">
                         <TabsTrigger value="global-ott" className="font-display font-bold text-sm data-[state=active]:bg-card">Global OTT</TabsTrigger>
-                        <TabsTrigger value="india-ott" className="font-display font-bold text-sm data-[state=active]:bg-card">India ðŸ‡®ðŸ‡³</TabsTrigger>
+                        <TabsTrigger value="india-ott" className="font-display font-bold text-sm data-[state=active]:bg-card">India 🇮🇳</TabsTrigger>
                         <TabsTrigger value="ai" className="font-display font-bold text-sm data-[state=active]:bg-card">AI / IDE Tools</TabsTrigger>
                         <TabsTrigger value="saas" className="font-display font-bold text-sm data-[state=active]:bg-card">Team SaaS</TabsTrigger>
                     </TabsList>
@@ -560,7 +560,7 @@ export function SavingsPage() {
                 </Tabs>
             </section>
 
-            {/* â”€â”€â”€ Pro Teaser â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ─── Pro Teaser ─────────────────────────────────────────────── */}
             {(profile?.plan === 'free' || !profile) && (
                 <section className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
                     <SectionLabel>UNLOCK MORE WITH PRO</SectionLabel>
@@ -569,7 +569,7 @@ export function SavingsPage() {
                         <div className="relative bg-card border border-primary/20 rounded-xl p-8 flex flex-col md:flex-row items-center justify-between gap-8">
                             <div className="text-center md:text-left">
                                 <h4 className="font-display font-black text-2xl text-foreground mb-3 flex items-center gap-3 justify-center md:justify-start">
-                                    ðŸš€ Host Plus
+                                    🚀 Host Plus
                                     <span className="bg-primary/20 text-primary font-mono text-[10px] px-2 py-0.5 rounded-full border border-primary/30">ALPHA</span>
                                 </h4>
                                 <p className="font-mono text-sm text-muted-foreground leading-relaxed max-w-md">
@@ -582,7 +582,7 @@ export function SavingsPage() {
                                     <span className="font-mono text-sm text-muted-foreground">/mo</span>
                                 </div>
                                 <Button asChild className="font-display font-bold px-8 h-12 shadow-lg shadow-primary/20">
-                                    <Link to="/plans">See all plans â†’</Link>
+                                    <Link to="/plans">See all plans →</Link>
                                 </Button>
                             </div>
                         </div>
