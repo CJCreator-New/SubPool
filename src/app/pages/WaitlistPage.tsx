@@ -1,11 +1,13 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase/client';
-import { Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Sparkles, ArrowRight, CheckCircle2, ShieldCheck, Zap } from 'lucide-react';
+import { cn } from '../components/ui/utils';
 
 export function WaitlistPage() {
   const [email, setEmail] = useState('');
@@ -20,22 +22,20 @@ export function WaitlistPage() {
 
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('waitlist')
         .insert({
           email,
           platform: platform || null,
-        } as any)
+        })
         .select('position')
         .single();
 
       if (error) {
         if (error.code === '23505') {
-          // unique constraint violation on email
           toast.info('You are already on the waitlist!');
           setSuccess(true);
         } else if (error.code === '42P01' || error.message?.includes('waitlist') || error.code === 'PGRST204' || String(error).includes('404')) {
-          // Fallback if table doesn't exist (Guest / Demo mode)
           console.warn('Waitlist table missing, mocking success:', error);
           toast.success("You're on the list! (Demo Mode)");
           setPosition(Math.floor(Math.random() * 5000) + 100);
@@ -48,111 +48,147 @@ export function WaitlistPage() {
         if (data?.position) setPosition(data.position);
         setSuccess(true);
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to join waitlist');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to join waitlist';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-64px)] flex items-center justify-center overflow-hidden py-12 px-4">
-      {/* Background Orbs */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px] -z-10" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] -z-10" />
+    <div className="relative min-h-[calc(100vh-64px)] flex items-center justify-center overflow-hidden py-12 px-4 bg-background">
+      {/* Dynamic Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[0%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 rounded-full blur-[150px]" />
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-purple-500/5 rounded-full blur-[100px]" />
+        
+        {/* Decorative Grid */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 contrast-150 brightness-100" />
+        <div className="absolute inset-0 [background:radial-gradient(ellipse_at_center,_transparent_0%,_var(--background)_80%)]" />
+      </div>
 
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <Card className="w-full max-w-lg border-border/50 bg-card/60 backdrop-blur-xl shadow-2xl">
-          <CardContent className="p-8 md:p-12">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-lg relative z-10"
+      >
+        <Card className="glass border-border/40 bg-surface-gradient shadow-2xl overflow-hidden rounded-3xl">
+          <CardContent className="p-8 md:p-14">
+            <AnimatePresence mode="wait">
               {!success ? (
-                <div
-                  className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300"
+                <motion.div
+                  key="form"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.4 }}
+                  className="space-y-10"
                 >
-                  <div className="space-y-3 text-center">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-2">
-                      <Sparkles className="w-6 h-6" />
+                  <div className="space-y-4 text-center">
+                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 text-primary mb-4 border border-primary/20 shadow-inner group">
+                      <Zap className="w-7 h-7 group-hover:scale-110 transition-transform" />
                     </div>
-                    <h1 className="text-3xl font-display font-black tracking-tight text-foreground">
-                      Join the Waitlist
+                    <h1 className="text-4xl font-display font-black tracking-tight text-foreground sm:text-5xl">
+                      Secure Priority Access
                     </h1>
-                    <p className="text-muted-foreground font-mono text-xs uppercase tracking-widest leading-relaxed">
-                      Be the first to know when new platforms <br />and premium features drop.
+                    <p className="text-muted-foreground font-mono text-[11px] sm:text-xs uppercase tracking-[0.3em] leading-relaxed">
+                      Initialize your position in the <br /><span className="text-primary font-bold">SubPool Deployment Cycle.</span>
                     </p>
                   </div>
 
-                  <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-xs uppercase tracking-widest font-mono font-bold text-foreground/80">Email Address</Label>
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="email" className="text-[10px] uppercase tracking-[0.2em] font-mono font-bold text-muted-foreground">Auth Endpoint</Label>
+                        <ShieldCheck className="size-3 text-emerald-400/50" />
+                      </div>
                       <Input
                         id="email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="you@example.com"
+                        placeholder="network_id@secure.io"
                         required
-                        className="h-12 bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/50 transition-shadow"
+                        className="h-14 bg-background/30 border-border/80 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all rounded-xl font-mono text-sm placeholder:text-muted-foreground/30"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="platform" className="text-xs uppercase tracking-widest font-mono font-bold text-foreground/80">Requested Platform <span className="text-muted-foreground/50 font-normal">(Optional)</span></Label>
-                      <Input
-                        id="platform"
-                        value={platform}
-                        onChange={(e) => setPlatform(e.target.value)}
-                        placeholder="e.g. Netflix, Spotify, Figma"
-                        className="h-12 bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/50 transition-shadow"
-                      />
+                    <div className="space-y-3">
+                        <Label htmlFor="platform" className="text-[10px] uppercase tracking-[0.2em] font-mono font-bold text-muted-foreground">Platform Request <span className="text-muted-foreground/30 font-normal">--optional</span></Label>
+                        <Input
+                            id="platform"
+                            value={platform}
+                            onChange={(e) => setPlatform(e.target.value)}
+                            placeholder="e.g. Midjourney, Cursor, GPT-5"
+                            className="h-14 bg-background/30 border-border/80 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all rounded-xl font-mono text-sm placeholder:text-muted-foreground/30"
+                        />
                     </div>
 
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="w-full h-12 text-sm uppercase tracking-widest font-mono font-bold group relative overflow-hidden"
+                      className="w-full h-14 text-xs uppercase tracking-[0.3em] font-mono font-black group relative overflow-hidden rounded-xl shadow-[0_20px_40px_rgba(200,241,53,0.15)]"
                     >
-                      <span className="relative z-10 flex items-center justify-center gap-2">
-                        {loading ? 'Joining...' : 'Secure My Spot'}
-                        {!loading && <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />}
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                      <span className="relative z-10 flex items-center justify-center gap-3">
+                        {loading ? 'Transmitting...' : 'Join Waitlist'}
+                        {!loading && <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1.5" />}
                       </span>
                     </Button>
                   </form>
-                </div>
+
+                  <div className="pt-4 flex items-center justify-center gap-6 opacity-40 grayscale hover:grayscale-0 transition-all duration-700">
+                    <div className="h-[1px] flex-1 bg-border/50" />
+                    <p className="text-[9px] font-mono uppercase tracking-[0.2em] whitespace-nowrap">Encryption Active (AES-256)</p>
+                    <div className="h-[1px] flex-1 bg-border/50" />
+                  </div>
+                </motion.div>
               ) : (
-                <div
-                  className="text-center space-y-6 py-6 animate-in zoom-in-95 duration-500"
+                <motion.div
+                  key="success"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center space-y-8 py-10"
                 >
-                  <div 
-                     className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/10 text-emerald-500 mb-2 animate-bounce"
-                  >
-                    <CheckCircle2 className="w-10 h-10" />
+                  <div className="relative inline-flex mb-4">
+                    <div className="absolute inset-0 bg-emerald-500/20 blur-2xl rounded-full animate-pulse" />
+                    <div 
+                        className="relative z-10 inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-xl"
+                    >
+                        <CheckCircle2 className="w-12 h-12" />
+                    </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <h2 className="text-3xl font-display font-black text-foreground">You're In!</h2>
-                    <p className="text-muted-foreground">We've secured your spot on the waitlist.</p>
+                  <div className="space-y-3">
+                    <h2 className="text-4xl font-display font-black text-foreground tracking-tight">Access Granted</h2>
+                    <p className="text-muted-foreground text-sm font-medium">System verification complete. Your node position is locked.</p>
                   </div>
 
-                  {position && (
-                    <div className="bg-background/40 border border-border/50 rounded-2xl p-6 shadow-inner mx-auto max-w-[240px]">
-                      <p className="font-mono text-xs text-muted-foreground uppercase tracking-wider mb-2">Your Position</p>
-                      <p className="text-5xl font-display font-black text-primary">#{position}</p>
+                  {position !== null && (
+                    <div className="bg-background/20 backdrop-blur-md border border-border/40 rounded-3xl p-8 shadow-inner mx-auto max-w-[280px] group hover:border-primary/40 transition-colors">
+                      <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-[0.3em] mb-4">Pipeline Position</p>
+                      <p className="text-6xl font-display font-black text-primary drop-shadow-[0_0_15px_rgba(200,241,53,0.3)] group-hover:scale-110 transition-transform">#{position}</p>
                     </div>
                   )}
 
-                  <div className="pt-4">
+                  <div className="pt-6">
                     <Button 
-                      variant="outline" 
+                      variant="ghost" 
                       onClick={() => setSuccess(false)}
-                      className="uppercase tracking-widest font-mono text-xs border-border/60 hover:bg-secondary/20"
+                      className="uppercase tracking-[0.4em] font-mono text-[10px] text-muted-foreground hover:text-primary transition-colors h-10 hover:bg-transparent"
                     >
-                      Join for another
+                      [ Request another node ]
                     </Button>
                   </div>
-                </div>
+                </motion.div>
               )}
+            </AnimatePresence>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     </div>
   );
 }

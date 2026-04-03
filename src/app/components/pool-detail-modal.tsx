@@ -1,7 +1,8 @@
 // ─── Pool Detail Modal ─────────────────────────────────────────────────────────
 // Built on top of shadcn Dialog + SubPool components.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { cn } from './ui/utils';
@@ -18,8 +19,8 @@ import { celebrate } from '../../lib/confetti';
 import { OwnerTrustRibbon } from './trust-score';
 import { supabase } from '../../lib/supabase/client';
 import { useAuth } from '../../lib/supabase/auth';
-
-// ─── Props ────────────────────────────────────────────────────────────────────
+import { Badge } from './ui/badge';
+import { Shield, Share2, Info, TrendingDown, Users, DollarSign } from 'lucide-react';
 
 interface PoolDetailModalProps {
     pool: Pool | null;
@@ -27,8 +28,6 @@ interface PoolDetailModalProps {
     onClose: () => void;
     onRequestJoin?: (pool: Pool) => void;
 }
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export function PoolDetailModal({
     pool,
@@ -39,36 +38,14 @@ export function PoolDetailModal({
     const { isDemo } = useDemo();
     const { user } = useAuth();
     const [requestState, setRequestState] = useState<'idle' | 'loading' | 'success'>('idle');
-    const [waitlistPosition, setWaitlistPosition] = useState<number | null>(null);
     const modalRef = React.useRef<HTMLDivElement>(null);
     const { currency, formatPrice } = useCurrency();
 
-    // Focus trapping and GPU accel
     useEffect(() => {
-        let timeoutId: NodeJS.Timeout;
-        if (open) {
-            timeoutId = setTimeout(() => {
-                if (modalRef.current) {
-                    const firstFocusable = modalRef.current.querySelector<HTMLElement>(
-                        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                    );
-                    firstFocusable?.focus();
+        if (open) setRequestState('idle');
+    }, [open, pool?.id]);
 
-                    // Remove will-change after intro animation completes
-                    modalRef.current.style.willChange = 'auto';
-                }
-            }, 300); // Wait for modal enter animation
-        }
-        return () => clearTimeout(timeoutId);
-    }, [open]);
-
-    // Reset state when pool changes
-    useEffect(() => {
-        setRequestState('idle');
-    }, [pool?.id]);
-
-    // Seeded random for views based on pool id
-    const mockViews = React.useMemo(() => {
+    const mockViews = useMemo(() => {
         if (!pool) return 0;
         let hash = 0;
         for (let i = 0; i < pool.id.length; i++) hash += pool.id.charCodeAt(i);
@@ -83,21 +60,9 @@ export function PoolDetailModal({
         totalSlots: pool.total_slots,
         currency: currency,
         countryCode: 'GLOBAL'
-    }) : { band: 'unknown', label: 'Unknown', color: '#6B6860', savingsPct: 0, officialSoloPrice: 0, fairRangeMin: 0, fairRangeMax: 0 };
+    }) : null;
 
-    const sharingNote = pool ? getPlatformSharingNote(pool.platform, pool.plan_name) : { policy: 'unknown', color: '#6B6860' };
-
-    // Tracking pool_detail_viewed
-    const openTimeRef = React.useRef<number>(0);
-    useEffect(() => {
-        if (open && pool) {
-            openTimeRef.current = Date.now();
-        } else if (!open && openTimeRef.current > 0 && pool) {
-            const timeOnModal = Math.round((Date.now() - openTimeRef.current) / 1000);
-            track('pool_detail_viewed', { poolId: pool.id, platformId: pool.platform, band: analysis.band, timeOnModal });
-            openTimeRef.current = 0;
-        }
-    }, [open, pool?.id, analysis?.band]);
+    const sharingNote = pool ? getPlatformSharingNote(pool.platform, pool.plan_name) : null;
 
     const magneticJoinBtn = useMagneticButton(0.3, isDemo);
 
@@ -106,301 +71,237 @@ export function PoolDetailModal({
         setRequestState('loading');
         try {
             await onRequestJoin(pool);
-            track('join_request_submitted', { poolId: pool.id, band: analysis.band, savingsPct: analysis.savingsPct });
+            track('join_request_submitted', { poolId: pool.id, savingsPct: analysis?.savingsPct });
             setRequestState('success');
             celebrate('light', isDemo);
         } catch {
             setRequestState('idle');
+            toast.error('Failed to submit join request');
         }
     };
 
     const handleCopyPoolLink = async () => {
         try {
-            if (!navigator.clipboard) {
-                throw new Error('Clipboard API unavailable');
-            }
             await navigator.clipboard.writeText(`${window.location.origin}/pool/${pool?.id}`);
-            toast.success('Pool link copied!');
-            if (pool) {
-                track('pool_link_copied', { poolId: pool.id });
-            }
+            toast.success('System: Link copied to clipboard');
+            if (pool) track('pool_link_copied', { poolId: pool.id });
         } catch {
-            toast.error('Could not copy link. Please copy the URL manually.');
+            toast.error('Copy relay failed. Attempt manual copy.');
         }
     };
 
-    if (!pool) return null;
+    if (!pool || !analysis || !sharingNote) return null;
 
     const slotsRemaining = pool.total_slots - pool.filled_slots;
 
-    // Detail rows
-    const details: { key: string; value: React.ReactNode }[] = [
-        { key: 'Price', value: `${formatPrice(pool.price_per_slot / 100)}/mo per slot` },
-        { key: 'Slots', value: `${pool.filled_slots}/${pool.total_slots} filled` },
-        { key: 'Billing', value: 'Monthly via SubPool escrow' },
-        { key: 'Category', value: pool.category.charAt(0).toUpperCase() + pool.category.slice(1) },
-        {
-            key: 'Sharing policy', value: (
-                <span style={{ color: sharingNote.color }}>
-                    {sharingNote.policy === 'allowed' ? '✅ Officially supported' :
-                        sharingNote.policy === 'grey_area' ? '⚠️ Team cost-split' :
-                            'ℹ️ Individual seats recommended'}
-                </span>
-            )
-        },
-    ];
+    const containerVariants = {
+        hidden: { opacity: 0, y: 10 },
+        show: { opacity: 1, y: 0, transition: { staggerChildren: 0.08, delayChildren: 0.1 } }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 10 },
+        show: { opacity: 1, y: 0 }
+    };
 
     return (
         <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
             <DialogContent
                 ref={modalRef}
-                aria-modal="true"
-                aria-labelledby="pool-modal-title"
-                style={{ willChange: open ? 'transform' : 'auto' }}
                 className={cn(
-                    'bg-card/80 backdrop-blur-xl border border-primary/15 modal-glass shadow-[0_0_0_1px_rgba(200,241,53,0.1),0_48px_120px_rgba(0,0,0,0.8)]',
-                    'sm:max-w-[500px] max-w-full sm:rounded-xl rounded-none p-8',
-                    'sm:top-[50%] top-auto bottom-0 sm:bottom-auto sm:translate-y-[-50%] translate-y-0',
-                    'max-h-[90vh] overflow-y-auto',
+                    'bg-card/90 backdrop-blur-3xl border-border/40 modal-glass shadow-2xl',
+                    'sm:max-w-[540px] max-w-full sm:rounded-3xl rounded-none p-0 overflow-hidden',
+                    'sm:top-[50%] top-auto bottom-0 sm:translate-y-[-50%] translate-y-0 duration-500',
+                    'max-h-[92vh] flex flex-col'
                 )}
             >
-                {/* Accessible title (visually part of header below) */}
-                <DialogTitle className="sr-only" id="pool-modal-title">
-                    {platform?.name} Pool Options
-                </DialogTitle>
+                <DialogTitle className="sr-only">{platform?.name} Pool Options</DialogTitle>
 
-                {/* ─── Platform Header ──────────────────────────────────────── */}
-                <div className="flex items-center gap-4 mb-6">
-                    <PlatformIcon platformId={pool.platform} size="lg" glowColor={platform?.bg} />
-                    <div className="min-w-0">
-                        <p className="font-display font-bold text-xl text-foreground truncate">
-                            {platform?.name ?? pool.platform}
-                        </p>
-                        <p className="font-mono text-[12px] text-muted-foreground truncate">
-                            {pool.plan_name}
-                        </p>
-                        <div className="mt-1.5 flex items-center gap-2">
-                            <StatusPill status={pool.status} />
-                            <span
-                                className="font-mono text-[10px] rounded-full border px-2 py-0.5 inline-flex"
-                                style={{ borderColor: sharingNote.color, color: sharingNote.color }}
+                {/* Hero Header */}
+                <div className="relative p-8 pb-6 bg-gradient-to-br from-primary/10 via-transparent to-transparent">
+                    <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                        <Shield size={160} />
+                    </div>
+                    
+                    <div className="flex items-start justify-between relative z-10">
+                        <div className="flex items-center gap-5">
+                            <motion.div 
+                                initial={{ scale: 0.8, rotate: -10 }}
+                                animate={{ scale: 1, rotate: 0 }}
+                                className="shadow-2xl rounded-3xl overflow-hidden"
                             >
-                                {sharingNote.policy === 'allowed' ? '✅ Official family plan' :
-                                    sharingNote.policy === 'grey_area' ? '⚠️ Team use only' :
-                                        'ℹ️ Per-seat plan'}
+                                <PlatformIcon platformId={pool.platform} size="lg" />
+                            </motion.div>
+                            <div className="space-y-1">
+                                <h2 className="font-display font-black text-2xl tracking-tight leading-none text-foreground">
+                                    {platform?.name ?? pool.platform}
+                                </h2>
+                                <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest">
+                                    {pool.plan_name} Node
+                                </p>
+                            </div>
+                        </div>
+                        <StatusPill status={pool.status} />
+                    </div>
+
+                    <motion.div 
+                        initial={{ opacity: 0, scaleX: 0 }}
+                        animate={{ opacity: 1, scaleX: 1 }}
+                        transition={{ delay: 0.4 }}
+                        className="mt-8"
+                    >
+                        <SlotBar filled={pool.filled_slots} total={pool.total_slots} size="md" />
+                        <div className="mt-2 flex justify-between items-center text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                            <span>{pool.filled_slots} Active Members</span>
+                            <span className={cn(slotsRemaining <= 1 ? "text-amber-400 font-bold animate-pulse" : "")}>
+                                {slotsRemaining === 0 ? "Node Saturated" : `${slotsRemaining} Capacity Remaining`}
                             </span>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
 
-                {/* ─── Slot Bar ─────────────────────────────────────────────── */}
-                <div className="mb-5">
-                    <SlotBar filled={pool.filled_slots} total={pool.total_slots} size="md" />
-                    {slotsRemaining <= 1 && slotsRemaining > 0 && (
-                        <p className="text-[11px] font-mono mt-1" style={{ color: '#F5A623' }}>
-                            🔥 Only {slotsRemaining} slot remaining — act fast!
-                        </p>
-                    )}
-                    {slotsRemaining > 1 && (
-                        <p className="text-[11px] font-mono text-muted-foreground mt-1">
-                            {slotsRemaining} slots available
-                        </p>
-                    )}
-                </div>
+                <div className="px-8 pb-8 space-y-8 flex-1 overflow-y-auto custom-scrollbar">
+                    <motion.div 
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="show"
+                        className="space-y-8"
+                    >
+                        {/* Analytics Panel */}
+                        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
+                            <div className="glass bg-background/40 border-border/50 rounded-2xl p-5 group transition-colors hover:border-primary/30">
+                                <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground mb-4">Slot Overhead</p>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="font-display font-black text-3xl text-foreground group-hover:text-primary transition-colors">{formatPrice(pool.price_per_slot / 100)}</span>
+                                    <span className="text-[10px] font-mono text-muted-foreground">/mo</span>
+                                </div>
+                                <div className="mt-4">
+                                    <Badge variant="outline" className="text-[9px] font-mono uppercase border-primary/20 bg-primary/5 text-primary">
+                                        {analysis.label} Efficient
+                                    </Badge>
+                                </div>
+                            </div>
+                            <div className="glass bg-background/40 border-border/50 rounded-2xl p-5 group transition-colors hover:border-emerald-500/30">
+                                <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground mb-4">Savings Yield</p>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="font-display font-black text-3xl text-emerald-400">-{analysis.savingsPct.toFixed(0)}%</span>
+                                </div>
+                                <div className="mt-4 flex items-center gap-1.5 font-mono text-[9px] text-muted-foreground uppercase">
+                                    <TrendingDown size={10} className="text-emerald-400" />
+                                    <span>vs Market Average</span>
+                                </div>
+                            </div>
+                        </motion.div>
 
-                {/* ─── Price Analysis Panel (Two Column) ─────────────────────── */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                    {/* LEFT Column */}
-                    <div className="flex flex-col gap-3">
-                        <div className="flex items-center gap-2">
-                            <span className="font-display font-medium text-[42px] tracking-tight text-foreground leading-none">{formatPrice(pool.price_per_slot / 100)}</span>
-                            <span className="font-mono text-xs text-muted-foreground uppercase">per month</span>
-                            <div className="ml-auto mt-2">
-                                <span
-                                    className="border rounded-full px-2 py-0.5 font-mono text-[10px] uppercase"
-                                    style={{ color: analysis.color, borderColor: analysis.color }}
+                        {/* Node Intelligence */}
+                        <motion.div variants={itemVariants} className="space-y-4">
+                             <div className="flex items-center gap-2 mb-1">
+                                <Info size={14} className="text-primary" />
+                                <h3 className="font-display font-black text-xs uppercase tracking-widest text-muted-foreground">Node Intelligence</h3>
+                             </div>
+                             <div className="bg-secondary/40 border border-border/40 rounded-2xl p-6 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-4 opacity-5 rotate-12">
+                                    <Users size={80} />
+                                </div>
+                                <div className="space-y-4 relative z-10">
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-muted-foreground font-medium">Standard Solo Cost</span>
+                                        <span className="font-mono text-muted-foreground line-through opacity-50">{formatPrice(analysis.officialSoloPrice)}/mo</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm font-bold">
+                                        <span className="text-foreground">SubPool Optimized</span>
+                                        <span className="font-mono text-primary">{formatPrice(pool.price_per_slot / 100)}/mo</span>
+                                    </div>
+                                    <div className="h-px bg-border/40 w-full" />
+                                    <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">
+                                        {pool.category === 'entertainment' ? `Official family sharing architecture. You split the ${formatPrice(analysis.officialSoloPrice * 4)} total bill across the node cluster.` :
+                                            pool.category === 'ai' ? 'Multi-tenant seat delegation. You receive individual credentials managed via our host arbitration layer.' :
+                                                'B2B Team seat allocation. Cost-optimized scaling for creative and technical workflows.'}
+                                    </p>
+                                </div>
+                             </div>
+                        </motion.div>
+
+                        {/* Host Audit */}
+                        <motion.div variants={itemVariants} className="space-y-4">
+                             <div className="flex items-center gap-2 mb-1">
+                                <Shield size={14} className="text-emerald-400" />
+                                <h3 className="font-display font-black text-xs uppercase tracking-widest text-muted-foreground">Security Audit</h3>
+                             </div>
+                             <div className="bg-background/20 border border-border/40 rounded-2xl p-6 flex items-center justify-between group hover:bg-background/30 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <OwnerTrustRibbon
+                                        rating={pool.owner?.rating ?? 0}
+                                        totalHosted={pool.owner?.total_hosted ?? 0}
+                                        plan={pool.owner?.plan}
+                                    />
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-bold text-foreground">Host Verified</p>
+                                        <p className="font-mono text-[9px] text-muted-foreground uppercase">Response Relay: &lt;2hrs</p>
+                                    </div>
+                                </div>
+                                <Insight id="pool-rating" activeStep={4} />
+                             </div>
+                        </motion.div>
+                    </motion.div>
+
+                    {/* CTAs */}
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.6 }}
+                        className="pt-4 space-y-4"
+                    >
+                        <div className="flex gap-4">
+                            {pool.status === 'open' && slotsRemaining > 0 ? (
+                                <div ref={magneticJoinBtn.ref} style={magneticJoinBtn.style} className="flex-1 flex">
+                                    <Button
+                                        className="flex-1 h-16 font-display font-black text-base uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/10 relative overflow-hidden group"
+                                        onClick={handleJoin}
+                                        disabled={requestState !== 'idle'}
+                                    >
+                                        <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+                                        <span className="relative z-10 flex items-center justify-center gap-3">
+                                            {requestState === 'idle' && (
+                                                <>
+                                                    <DollarSign size={18} />
+                                                    Initialize Request
+                                                </>
+                                            )}
+                                            {requestState === 'loading' && <span className="animate-pulse">Syncing...</span>}
+                                            {requestState === 'success' && '✓ Request Transmitted'}
+                                        </span>
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Button 
+                                    className="flex-1 h-16 font-display font-black text-base uppercase tracking-widest rounded-2xl"
+                                    variant="secondary"
+                                    disabled
                                 >
-                                    {analysis.label}
-                                </span>
-                            </div>
-                        </div>
-
-                        {analysis.savingsPct > 0 && (
-                            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3.5 mt-auto">
-                                <p className="text-primary font-bold text-[13px] font-display">
-                                    💰 You save {analysis.savingsPct.toFixed(0)}% vs solo
-                                </p>
-                                <p className="font-mono text-[11px] text-muted-foreground mt-1">
-                                    That's {formatPrice(analysis.officialSoloPrice - pool.price_per_slot / 100)}/mo or {formatPrice((analysis.officialSoloPrice - pool.price_per_slot / 100) * 12)}/year
-                                </p>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* RIGHT Column */}
-                    <div className="bg-secondary/30 border border-border rounded-lg p-3.5 flex flex-col justify-center">
-                        <div className="flex justify-between items-center mb-1.5">
-                            <span className="font-mono text-[11px] text-muted-foreground">Solo plan:</span>
-                            <span className="font-mono text-[11px] text-muted-foreground line-through">
-                                {formatPrice(analysis.officialSoloPrice)}/mo
-                            </span>
-                        </div>
-                        <div className="flex justify-between items-center mb-2.5">
-                            <span className="font-mono text-[11px] font-semibold">Your cost:</span>
-                            <span className="font-mono text-[12px] font-bold text-primary">
-                                {formatPrice(pool.price_per_slot / 100)}/mo
-                            </span>
-                        </div>
-
-                        <div className="h-px w-full bg-border mb-2.5" />
-
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="font-mono text-[11px] text-muted-foreground">Market range:</span>
-                            <span className="font-mono text-[11px] text-muted-foreground" role="img" aria-label="icon">{formatPrice(analysis.fairRangeMin)}–{formatPrice(analysis.fairRangeMax)}</span>
-                        </div>
-
-                        {/* Position bar */}
-                        <div className="relative h-1.5 w-full bg-muted rounded-full mt-1.5">
-                            <div
-                                className="absolute top-1/2 -translate-y-1/2 size-2.5 rounded-full border border-black shadow"
-                                style={{
-                                    backgroundColor: analysis.color,
-                                    left: `${Math.min(Math.max(0, ((pool.price_per_slot - analysis.fairRangeMin) / Math.max(1, analysis.fairRangeMax - analysis.fairRangeMin)) * 100), 100)}%`
-                                }}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* ─── Detail Rows ──────────────────────────────────────────── */}
-                <div className="mb-5">
-                    {details.map((row, i) => (
-                        <div
-                            key={row.key}
-                            className={cn(
-                                'flex items-center justify-between py-3',
-                                i < details.length - 1 && 'border-b border-border',
+                                    {pool.status === 'full' ? 'Cluster Saturated' : 'Node Terminated'}
+                                </Button>
                             )}
-                        >
-                            <span className="font-mono text-[12px] text-muted-foreground">
-                                {row.key}
-                            </span>
-                            <span className="font-display font-semibold text-[13px] text-foreground relative">
-                                {row.value}
-                            </span>
-                        </div>
-                    ))}
-                </div>
 
-                {/* ─── Social Proof ───────────────────────────────────────────── */}
-                <div className="mb-5">
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
-                        About this pool
-                    </p>
-                    <div className="bg-card border border-border rounded-lg p-3" style={{ animation: 'calloutReveal 300ms 200ms ease-out both' }}>
-                        <div className="flex items-center gap-2 relative">
-                            <OwnerTrustRibbon
-                                rating={pool.owner?.rating ?? 0}
-                                totalHosted={pool.owner?.total_hosted ?? (pool.owner as any)?.review_count ?? 0}
-                                plan={pool.owner?.plan}
-                            />
-                            <span className="font-mono text-[10px] text-muted-foreground ml-auto">
-                                Usually responds in &lt;2h
-                            </span>
-                            <Insight id="pool-rating" activeStep={4} className="top-1/2 -right-4 ml-4 -translate-y-1/2" />
-                        </div>
-                        <div className="mt-1.5 pt-1.5 border-t border-border">
-                            <span className="font-mono text-[11px] text-muted-foreground">
-                                Similar pools: {formatPrice(analysis.fairRangeMin)}–{formatPrice(analysis.fairRangeMax)}/slot avg
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* ─── Education Blurb ──────────────────────────────────────── */}
-                <details className="mb-6 group">
-                    <summary className="font-mono text-[11px] text-muted-foreground cursor-pointer list-none flex justify-between items-center bg-secondary rounded-[6px] px-3 py-2">
-                        <span>ℹ️ About sharing this type</span>
-                        <span className="group-open:rotate-180 transition-transform" role="img" aria-label="icon">▼</span>
-                    </summary>
-                    <div className="bg-secondary/50 rounded-b-[6px] px-3 pb-3 -mt-1 pt-2 font-mono text-[11px] text-muted-foreground text-left">
-                        {pool.category === 'entertainment' ? `Netflix 4K supports up to 4 screens per plan. With 3 members sharing, each slot costs ${formatPrice(pool.price_per_slot / 100)} instead of ${formatPrice(analysis.officialSoloPrice)}.` :
-                            pool.category === 'ai' ? 'ChatGPT Plus is a per-user license. This pool is for developers splitting team costs — each member uses their own account credentials.' :
-                                'Figma Professional requires individual seats. SubPool helps teams coordinate who pays for which seat.'}
-                    </div>
-                </details>
-
-                {/* ─── CTA Row ──────────────────────────────────────────────── */}
-                <div className="flex gap-3">
-                    {pool.status === 'open' && slotsRemaining > 0 ? (
-                        <div ref={magneticJoinBtn.ref} style={magneticJoinBtn.style} className="flex flex-1">
                             <Button
-                                className="w-full h-12 font-display font-bold text-[14px]"
-                                onClick={handleJoin}
-                                disabled={requestState !== 'idle'}
+                                variant="outline"
+                                className="h-16 px-6 rounded-2xl border-border/60 hover:bg-white/5 transition-colors group"
+                                onClick={handleCopyPoolLink}
+                                aria-label="Share pool"
                             >
-                                {requestState === 'idle' && `Request to Join — ${formatPrice(pool.price_per_slot / 100)}/mo`}
-                                {requestState === 'loading' && (
-                                    <span className="flex items-center gap-2">
-                                        <span className="size-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" role="img" aria-label="icon"></span>Requesting…
-                                    </span>
-                                )}
-                                {requestState === 'success' && '✓ Request Sent'}
+                                <Share2 className="size-5 text-muted-foreground group-hover:text-primary transition-colors" />
                             </Button>
                         </div>
-                    ) : pool.status === 'full' ? (
-                        // Pool is full - show Join Waitlist CTA
-                        <Button
-                            className="flex-1 h-12 font-display font-bold text-[14px] border-warning/40 bg-warning/10 text-warning hover:bg-warning/20"
-                            variant="outline"
-                            onClick={async () => {
-                                if (!user) { toast.error('Sign in to join the waitlist.'); return; }
-                                if (!supabase) return;
-                                try {
-                                    const { data, error } = await supabase.rpc('join_waitlist', {
-                                        p_pool_id: pool.id,
-                                    });
-                                    if (error) throw error;
-                                    const result = data as { ok: boolean; error?: string; position?: number };
-                                    if (!result.ok) { toast.error(result.error ?? 'Could not join waitlist.'); return; }
-                                    setWaitlistPosition(result.position!);
-                                    toast.success(`You're #${result.position} on the waitlist!`, {
-                                        description: "We'll notify you when a slot opens.",
-                                    });
-                                } catch (err: any) {
-                                    toast.error(err.message ?? 'Something went wrong.');
-                                }
-                            }}
-                        >
-                            {waitlistPosition ? `⏳ You're #${waitlistPosition} on Waitlist` : '⏳ Join Waitlist'}
-                        </Button>
-                    ) : (
-                        <Button className="flex-1 h-12 font-display font-bold text-[14px]" disabled>
-                            Pool Closed
-                        </Button>
-                    )}
 
-                    <Button
-                        variant="outline"
-                        className="h-12 px-5 font-display text-[13px]"
-                        onClick={onClose}
-                    >
-                        Cancel
-                    </Button>
-                </div>
-
-                <div className="mt-5 flex flex-col items-center gap-3">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="font-mono text-[11px] text-muted-foreground hover:text-foreground"
-                        onClick={handleCopyPoolLink}
-                    >
-                        🔗 Share this pool
-                    </Button>
-                    <span className="font-mono text-[10px] text-muted-foreground">
-                        👁 {mockViews} people viewed this pool today
-                    </span>
+                        <div className="flex items-center justify-center gap-8 py-2 opacity-50 font-mono text-[9px] uppercase tracking-[0.2em]">
+                             <div className="flex items-center gap-2">
+                                <div className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                <span>{mockViews} active viewers</span>
+                             </div>
+                             <span>Secure Escrow Active</span>
+                        </div>
+                    </motion.div>
                 </div>
             </DialogContent>
         </Dialog>

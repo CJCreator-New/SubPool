@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConnected } from './client';
+import { useAuth } from '../supabase/auth';
 import { getHybridModeError, resolveDataMode } from '../data-mode';
 import { getPlatform } from '../constants';
 import {
@@ -612,6 +613,7 @@ export interface MessagesHookResult {
 }
 
 export function useMessages(poolId?: string, options?: { allowDemoFallback?: boolean }): MessagesHookResult {
+    const { profile } = useAuth();
     const [data, setData] = useState<Message[]>([]);
     const [typingUsers, setTypingUsers] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
@@ -696,8 +698,15 @@ export function useMessages(poolId?: string, options?: { allowDemoFallback?: boo
                     schema: 'public',
                     table: 'message_reactions'
                 },
-                () => {
-                    fetchData();
+                (payload: any) => {
+                    const reaction = payload.new || payload.old;
+                    // Only refetch if the reaction belongs to a message in our current view
+                    // Use a functional update check to avoid stale closure if possible, 
+                    // or just refetch and let the backend decide.
+                    // For simplicity and correctness with Realtime, we refetch.
+                    if (reaction && reaction.message_id) {
+                        fetchData();
+                    }
                 }
             )
             .subscribe();
@@ -708,17 +717,25 @@ export function useMessages(poolId?: string, options?: { allowDemoFallback?: boo
     }, [fetchData, poolId, options?.allowDemoFallback]);
 
     const handleSendMessage = async (content: string, replyToId?: string) => {
-        if (!isSupabaseConnected || !supabase || !poolId) return;
+        if (!isSupabaseConnected || !supabase || !poolId || !profile) return;
 
-        // sender_id is set server-side via RLS and DEFAULT, never trust client
-        await supabase.from('messages').insert({
-            pool_id: poolId,
-            content,
-            reply_to_id: replyToId || null
-        } as any);
+        try {
+            const { error } = await supabase.from('messages').insert({
+                pool_id: poolId,
+                content,
+                reply_to_id: replyToId || null,
+                sender_id: profile.id,
+                message_type: 'text'
+            } as any);
 
-        // Clear typing when message sent
-        setTypingStatus(false);
+            if (error) throw error;
+            
+            // Clear typing when message sent
+            setTypingStatus(false);
+        } catch (e) {
+            console.error('Failed to send message:', e);
+            throw e;
+        }
     };
 
     const toggleReaction = async (messageId: string, emoji: string) => {
@@ -747,9 +764,9 @@ export function useMessages(poolId?: string, options?: { allowDemoFallback?: boo
     };
 
     const setTypingStatus = (isTyping: boolean) => {
-        if (!isSupabaseConnected || !supabase || !poolId) return;
+        if (!isSupabaseConnected || !supabase || !poolId || !profile) return;
         const channel = supabase!.channel(`messages:${poolId}`);
-        const username = CURRENT_USER.username; // Fallback or current session username
+        const username = profile.display_name || profile.username || 'Member';
         channel.send({
             type: 'broadcast',
             event: 'typing',
@@ -758,12 +775,12 @@ export function useMessages(poolId?: string, options?: { allowDemoFallback?: boo
     };
 
     const markAsRead = async () => {
-        if (!isSupabaseConnected || !supabase || !poolId) return;
+        if (!isSupabaseConnected || !supabase || !poolId || !profile) return;
         const { error } = await supabase.rpc('mark_messages_read', { p_pool_id: poolId });
         if (!error) {
             setData((prev) => prev.map((message) => ({
                 ...message,
-                read_by: Array.from(new Set([...(message.read_by ?? []), CURRENT_USER.id])),
+                read_by: Array.from(new Set([...(message.read_by ?? []), profile.id])),
             })));
         }
     };
@@ -860,6 +877,48 @@ export function useHostEarnings() {
     useEffect(() => { fetchData(); }, [fetchData]);
 
     return { summary, monthly, loading, error };
+}
+
+export function useReferralStats() {
+    const { user } = useAuth();
+    const [stats, setStats] = useState({ count: 0, rewardsGranted: 0 });
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchData = useCallback(async () => {
+        if (!user?.id || !supabase) {
+            setLoading(false);
+            return;
+        }
+        setLoading(true);
+        try {
+            const { count: total, error: err1 } = await supabase
+                .from('referrals')
+                .select('*', { count: 'exact', head: true })
+                .eq('referrer_id', user.id);
+            if (err1) throw err1;
+
+            const { count: rewarded, error: err2 } = await supabase
+                .from('referrals')
+                .select('*', { count: 'exact', head: true })
+                .eq('referrer_id', user.id)
+                .eq('reward_granted', true);
+            if (err2) throw err2;
+
+            setStats({
+                count: total ?? 0,
+                rewardsGranted: rewarded ?? 0
+            });
+        } catch (e: any) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [user?.id]);
+
+    useEffect(() => { fetchData(); }, [fetchData]);
+
+    return { stats, loading, error, refetch: fetchData };
 }
 
 export { useJoinRequests } from './useJoinRequests';

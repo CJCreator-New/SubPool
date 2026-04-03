@@ -75,6 +75,10 @@ export interface Profile {
   onboarding_step?: number;
   onboarding_role?: 'host' | 'joiner' | null;
   referral_code?: string | null;
+  referred_by?: string | null;
+  is_admin?: boolean;             // Phase 6 Admin migration
+  is_banned?: boolean;            // Phase 6 Admin migration
+  ban_reason?: string | null;     // Phase 6 Admin migration
   created_at: string;             // DB column (was "joined_at" in old TS)
 }
 

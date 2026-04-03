@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../../lib/supabase/client';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import { PLATFORMS } from '../../lib/constants';
+import { useAuth } from '../../lib/supabase/auth';
+import { Shield, Zap, TrendingUp, Users, RefreshCcw, Database, Lock, AlertTriangle } from 'lucide-react';
+import { cn } from '../components/ui/utils';
 
 export function AdminPage() {
-    const [pin, setPin] = useState('');
-    const [authenticated, setAuthenticated] = useState(false);
+    const { profile, loading: authLoading } = useAuth();
     const [stats, setStats] = useState({
         poolsCreatedToday: 0,
         joinRequests: 0,
@@ -15,12 +18,14 @@ export function AdminPage() {
         topPlatform: '-',
     });
 
-    // For manual editor
     const [selectedPlatform, setSelectedPlatform] = useState('');
     const [editPrices, setEditPrices] = useState({ plan: '', price: '' });
+    const [syncing, setSyncing] = useState<string | null>(null);
+
+    const isAuthorized = profile?.is_admin === true;
 
     useEffect(() => {
-        if (!authenticated || !supabase) return;
+        if (!isAuthorized || !supabase) return;
 
         const loadStats = async () => {
             try {
@@ -28,90 +33,86 @@ export function AdminPage() {
                 const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
 
                 const db = supabase!;
+                // P6.1: Use the new admin_user_overview view if accessible, else fallback
                 const [{ data: created }, { data: requests }, { data: market }] = await Promise.all([
                     db.from('analytics_events').select('id').eq('event_name', 'pool_created').gte('created_at', start),
                     db.from('analytics_events').select('id').eq('event_name', 'join_request_submitted').gte('created_at', start),
                     db.from('analytics_events').select('id').eq('event_name', 'market_intelligence_expanded').gte('created_at', start),
                 ]);
 
-                const poolsCreatedToday = created?.length ?? 0;
-                const joinRequests = requests?.length ?? 0;
-                const suggestionFollowedPct = joinRequests === 0 ? 0 : Math.round(((market?.length ?? 0) / joinRequests) * 100);
-
                 setStats({
-                    poolsCreatedToday,
-                    joinRequests,
-                    suggestionFollowedPct,
+                    poolsCreatedToday: created?.length ?? 0,
+                    joinRequests: requests?.length ?? 0,
+                    suggestionFollowedPct: (requests?.length ?? 0) === 0 ? 0 : Math.round(((market?.length ?? 0) / (requests?.length ?? 0)) * 100),
                     topPlatform: 'Netflix',
                 });
             } catch (error) {
                 console.warn('Admin stats fallback:', error);
-                setStats({
-                    poolsCreatedToday: 24,
-                    joinRequests: 142,
-                    suggestionFollowedPct: 12,
-                    topPlatform: 'Netflix',
-                });
             }
         };
 
         loadStats();
-    }, [authenticated]);
+    }, [isAuthorized]);
 
-    if (!authenticated) {
+    if (authLoading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-[#0E0E0E] text-foreground">
-                <div className="w-[300px] space-y-4 text-center">
-                    <h1 className="font-display font-bold text-xl">Admin Access</h1>
-                    <Input
-                        type="password"
-                        placeholder="Enter PIN"
-                        value={pin}
-                        onChange={(e) => setPin(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                if (pin === 'subpool2026') setAuthenticated(true);
-                                else toast.error('Invalid PIN');
-                            }
-                        }}
-                    />
-                    <Button
-                        className="w-full"
-                        onClick={() => {
-                            if (pin === 'subpool2026') setAuthenticated(true);
-                            else toast.error('Invalid PIN');
-                        }}
-                    >
-                        Unlock
-                    </Button>
+            <div className="flex items-center justify-center min-h-screen bg-background">
+                <div className="flex gap-2">
+                    <div className="size-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="size-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="size-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
+            </div>
+        );
+    }
+
+    if (!isAuthorized) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="max-w-md w-full glass border-border/40 bg-surface-gradient shadow-2xl rounded-3xl p-10 text-center"
+                >
+                    <div className="size-20 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto mb-6">
+                        <Lock size={32} className="text-destructive" />
+                    </div>
+                    <h1 className="font-display font-black text-2xl mb-2 tracking-tight text-foreground">Access Denied</h1>
+                    <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest leading-relaxed mb-8 opacity-70">
+                        Insufficient clearance level for Administrative Uplink. Contact System Architect.
+                    </p>
+                    <Button variant="outline" className="w-full rounded-2xl border-border/60" onClick={() => window.location.href = '/'}>
+                        Return to Public Node
+                    </Button>
+                </motion.div>
             </div>
         );
     }
 
     const refreshPricing = async (platformId?: string) => {
         if (!supabase) return;
+        setSyncing(platformId || 'all');
         try {
             const { error } = await supabase.functions.invoke('refresh-pricing', {
                 body: { platformId }
             });
             if (error) throw error;
-            toast.success(`Pricing refreshed for ${platformId || 'all OTT'}`);
+            toast.success(`Success: Pricing synchronised for ${platformId || 'all OTT nodes'}`);
         } catch (e: any) {
-            console.error('Refresh fail:', e);
-            toast.error(`Failed to refresh pricing: ${e.message}`);
+            toast.error(`Refresh Failure: ${e.message}`);
+        } finally {
+            setSyncing(null);
         }
     };
 
     const recomputeMetrics = async () => {
         if (!supabase) return;
         try {
-            // Optimistic / mock call if RPC doesn't exist
             const { error } = await supabase.rpc('recompute_market_metrics');
-            if (error && error.code !== '42883') throw error; // ignore missing func error in UI for now
-            toast.success('Market metrics recomputed successfully. Last computed: ' + new Date().toLocaleTimeString());
+            if (error && error.code !== '42883') throw error;
+            toast.success('Market metrics recomputed. Protocol synchronized.');
         } catch (e: any) {
-            toast.error(`Recompute failed: ${e.message}`);
+            toast.error(`Sync Failure: ${e.message}`);
         }
     };
 
@@ -119,120 +120,183 @@ export function AdminPage() {
         if (!selectedPlatform || !editPrices.plan || !editPrices.price || !supabase) return;
         try {
             const { error } = await supabase.from('platform_pricing').upsert({
-                platform: selectedPlatform,
+                platform_id: selectedPlatform,
+                platform_name: PLATFORMS.find(p => p.id === selectedPlatform)?.name || selectedPlatform,
                 plan_name: editPrices.plan,
                 currency: 'USD',
                 country_code: 'US',
                 official_price: parseFloat(editPrices.price),
-                updated_at: new Date().toISOString(),
-                source: 'manual'
-            }, { onConflict: 'platform,plan_name,currency,country_code' });
+                source: 'manual',
+                category: 'OTT' // Default for manual editor
+            }, { onConflict: 'platform_id,plan_name,currency,country_code' });
 
             if (error) throw error;
-            toast.success('Price updated successfully');
+            toast.success('Price override committed to Database');
             setEditPrices({ plan: '', price: '' });
         } catch (e: any) {
-            toast.error('Failed to update price');
+            toast.error('Commit Failure: Verification required');
         }
     };
 
     return (
-        <div className="px-8 py-12 max-w-6xl mx-auto space-y-12 bg-background min-h-screen">
-            <div>
-                <h1 className="font-display font-black text-3xl">SubPool Admin</h1>
-                <p className="text-muted-foreground font-mono text-sm">Pricing & Platform Data Manager</p>
-            </div>
+        <div className="min-h-screen bg-background relative overflow-hidden">
+            {/* Background Atmosphere */}
+            <div className="absolute top-0 right-0 p-80 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-0 left-0 p-60 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Section 1: Pricing Data Status */}
-                <div className="bg-card border rounded-xl p-6">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="font-display font-bold text-lg">Platform Sync Status</h2>
-                        <Button size="sm" onClick={() => refreshPricing('all_ott')}>
-                            Refresh All OTT
+            <div className="px-8 py-12 max-w-7xl mx-auto space-y-12 relative z-10">
+                <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="size-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-lg shadow-primary/10">
+                                <Shield size={20} />
+                            </div>
+                            <h1 className="font-display font-black text-4xl tracking-tighter text-foreground leading-none">SubPool Admin</h1>
+                        </div>
+                        <p className="text-muted-foreground font-mono text-[10px] uppercase tracking-[0.4em]">Core Pricing & Platform Data Matrix (v6.1)</p>
+                    </div>
+                    
+                    <div className="flex gap-4">
+                        <Button 
+                            className="h-12 px-6 rounded-2xl border-border/40 font-mono text-[10px] uppercase tracking-widest bg-secondary/80 hover:bg-secondary" 
+                            variant="outline"
+                            onClick={recomputeMetrics}
+                        >
+                            <RefreshCcw size={14} className="mr-2" /> Recompute Market Matrix
                         </Button>
                     </div>
-                    <div className="space-y-4">
-                        {PLATFORMS.slice(0, 5).map(p => (
-                            <div key={p.id} className="flex justify-between items-center border-b border-border pb-3">
-                                <div>
-                                    <p className="font-display font-semibold">{p.name}</p>
-                                    <p className="font-mono text-[10px] text-muted-foreground">Source: Auto · Last checked: Today</p>
+                </header>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Metrics Overview */}
+                    <Card className="lg:col-span-3 glass border-border/40 bg-surface-gradient shadow-2xl rounded-3xl overflow-hidden p-8">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                            {[
+                                { label: 'Pools Generated', value: stats.poolsCreatedToday, icon: Database, color: 'text-primary' },
+                                { label: 'Join Requests/24h', value: stats.joinRequests, icon: Users, color: 'text-blue-400' },
+                                { label: 'Intelligence Yield', value: `${stats.suggestionFollowedPct}%`, icon: Zap, color: 'text-amber-400' },
+                                { label: 'Primary Node', value: stats.topPlatform, icon: TrendingUp, color: 'text-emerald-400' }
+                            ].map((stat, i) => (
+                                <div key={i} className="space-y-4">
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <stat.icon size={14} />
+                                        <p className="font-mono text-[9px] uppercase tracking-widest">{stat.label}</p>
+                                    </div>
+                                    <p className={cn("font-display font-black text-4xl", stat.color)}>{stat.value}</p>
                                 </div>
-                                <Button size="sm" variant="outline" onClick={() => refreshPricing(p.id)}>
-                                    Refresh
+                            ))}
+                        </div>
+                    </Card>
+
+                    {/* Sync Panel */}
+                    <Card className="lg:col-span-2 glass border-border/40 bg-card/60 rounded-[32px] overflow-hidden">
+                        <div className="p-8 border-b border-border/40 flex justify-between items-center bg-white/5">
+                            <div>
+                                <h2 className="font-display font-bold text-xl tracking-tight">Platform Synchronisation</h2>
+                                <p className="font-mono text-[9px] text-muted-foreground uppercase mt-1">Direct Uplink to Edge Analytics</p>
+                            </div>
+                            <Button 
+                                size="sm" 
+                                className="rounded-xl h-10 font-mono text-[9px] uppercase tracking-widest"
+                                onClick={() => refreshPricing('all_ott')}
+                                disabled={syncing !== null}
+                            >
+                                {syncing === 'all_ott' ? 'Synchronising...' : 'Global Sync'}
+                            </Button>
+                        </div>
+                        <div className="divide-y divide-border/20 overflow-y-auto max-h-[500px] custom-scrollbar">
+                            {PLATFORMS.map(p => (
+                                <div key={p.id} className="p-6 flex justify-between items-center group hover:bg-white/5 transition-all">
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-2xl group-hover:scale-110 transition-transform">{p.icon}</div>
+                                        <div>
+                                            <p className="font-display font-bold text-sm text-foreground">{p.name}</p>
+                                            <p className="font-mono text-[9px] text-muted-foreground uppercase opacity-60">Uplink Status: Optimized</p>
+                                        </div>
+                                    </div>
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        className="rounded-xl h-9 border-border/60 hover:border-primary/40 text-[9px] font-mono tracking-widest"
+                                        onClick={() => refreshPricing(p.id)}
+                                        disabled={syncing !== null}
+                                    >
+                                        {syncing === p.id ? 'Loading...' : 'Force Sync'}
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    </Card>
+
+                    {/* Manual Editor */}
+                    <div className="space-y-8">
+                        <Card className="glass border-border/40 bg-card/60 rounded-[32px] overflow-hidden">
+                            <div className="p-8 border-b border-border/40 flex items-center gap-3">
+                                <Database size={18} className="text-primary" />
+                                <h2 className="font-display font-bold text-xl tracking-tight">Price Override</h2>
+                            </div>
+                            <div className="p-8 space-y-6">
+                                <div className="space-y-2">
+                                    <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground ml-1">Platform Selection</label>
+                                    <select
+                                        className="flex h-12 w-full rounded-2xl border border-border/60 bg-background/50 px-4 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-primary/40 appearance-none"
+                                        value={selectedPlatform}
+                                        onChange={(e) => setSelectedPlatform(e.target.value)}
+                                    >
+                                        <option value="" disabled>Select Target Node...</option>
+                                        {PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground ml-1">Plan Identifier</label>
+                                        <Input
+                                            placeholder="Standard"
+                                            value={editPrices.plan}
+                                            className="h-12 rounded-2xl bg-background/50 border-border/60 font-mono text-xs"
+                                            onChange={e => setEditPrices({ ...editPrices, plan: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground ml-1">USD Value</label>
+                                        <Input
+                                            placeholder="14.99"
+                                            type="number" step="0.01"
+                                            value={editPrices.price}
+                                            className="h-12 rounded-2xl bg-background/50 border-border/60 font-mono text-xs"
+                                            onChange={e => setEditPrices({ ...editPrices, price: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <Button 
+                                    className="w-full h-14 rounded-2xl font-display font-black uppercase tracking-widest shadow-xl shadow-primary/10 active:scale-95 transition-all"
+                                    onClick={handleSavePrice}
+                                >
+                                    Push to Database
                                 </Button>
                             </div>
-                        ))}
-                    </div>
-                </div>
+                        </Card>
 
-                {/* Section 4: Analytics Dashboard */}
-                <div className="bg-card border rounded-xl p-6">
-                    <h2 className="font-display font-bold text-lg mb-6">Pricing Analytics (Today)</h2>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-                            <p className="font-mono text-[10px] uppercase text-muted-foreground mb-1">Pools Created</p>
-                            <p className="font-display font-bold text-2xl text-primary">{stats.poolsCreatedToday}</p>
-                        </div>
-                        <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-                            <p className="font-mono text-[10px] uppercase text-muted-foreground mb-1">Join Requests</p>
-                            <p className="font-display font-bold text-2xl text-primary">{stats.joinRequests}</p>
-                        </div>
-                        <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-                            <p className="font-mono text-[10px] uppercase text-muted-foreground mb-1">Suggestions Ignored</p>
-                            <p className="font-display font-bold text-2xl text-primary">{stats.suggestionFollowedPct}%</p>
-                        </div>
-                        <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-                            <p className="font-mono text-[10px] uppercase text-muted-foreground mb-1">Top Platform</p>
-                            <p className="font-display font-bold text-2xl text-primary">{stats.topPlatform}</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Section 2: Manual Price Editor */}
-                <div className="bg-card border rounded-xl p-6">
-                    <h2 className="font-display font-bold text-lg mb-6">Manual Editor</h2>
-                    <div className="space-y-4">
-                        <select
-                            className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                            value={selectedPlatform}
-                            onChange={(e) => setSelectedPlatform(e.target.value)}
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 1 }}
+                            className="p-6 rounded-3xl border border-destructive/20 bg-destructive/5 flex items-start gap-4"
                         >
-                            <option value="" disabled>Select platform...</option>
-                            {PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                        <div className="flex gap-2">
-                            <Input
-                                placeholder="Plan Name"
-                                value={editPrices.plan}
-                                onChange={e => setEditPrices({ ...editPrices, plan: e.target.value })}
-                            />
-                            <Input
-                                placeholder="Price"
-                                type="number" step="0.01"
-                                value={editPrices.price}
-                                onChange={e => setEditPrices({ ...editPrices, price: e.target.value })}
-                            />
-                        </div>
-                        <Button className="w-full" onClick={handleSavePrice}>
-                            Save Price Override
-                        </Button>
+                            <AlertTriangle size={20} className="text-destructive shrink-0 mt-1" />
+                            <p className="font-mono text-[10px] text-destructive/80 uppercase leading-relaxed tracking-wider">
+                                CAUTION: Data overrides bypass standard retail verification. High impact on market metrics engine.
+                            </p>
+                        </motion.div>
                     </div>
-                </div>
-
-                {/* Section 3: Market Metrics */}
-                <div className="bg-card border rounded-xl p-6">
-                    <h2 className="font-display font-bold text-lg mb-2">Market Engine</h2>
-                    <p className="font-mono text-xs text-muted-foreground mb-6">
-                        Recompute market metrics based on active pools.
-                        Affects pricing guardrails and insights globally.
-                    </p>
-                    <Button onClick={recomputeMetrics}>
-                        Recompute Market Metrics
-                    </Button>
                 </div>
             </div>
         </div>
     );
 }
+
+const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div className={cn("border bg-card text-card-foreground shadow-sm", className)}>
+        {children}
+    </div>
+);

@@ -1,8 +1,10 @@
 // ─── BrowsePools Page ──────────────────────────────────────────────────────────
 // Filterable grid of pool cards with stats, search, and detail modal.
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { StatCard, PoolCard } from '../components/subpool-components';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { StatCard } from '../components/subpool-components';
+import { PoolCard } from '../components/subpool/PoolCard';
 import { PoolDetailModal } from '../components/pool-detail-modal';
 import { Button } from '../components/ui/button';
 import { PoolCardSkeleton, StatCardSkeleton } from '../components/skeletons';
@@ -39,7 +41,7 @@ const CATEGORY_CHIPS: { key: BrowseFilterKey; label: string }[] = [
   { key: 'creative', label: 'Creative' },
 ];
 
-// ─── Toast helper (inline, no sonner dependency) ──────────────────────────────
+// ─── Toast helper (inline) ──────────────────────────────────────────────────
 
 function useToast() {
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({
@@ -54,8 +56,6 @@ function useToast() {
 
   return { toast, show };
 }
-
-
 
 // ─── Market Intelligence Component ────────────────────────────────────────────
 
@@ -104,7 +104,7 @@ function MarketIntelligenceRow() {
         setIsDataLoaded(true);
       });
     }
-  }, [expanded, isDataLoaded]);
+  }, [expanded, isDataLoaded, currency]);
 
   return (
     <div className="mt-2 mb-6">
@@ -121,43 +121,49 @@ function MarketIntelligenceRow() {
         {isFree && <span className="ml-2 text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">PRO</span>}
       </Button>
 
-      {expanded && (
-        <div className="relative">
-          <div className={`flex overflow-x-auto gap-3 pb-2 snap-x hide-scrollbar ${isFree ? 'focus-within:blur-none transition-all' : ''}`}>
-            {/* content same as before ... */}
-            {!isDataLoaded ? (
-              <div className="text-sm text-muted-foreground font-mono px-2 py-4">
-                {isFree ? 'Subscribe to Pro to unlock market rates.' : 'Loading market data...'}
-              </div>
-            ) : (
-              metrics.map(m => (
-                <div key={m.id} className={`w-[160px] shrink-0 bg-card border border-border rounded-[6px] p-3 snap-start relative ${isFree ? 'blur-[3px] select-none pointer-events-none' : ''}`}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <PlatformIcon platformId={m.id} size="sm" />
-                    <span className="font-display font-semibold text-sm truncate">{m.name}</span>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="font-mono text-[13px] text-primary">Avg slot: {formatPrice(m.avg)}</p>
-                    <p className="font-mono text-[10px] text-muted-foreground">vs {formatPrice(m.solo)} solo</p>
-                    <p className="font-mono text-[10px] text-[#4DFF91]">Saves {m.savingsPct.toFixed(0)}%</p>
-                  </div>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="relative overflow-hidden"
+          >
+            <div className={`flex overflow-x-auto gap-3 pb-2 snap-x hide-scrollbar ${isFree ? 'focus-within:blur-none transition-all' : ''}`}>
+              {!isDataLoaded ? (
+                <div className="text-sm text-muted-foreground font-mono px-2 py-4">
+                  {isFree ? 'Subscribe to Pro to unlock market rates.' : 'Loading market data...'}
                 </div>
-              ))
-            )}
-          </div>
-
-          {isFree && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-lg border border-primary/20 p-4 text-center z-10 animate-in fade-in duration-500">
-              <span className="text-xl mb-2" role="img" aria-label="icon">📊</span>
-              <p className="font-display font-bold text-sm mb-1">Market Intelligence</p>
-              <p className="font-mono text-[10px] text-muted-foreground mb-4 max-w-[200px]">Unlock real-time market averages and demand tracking with Pro.</p>
-              <Button size="sm" onClick={() => setPaywallOpen(true)} className="h-8 text-[10px] font-display font-bold px-4">
-                Unlock Now
-              </Button>
+              ) : (
+                metrics.map(m => (
+                  <div key={m.id} className={`w-[160px] shrink-0 bg-card border border-border rounded-[6px] p-3 snap-start relative ${isFree ? 'blur-[3px] select-none pointer-events-none' : ''}`}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <PlatformIcon platformId={m.id} size="sm" />
+                      <span className="font-display font-semibold text-sm truncate">{m.name}</span>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="font-mono text-[13px] text-primary">Avg: {formatPrice(m.avg)}</p>
+                      <p className="font-mono text-[10px] text-muted-foreground">vs {formatPrice(m.solo)} solo</p>
+                      <p className="font-mono text-[10px] text-[#4DFF91]">Saves {m.savingsPct.toFixed(0)}%</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-          )}
-        </div>
-      )}
+
+            {isFree && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-lg border border-primary/20 p-4 text-center z-10">
+                <span className="text-xl mb-2" role="img" aria-label="icon">📊</span>
+                <p className="font-display font-bold text-sm mb-1">Market Intelligence</p>
+                <p className="font-mono text-[10px] text-muted-foreground mb-4 max-w-[200px]">Unlock real-time market averages and demand tracking with Pro.</p>
+                <Button size="sm" onClick={() => setPaywallOpen(true)} className="h-8 text-[10px] font-display font-bold px-4">
+                  Unlock Now
+                </Button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <PaywallModal
         feature="Market Intelligence"
@@ -169,9 +175,7 @@ function MarketIntelligenceRow() {
   );
 }
 
-// ─── Skeletons ──────────────────────────────────────────────────────────────
-
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Main Component ──────────────────────────────────────────────────────────
 
 export function BrowsePools() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -187,9 +191,8 @@ export function BrowsePools() {
   const [search, setSearch] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
-  const { isDemo, currentStep } = useDemo();
+  const { isDemo } = useDemo();
 
-  // Debounce search to prevent excessive queries
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
@@ -197,69 +200,50 @@ export function BrowsePools() {
 
   useEffect(() => {
     const nextParams = new URLSearchParams();
-
     if (filter !== 'all') nextParams.set('filter', filter);
     if (debouncedSearch.trim()) nextParams.set('q', debouncedSearch.trim());
     if (sort !== 'recent') nextParams.set('sort', sort);
-
     if (nextParams.toString() !== searchParams.toString()) {
       setSearchParams(nextParams, { replace: true });
     }
-  }, [debouncedSearch, filter, sort, searchParams, setSearchParams]);
+  }, [debouncedSearch, filter, sort, setSearchParams]);
 
-    const buildDemoPage = useCallback((cursorParam: string | undefined, limit: number) => {
-      const start = cursorParam ? Number(cursorParam) : 0;
-      const base = MOCK_POOLS;
-      const filteredResult = base.filter((pool) => {
-        const category = filter === 'all' || filter === 'open' ? undefined : filter;
-        const status = filter === 'open' ? 'open only' : undefined;
-
-        if (category && pool.category !== category) return false;
-        if (status === 'open only' && pool.status !== 'open') return false;
-        if (debouncedSearch) {
-          const q = debouncedSearch.toLowerCase();
-          const plat = getPlatform(pool.platform);
-          const owner = (pool.owner?.display_name ?? pool.owner?.username ?? '').toLowerCase();
-          if (!plat?.name.toLowerCase().includes(q) && !pool.plan_name.toLowerCase().includes(q) && !owner.includes(q)) {
-            return false;
-          }
+  const buildDemoPage = useCallback((cursorParam: string | undefined, limit: number) => {
+    const start = cursorParam ? Number(cursorParam) : 0;
+    const base = MOCK_POOLS;
+    const filteredResult = base.filter((pool) => {
+      const category = filter === 'all' || filter === 'open' ? undefined : filter;
+      const status = filter === 'open' ? 'open only' : undefined;
+      if (category && pool.category !== category) return false;
+      if (status === 'open only' && pool.status !== 'open') return false;
+      if (debouncedSearch) {
+        const q = debouncedSearch.toLowerCase();
+        const plat = getPlatform(pool.platform);
+        const owner = (pool.owner?.display_name ?? pool.owner?.username ?? '').toLowerCase();
+        if (!plat?.name.toLowerCase().includes(q) && !pool.plan_name.toLowerCase().includes(q) && !owner.includes(q)) {
+          return false;
         }
-        return true;
-      });
-      const page = filteredResult.slice(start, start + limit);
-      const nextCursor = start + limit < filteredResult.length ? String(start + limit) : undefined;
-      return { items: page, nextCursor };
-    }, [debouncedSearch, filter]);
+      }
+      return true;
+    });
+    const page = filteredResult.slice(start, start + limit);
+    const nextCursor = start + limit < filteredResult.length ? String(start + limit) : undefined;
+    return { items: page, nextCursor };
+  }, [debouncedSearch, filter]);
 
-    const fetchPage = useCallback(async (cursorParam: string | undefined, limit: number) => {
+  const fetchPage = useCallback(async (cursorParam: string | undefined, limit: number) => {
     const mode = resolveDataMode({ allowDemoFallback: true });
+    if (mode !== 'production') return buildDemoPage(cursorParam, limit);
 
-    // Demo mode: filter mock data
-    if (mode !== 'production') {
-      return buildDemoPage(cursorParam, limit);
-    }
-
-    // Production: fetch from Supabase
     const { supabase: supabaseClient } = await import('../../lib/supabase/client');
-    if (!supabaseClient) {
-      throw new Error('Supabase not available');
-    }
+    if (!supabaseClient) throw new Error('Supabase not available');
+    
     let query = supabaseClient.from('pools').select('*, owner:profiles(*)').order('created_at', { ascending: false });
-
     const category = filter === 'all' || filter === 'open' ? undefined : filter;
-    const status = filter === 'open' ? 'open only' : undefined;
-
-    if (category) {
-      query = query.eq('category', category);
-    }
-    if (status === 'open only') {
-      query = query.eq('status', 'open');
-    }
+    if (category) query = query.eq('category', category);
+    if (filter === 'open') query = query.eq('status', 'open');
     if (debouncedSearch) {
-      query = query.textSearch('search_vector', debouncedSearch, {
-        type: 'websearch',
-        config: 'english'
-      });
+      query = query.textSearch('search_vector', debouncedSearch, { type: 'websearch', config: 'english' });
     }
 
     const start = cursorParam ? Number(cursorParam) : 0;
@@ -267,7 +251,7 @@ export function BrowsePools() {
     const { data: rows, error } = await query.range(start, end);
 
     if (error) {
-      console.warn('BrowsePools: falling back to demo data for guest/public listing fetch.', error);
+      console.warn('BrowsePools: fallback to demo data.', error);
       return buildDemoPage(cursorParam, limit);
     }
 
@@ -276,7 +260,6 @@ export function BrowsePools() {
     return { items, nextCursor };
   }, [buildDemoPage, debouncedSearch, filter]);
 
-  // Shared infinite scroll pagination hook
   const { data: pagedPools, loading, loadMore, hasMore, refetch } = useCursorPagination<Pool>({
     limit: 9,
     fetchPage,
@@ -285,18 +268,6 @@ export function BrowsePools() {
   const { toast, show: showToast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const mounted = useRef(false);
-
-  useEffect(() => {
-    if (isDemo && !mounted.current) {
-      document.body.classList.add('demo-mode');
-      mounted.current = true;
-    } else if (!isDemo) {
-      document.body.classList.remove('demo-mode');
-      mounted.current = false; // Reset if demo is toggled off
-    }
-    return () => document.body.classList.remove('demo-mode');
-  }, [isDemo]);
 
   const openPoolsCount = Math.floor(useCountUp(142, 1200, isDemo));
   const platformsCount = Math.floor(useCountUp(28, 1200, isDemo));
@@ -310,36 +281,11 @@ export function BrowsePools() {
     return val.toLocaleString();
   };
 
-  useEffect(() => {
-    if (user) {
-      track('activation_checklist_viewed', { source: 'dashboard' });
-    }
-  }, [user]);
-
-  // Demo Mode Interaction
-  useEffect(() => {
-    if (isDemo) {
-      if (currentStep === 2) {
-        setFilter('entertainment');
-      } else if (currentStep === 1) {
-        setFilter('all');
-      }
-    }
-  }, [isDemo, currentStep]);
-
   const filtered = [...(pagedPools?.items || [])].sort((a, b) => {
-    if (sort === 'price-asc') {
-      return a.price_per_slot - b.price_per_slot;
-    }
-    if (sort === 'price-desc') {
-      return b.price_per_slot - a.price_per_slot;
-    }
+    if (sort === 'price-asc') return a.price_per_slot - b.price_per_slot;
+    if (sort === 'price-desc') return b.price_per_slot - a.price_per_slot;
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
-  const hasSearchFilter = debouncedSearch.trim().length > 0;
-  const hasCategoryFilter = filter !== 'all';
-  const hasSortFilter = sort !== 'recent';
-  const activeFilterCount = Number(hasSearchFilter) + Number(hasCategoryFilter) + Number(hasSortFilter);
 
   const handleRequestJoin = async (_pool: Pool) => {
     if (!user) {
@@ -360,92 +306,52 @@ export function BrowsePools() {
     refetch();
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+  };
+
   return (
-    <div className="space-y-7">
-      {/* ─── Page Header ─────────────────────────────────────────── */}
-      <div>
-        <h1 className="font-display font-bold text-[28px] tracking-tight text-foreground">
+    <div className="space-y-8 pb-10">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+        <h1 className="font-display font-black text-4xl sm:text-5xl tracking-tight text-foreground drop-shadow-sm">
           Browse Pools
         </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Find and join subscription pools to save on your favorite platforms.
+        <p className="text-muted-foreground text-sm sm:text-base mt-2 max-w-2xl">
+          Secure nodes in high-utility subscription pipelines. Filter by category, verify hosts, and optimize your monthly overhead.
         </p>
-      </div>
+      </motion.div>
 
       <ActivationChecklist />
 
-      {/* ─── Stats Row ───────────────────────────────────────────── */}
-      {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => <StatCardSkeleton key={i} />)}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 relative">
-          <StatCard
-            label="OPEN POOLS"
-            value={formatStat(openPoolsCount, 142)}
-            sub="↑ 12 new today"
-            subVariant="success"
-            accentTop
-            live
-          />
-          <StatCard
-            label="PLATFORMS"
-            value={formatStat(platformsCount, 28)}
-            sub="entertainment + work + ai"
-            accentTop
-          />
-          <StatCard
-            label="AVG. SAVINGS"
-            value={formatStat(savingsCount, 67, 'percent')}
-            sub="vs solo pricing"
-            subVariant="success"
-            accentTop
-          />
-          <StatCard
-            label="MEMBERS"
-            value={formatStat(membersCount, 3241)}
-            sub="↑ 847 this month"
-            subVariant="success"
-          />
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {loading && !pagedPools?.items.length ? (
+          [1, 2, 3, 4].map((i) => <StatCardSkeleton key={i} />)
+        ) : (
+          <>
+            <StatCard label="OPEN POOLS" value={formatStat(openPoolsCount, 142)} sub="↑ 12 new today" subVariant="success" accentTop live />
+            <StatCard label="PLATFORMS" value={formatStat(platformsCount, 28)} sub="multi-category" accentTop />
+            <StatCard label="AVG. SAVINGS" value={formatStat(savingsCount, 67, 'percent')} sub="vs solo pricing" subVariant="success" accentTop />
+            <StatCard label="MEMBERS" value={formatStat(membersCount, 3241)} sub="↑ 847 this month" subVariant="success" />
+          </>
+        )}
+      </div>
 
-          <Insight id="browse-stats" activeStep={1} className="-top-10 left-1/2 -translate-x-1/2" />
-        </div>
-      )}
-
-      <style>{`
-        .demo-mode .pool-card {
-          animation: cardSlideIn 400ms ease-out both;
-        }
-        .demo-mode .pool-card:nth-child(1) { animation-delay: 0ms; }
-        .demo-mode .pool-card:nth-child(2) { animation-delay: 60ms; }
-        .demo-mode .pool-card:nth-child(3) { animation-delay: 120ms; }
-        .demo-mode .pool-card:nth-child(4) { animation-delay: 180ms; }
-        .demo-mode .pool-card:nth-child(5) { animation-delay: 240ms; }
-        .demo-mode .pool-card:nth-child(6) { animation-delay: 300ms; }
-        .demo-mode .pool-card:nth-child(7) { animation-delay: 360ms; }
-        .demo-mode .pool-card:nth-child(8) { animation-delay: 420ms; }
-        @keyframes cardSlideIn {
-          from { opacity: 0; transform: translateY(16px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-
-      {/* ─── Market Intelligence Row ─────────────────────────────── */}
       <MarketIntelligenceRow />
 
-      {/* ─── Filter Row ──────────────────────────────────────────── */}
-      <div className="sticky top-[60px] z-20 flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-background/90 backdrop-blur-md border-y border-border/60 py-2 px-2 -mx-2 rounded-[6px]">
-        <div className="flex flex-wrap gap-2 items-center flex-1 overflow-x-auto pb-1">
+      {/* Filter Row */}
+      <div className="sticky top-[64px] z-30 flex flex-col lg:flex-row gap-4 items-start lg:items-center bg-background/80 backdrop-blur-xl border border-border/40 py-3 px-4 rounded-2xl shadow-sm">
+        <div className="flex flex-wrap gap-2 items-center flex-1">
           {CATEGORY_CHIPS.map((chip) => (
             <button
               key={chip.key}
               onClick={() => setFilter(chip.key)}
               className={cn(
-                'rounded-full border px-3.5 py-1.5 text-xs font-display font-bold transition-all',
+                'rounded-full border px-4 py-1.5 text-xs font-display font-bold transition-all duration-300',
                 filter === chip.key
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground',
+                  ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
+                  : 'border-border bg-card/40 text-muted-foreground hover:border-primary/40 hover:text-foreground',
               )}
             >
               {chip.label}
@@ -453,114 +359,75 @@ export function BrowsePools() {
           ))}
         </div>
 
-        <CurrencyToggle />
+        <div className="flex w-full lg:w-auto items-center gap-3">
+            <CurrencyToggle />
+            <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as BrowseSortKey)}
+                className="h-10 rounded-xl border border-border bg-card/50 px-4 text-sm text-foreground font-mono focus:ring-1 focus:ring-primary focus:outline-none"
+                aria-label="Sort pools"
+            >
+                <option value="recent">Newest Arrival</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+            </select>
 
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as BrowseSortKey)}
-          className="h-10 rounded-[6px] border border-border bg-card px-3 text-sm text-foreground"
-          aria-label="Sort pools"
-        >
-          <option value="recent">Newest</option>
-          <option value="price-asc">Lowest price</option>
-          <option value="price-desc">Highest price</option>
-        </select>
-
-        {/* Search */}
-        <div className="flex items-center gap-2 bg-card border border-border rounded-[6px] px-3 py-2 w-full sm:w-auto overflow-hidden">
-          <span className="text-muted-foreground text-sm" role="img" aria-label="icon">🔍</span>
-          <input
-            type="text"
-            placeholder="Search platforms..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="border-0 bg-transparent p-0 h-auto text-sm flex-1 sm:w-[180px] focus:outline-none text-foreground placeholder:text-muted-foreground"
-          />
+            <div className="flex items-center gap-2 bg-card/50 border border-border rounded-xl px-4 py-2 flex-1 lg:w-64">
+                <span className="text-muted-foreground text-sm opacity-50">🔍</span>
+                <input
+                    type="text"
+                    placeholder="Search platf..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="border-0 bg-transparent p-0 text-sm focus:outline-none w-full text-foreground placeholder:text-muted-foreground/50"
+                />
+            </div>
         </div>
-        {activeFilterCount > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilters}
-            className="h-8 text-xs font-mono text-muted-foreground"
-          >
-            Clear ({activeFilterCount})
-          </Button>
-        )}
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          {filtered.length} results
-        </span>
       </div>
 
-      {/* ─── Pool Grid or Empty State ────────────────────────────── */}
-      {
-        loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => <PoolCardSkeleton key={i} />)}
-          </div>
+      {/* Pool Grid */}
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      >
+        {loading && !filtered.length ? (
+          [1, 2, 3, 4, 5, 6].map((i) => <PoolCardSkeleton key={i} />)
         ) : filtered.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map((pool) => (
-              <div key={pool.id} className="relative pool-card">
-                <PoolCard
-                  pool={pool}
-                  onClick={(p) => {
-                    track('pool_card_clicked', { poolId: p.id, platformId: p.platform });
-                    setSelectedPool(p);
-                  }}
-                  animate={isDemo}
-                />
-                {pool.platform === 'netflix' && (
-                  <Insight id="netflix-card" activeStep={3} className="top-1/2 -right-1/2 translate-x-4 -translate-y-1/2" />
-                )}
-              </div>
-            ))}
-          </div>
+          filtered.map((pool, index) => (
+            <PoolCard
+              key={pool.id}
+              pool={pool}
+              index={index}
+              onClick={(p) => {
+                track('pool_card_clicked', { poolId: p.id });
+                setSelectedPool(p);
+              }}
+            />
+          ))
         ) : (
-          <div className="flex flex-col items-center gap-5 py-8">
+          <div className="col-span-full py-20 bg-card/30 rounded-3xl border border-dashed border-border flex flex-center">
             <EmptyState
               icon="🔭"
-              title="No pools found"
-              description="Try a different filter or search term to find what you're looking for."
+              title="Pipeline empty"
+              description="No pools match your current calibration. Reset filters to recalibrate."
               action={clearFilters}
-              actionLabel="Clear filters"
+              actionLabel="Reset System"
             />
-            {hasSearchFilter && (
-              <div className="max-w-sm w-full rounded-xl border border-dashed border-primary/30 bg-primary/5 p-5 text-center">
-                <p className="font-display font-semibold text-sm text-foreground mb-1">
-                  Don't see what you need?
-                </p>
-                <p className="font-mono text-[11px] text-muted-foreground mb-4">
-                  Post a wishlist request and get notified when a host offers a slot.
-                </p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-primary/40 text-primary hover:bg-primary/10 font-mono text-[11px] uppercase tracking-wider"
-                  onClick={() => navigate('/wishlist')}
-                >
-                  ✨ Add to Wishlist
-                </Button>
-              </div>
-            )}
           </div>
-        )
-      }
+        )}
+      </motion.div>
 
       {hasMore && (
-        <div className="flex justify-center">
-          <Button
-            variant="outline"
-            onClick={loadMore}
-            disabled={loading}
-            className="font-mono text-[11px] uppercase tracking-wider"
-          >
-            {loading ? 'Loading...' : 'Load more pools'}
+        <div className="flex justify-center pt-8">
+          <Button variant="outline" onClick={loadMore} disabled={loading} className="font-mono text-xs uppercase tracking-widest px-8 h-12 rounded-xl group overflow-hidden relative">
+            <div className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-10 transition-opacity" />
+            {loading ? 'Propagating...' : 'Load legacy nodes'}
           </Button>
         </div>
       )}
 
-      {/* ─── Pool Detail Modal ───────────────────────────────────── */}
       <PoolDetailModal
         pool={selectedPool}
         open={!!selectedPool}
@@ -568,15 +435,18 @@ export function BrowsePools() {
         onRequestJoin={handleRequestJoin}
       />
 
-      {/* ─── Inline Toast ────────────────────────────────────────── */}
-      {
-        toast.visible && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-lg bg-card border border-success text-foreground font-display text-sm shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <AnimatePresence>
+        {toast.visible && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 px-6 py-4 rounded-2xl bg-card border border-primary shadow-3xl text-foreground font-display font-bold shadow-[0_0_50px_rgba(0,0,0,0.4)] backdrop-blur-md"
+          >
             {toast.message}
-          </div>
-        )
-      }
-    </div >
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
-

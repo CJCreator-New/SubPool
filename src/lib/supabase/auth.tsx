@@ -70,6 +70,29 @@ export function AuthProvider({ children }: { children: import('react').ReactNode
         userIdRef.current = currentUser?.id ?? null;
         if (currentUser) {
             await fetchProfile(currentUser.id);
+
+            // Check if we have a pending referral to process
+            const pendingReferral = localStorage.getItem('subpool_referral_code');
+            if (pendingReferral) {
+                try {
+                    const { data: res, error: refErr } = await supabase!.rpc('process_referral', {
+                        p_referral_code: pendingReferral,
+                        p_new_user_id: currentUser.id
+                    });
+
+                    if (res?.ok) {
+                        console.log('Referral processed successfully:', res);
+                        // Refresh profile after referral is linked
+                        await fetchProfile(currentUser.id);
+                    } else if (refErr) {
+                        console.warn('Referral processing error:', refErr);
+                    }
+                } catch (e) {
+                    console.error('Failed to process referral:', e);
+                } finally {
+                    localStorage.removeItem('subpool_referral_code');
+                }
+            }
             return;
         }
         setProfile(null);

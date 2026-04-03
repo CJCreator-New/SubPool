@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConnected } from './client';
 import { getHybridModeError, resolveDataMode } from '../data-mode';
-import type { JoinRequest } from '../types';
+import type { JoinRequest, Pool, Profile } from '../types';
 import type { DataHookOptions, HookState } from './hooks';
 
 export function useJoinRequests(options?: DataHookOptions): HookState<JoinRequest[]> {
@@ -42,7 +42,7 @@ export function useJoinRequests(options?: DataHookOptions): HookState<JoinReques
                     message,
                     status,
                     created_at,
-                    pool:pools!inner(id, platform, plan_name, owner_id),
+                    pool:pools!inner(*),
                     requester:profiles(id, display_name, username, avatar_color)
                 `)
                 .eq('pool.owner_id', user.id)
@@ -50,16 +50,26 @@ export function useJoinRequests(options?: DataHookOptions): HookState<JoinReques
 
             if (err) throw err;
 
-            // Clean up the joined structure to match JoinRequest type precisely
-            const formatted = (rows || []).map((row: any) => ({
+            interface JoinRequestRow {
+                id: string;
+                pool_id: string;
+                requester_id: string;
+                message: string;
+                status: string;
+                created_at: string;
+                pool: Pool;
+                requester: { id: string; display_name: string | null; username: string | null; avatar_color: string | null };
+            }
+
+            const formatted: JoinRequest[] = (rows as unknown as JoinRequestRow[] || []).map((row) => ({
                 id: row.id,
                 pool_id: row.pool_id,
                 requester_id: row.requester_id,
                 message: row.message,
-                status: row.status,
+                status: row.status as JoinRequest['status'],
                 created_at: row.created_at,
                 pool: row.pool,
-                requester: row.requester
+                requester: row.requester as Profile
             }));
 
             setData(formatted as JoinRequest[]);

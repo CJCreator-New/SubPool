@@ -25,6 +25,15 @@ export function LoginPage() {
     const nextPath = resolveNextPath(location.search);
     const redirectTo = `${window.location.origin}/login?next=${encodeURIComponent(nextPath)}`;
 
+    // Capture referral code if present
+    React.useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const ref = params.get('ref');
+        if (ref) {
+            localStorage.setItem('subpool_referral_code', ref);
+        }
+    }, [location.search]);
+
     const handleGoogleLogin = async () => {
         if (!supabase) {
             setError('Authentication is unavailable right now. Please try again later.');

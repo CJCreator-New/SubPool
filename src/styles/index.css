@@ -226,9 +226,34 @@
     backdrop-filter: blur(24px);
 }
 
+.glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-dark {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.glass-border {
+    border: 1px solid rgba(200, 241, 53, 0.1);
+}
+
+/* Premium Gradients */
+.bg-surface-gradient {
+    background: linear-gradient(135deg, rgba(22, 22, 22, 1) 0%, rgba(14, 14, 14, 1) 100%);
+}
+
+.bg-primary-gradient {
+    background: linear-gradient(135deg, #C8F135 0%, #a6cc2a 100%);
+}
+
 @supports not (backdrop-filter: blur(1px)) {
-    .modal-glass {
-        background-color: rgba(22, 22, 22, 0.95);
+    .modal-glass, .glass, .glass-dark {
+        background-color: rgba(22, 22, 22, 0.98);
     }
 }
 
