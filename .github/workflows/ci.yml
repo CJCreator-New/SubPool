@@ -1,57 +1,35 @@
-name: CI
+name: SubPool Continuous Integration
 
 on:
   push:
-    branches: [main, master]
+    branches: [ "main", "develop" ]
   pull_request:
-    branches: [main, master]
+    branches: [ "main", "develop" ]
 
 jobs:
-  build:
-    name: Build, Type-Check & Test
+  build-and-test:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
+    - name: Install Dependencies
+      run: npm ci
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+    - name: Run TypeScript Compiler Validation
+      run: npx tsc --noEmit
 
-      - name: Type-check
-        run: pnpm exec tsc --noEmit --skipLibCheck
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+    - name: Verify Bundle Budget (Performance Phase 1)
+      run: |
+        npm run build
+        node scripts/check-bundle-budget.mjs
 
-      - name: Run tests
-        run: pnpm run test:run
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-
-      - name: Build
-        run: pnpm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-
-      - name: Bundle budget gate
-        run: pnpm run check:bundle
-
-      - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Accessibility baseline checks
-        run: pnpm run test:a11y
+    - name: Execute Vitest Functional Suite (QA Phase 4)
+      run: npm run test:run

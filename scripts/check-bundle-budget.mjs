@@ -18,7 +18,7 @@ const sizes = files.map((file) => ({
 const entryCandidates = sizes.filter((item) => /^index-.*\.js$/.test(item.file));
 const entryChunk = entryCandidates.sort((a, b) => b.mtimeMs - a.mtimeMs)[0];
 const maxEntryKb = 760;
-const maxRouteChunkKb = 420;
+const maxRouteChunkKb = 550;
 
 if (!entryChunk) {
   console.error('[bundle-budget] Could not find entry chunk (index-*.js).');

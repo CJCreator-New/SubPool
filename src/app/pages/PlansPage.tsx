@@ -12,6 +12,8 @@ import { toast } from 'sonner';
 import { track } from '../../lib/analytics';
 import { useCurrency } from '../../lib/currency-context';
 import { CurrencyToggle } from '../components/currency-toggle';
+import { supabase } from '../../lib/supabase/client';
+import { redirectToCheckout, isStripeEnabled } from '../../lib/stripe';
 
 // ─── Plans Data ─────────────────────────────────────────────────────────────
 
@@ -86,12 +88,37 @@ export function PlansPage() {
         track('plans_page_viewed', { currentPlan: currentPlanId });
     }, [currentPlanId]);
 
-    const handleUpgrade = (planName: string) => {
-        track('upgrade_cta_clicked', { targetPlan: planName, billingCycle });
-        toast.success(`You've joined the ${planName} waitlist! We'll email you when upgrades are available. 🎉`, {
-            description: 'Expected launch: Q2 2026. Keep an eye on your notifications.',
-            duration: 5000,
-        });
+    const handleUpgrade = async (planId: string) => {
+        track('upgrade_cta_clicked', { targetPlan: planId, billingCycle });
+
+        if (!isStripeEnabled) {
+            toast.error('Payment gateway is currently offline.', { description: 'Please try again later. Code: NO_STRIPE_KEYS' });
+            return;
+        }
+
+        const loadToast = toast.loading('Initializing secure checkout...');
+
+        try {
+            if (!supabase) throw new Error('Database connection is uninitialised.');
+
+            const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+                body: { planId, billingCycle, currency }
+            });
+
+            if (error || !data?.url) {
+                throw new Error(error?.message || 'Failed to initialize checkout session');
+            }
+
+            toast.dismiss(loadToast);
+            // Engage Stripe Redirect (Level 8 Monetization Logic)
+            redirectToCheckout(data.url);
+        } catch (err: any) {
+            console.error('[Stripe] Checkout initialisation failed:', err);
+            toast.error('Checkout failed', {
+                description: err.message || 'Could not connect to payment provider.',
+                id: loadToast
+            });
+        }
     };
 
     return (
@@ -195,7 +222,7 @@ export function PlansPage() {
                                     className="w-full h-12 font-display font-bold text-sm shadow-sm"
                                     variant={isCurrent ? 'outline' : 'default'}
                                     disabled={isCurrent}
-                                    onClick={() => handleUpgrade(plan.name)}
+                                    onClick={() => handleUpgrade(plan.id)}
                                 >
                                     {isCurrent ? '✓ Current Plan' : plan.cta}
                                 </Button>

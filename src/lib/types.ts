@@ -40,17 +40,17 @@ export interface Pool {
 
 /** @deprecated Use pool.platform */
 export function getPoolPlatformId(pool: Pool): string {
-  return (pool as any).platform_id ?? pool.platform;
+  return (pool as unknown as Record<string, unknown>).platform_id as string ?? pool.platform;
 }
 
 /** @deprecated Use pool.total_slots */
 export function getPoolSlotsTotal(pool: Pool): number {
-  return (pool as any).slots_total ?? pool.total_slots ?? 0;
+  return (pool as unknown as Record<string, unknown>).slots_total as number ?? pool.total_slots ?? 0;
 }
 
 /** @deprecated Use pool.filled_slots */
 export function getPoolSlotsFilled(pool: Pool): number {
-  return (pool as any).slots_filled ?? pool.filled_slots ?? 0;
+  return (pool as unknown as Record<string, unknown>).slots_filled as number ?? pool.filled_slots ?? 0;
 }
 
 // ─── Profile ──────────────────────────────────────────────────────────────────

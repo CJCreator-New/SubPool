@@ -281,11 +281,13 @@ export function BrowsePools() {
     return val.toLocaleString();
   };
 
-  const filtered = [...(pagedPools?.items || [])].sort((a, b) => {
-    if (sort === 'price-asc') return a.price_per_slot - b.price_per_slot;
-    if (sort === 'price-desc') return b.price_per_slot - a.price_per_slot;
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  const filtered = React.useMemo(() => {
+    return [...(pagedPools?.items || [])].sort((a, b) => {
+      if (sort === 'price-asc') return a.price_per_slot - b.price_per_slot;
+      if (sort === 'price-desc') return b.price_per_slot - a.price_per_slot;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [pagedPools?.items, sort]);
 
   const handleRequestJoin = async (_pool: Pool) => {
     if (!user) {
@@ -306,10 +308,10 @@ export function BrowsePools() {
     refetch();
   };
 
-  const containerVariants = {
+  const containerVariants = React.useMemo(() => ({
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { staggerChildren: 0.05 } }
-  };
+  }), []);
 
   return (
     <div className="space-y-8 pb-10">

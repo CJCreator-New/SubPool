@@ -52,17 +52,18 @@ export function PoolDetailModal({
         return (hash % 8) + 2;
     }, [pool?.id]);
 
-    const platform = pool ? getPlatform(pool.platform) : null;
-    const analysis = pool ? analyzePricing({
+    const platform = useMemo(() => pool ? getPlatform(pool.platform) : null, [pool]);
+    
+    const analysis = useMemo(() => pool ? analyzePricing({
         platformId: pool.platform,
         planName: pool.plan_name,
         userSlotPrice: pool.price_per_slot / 100,
         totalSlots: pool.total_slots,
         currency: currency,
         countryCode: 'GLOBAL'
-    }) : null;
+    }) : null, [pool, currency]);
 
-    const sharingNote = pool ? getPlatformSharingNote(pool.platform, pool.plan_name) : null;
+    const sharingNote = useMemo(() => pool ? getPlatformSharingNote(pool.platform, pool.plan_name) : null, [pool]);
 
     const magneticJoinBtn = useMagneticButton(0.3, isDemo);
 
@@ -94,15 +95,15 @@ export function PoolDetailModal({
 
     const slotsRemaining = pool.total_slots - pool.filled_slots;
 
-    const containerVariants = {
+    const containerVariants = useMemo(() => ({
         hidden: { opacity: 0, y: 10 },
         show: { opacity: 1, y: 0, transition: { staggerChildren: 0.08, delayChildren: 0.1 } }
-    };
+    }), []);
 
-    const itemVariants = {
+    const itemVariants = useMemo(() => ({
         hidden: { opacity: 0, y: 10 },
         show: { opacity: 1, y: 0 }
-    };
+    }), []);
 
     return (
         <Dialog open={open} onOpenChange={(val) => !val && onClose()}>

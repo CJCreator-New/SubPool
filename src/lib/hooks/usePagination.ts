@@ -11,13 +11,13 @@ export function usePagination<T>(options: UsePaginationOptions = {}) {
     const [hasMore, setHasMore] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-    const applyPagination = useCallback((
-        query: any,
+    const applyPagination = useCallback(<Q extends { range: (from: number, to: number) => unknown }>(
+        query: Q,
         currentPage: number = page
-    ): any => {
+    ): ReturnType<Q['range']> => {
         const from = currentPage * size;
         const to = from + size - 1;
-        return query.range(from, to);
+        return query.range(from, to) as ReturnType<Q['range']>;
     }, [page, size]);
 
     const loadMore = useCallback(async (fetchCallback: (page: number) => Promise<T[]>) => {

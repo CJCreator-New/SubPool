@@ -71,3 +71,16 @@ export const SendMessageSchema = z.object({
 export function zodErrorToString(error: z.ZodError): string {
     return error.errors.map(e => e.message).join(', ');
 }
+
+// ─── Utility: XSS String Sanitization (Level 5 SecOps) ───────────────────────
+
+export function sanitizeInput(input: string): string {
+    if (!input) return '';
+    return input
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
+        .replace(/\//g, '&#x2F;');
+}

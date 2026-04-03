@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Search, SendHorizontal, Reply, Smile, X, Hash, Info, CheckCheck, Check } from 'lucide-react';
 import { useCurrentUser, useMemberships, useMessages, usePools } from '../../lib/supabase/hooks';
 import { getPlatform } from '../../lib/constants';
+import { sanitizeInput } from '../../lib/validation';
 import type { Pool, MessageReaction } from '../../lib/types';
 import { getUserFacingError } from '../../lib/error-feedback';
 import { Avatar, AvatarFallback } from '../components/ui/avatar';
@@ -121,14 +122,17 @@ export function Messages() {
   };
 
   const handleSend = async () => {
-    const content = messageInput.trim();
-    if (!content || !selectedPool) return;
+    const rawContent = messageInput.trim();
+    if (!rawContent || !selectedPool) return;
+
+    // Apply Level 5 SecOps HTML/XSS Sanitization bounds
+    const secureContent = sanitizeInput(rawContent);
 
     setMessageInput('');
     setReplyingTo(null);
     setTyping(false);
     
-    await sendMessage(content, replyingTo || undefined);
+    await sendMessage(secureContent, replyingTo || undefined);
     scrollToBottom();
   };
 
@@ -260,7 +264,7 @@ export function Messages() {
                 <header className="flex items-center justify-between border-b border-border/40 bg-card/60 backdrop-blur-xl px-8 py-5 sticky top-0 z-10">
                   <div className="flex items-center gap-4">
                     {isMobile && (
-                        <Button variant="ghost" size="icon" onClick={() => setSelectedPoolId('')} className="rounded-xl mr-2">
+                        <Button variant="ghost" size="icon" onClick={() => setSelectedPoolId('')} className="rounded-xl mr-2" aria-label="Go back to node list">
                             <ArrowLeft size={18} />
                         </Button>
                     )}
@@ -284,7 +288,7 @@ export function Messages() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="rounded-xl text-muted-foreground hover:text-foreground">
+                    <Button variant="ghost" size="icon" className="rounded-xl text-muted-foreground hover:text-foreground" aria-label="View node information">
                         <Info size={18} />
                     </Button>
                   </div>
@@ -395,7 +399,7 @@ export function Messages() {
                                                 <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                                     <Popover>
                                                         <PopoverTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="size-8 rounded-xl bg-secondary/50 hover:bg-secondary border border-border/40">
+                                                            <Button variant="ghost" size="icon" className="size-8 rounded-xl bg-secondary/50 hover:bg-secondary border border-border/40" aria-label="Add reaction">
                                                                 <Smile size={14} className="text-muted-foreground" />
                                                             </Button>
                                                         </PopoverTrigger>
@@ -521,6 +525,7 @@ export function Messages() {
                             className="size-[56px] rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 transition-transform active:scale-95"
                             onClick={handleSend}
                             disabled={!messageInput.trim()}
+                            aria-label="Send message"
                         >
                             <SendHorizontal className="size-5" />
                         </Button>
