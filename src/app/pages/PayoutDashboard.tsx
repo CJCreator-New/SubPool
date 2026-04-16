@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ArrowUpRight, Banknote, Clock3, WalletCards, TrendingUp, DollarSign } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import type { Variants } from 'motion/react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { EmptyState } from '../components/empty-state';
@@ -45,7 +46,7 @@ export function PayoutDashboard() {
     );
   }
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -56,7 +57,7 @@ export function PayoutDashboard() {
     }
   }
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 20 } }
   }

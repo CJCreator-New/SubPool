@@ -11,6 +11,7 @@ import { CurrencyProvider } from '../lib/currency-context';
 import { ErrorBoundary } from './components/error-boundary';
 import { PageLoadSkeleton } from './components/skeletons';
 import { GuestEmptyState } from './components/guest-empty-state';
+import { RootErrorPage } from './components/root-error-page';
 
 // ─── Suspense wrapper ─────────────────────────────────────────────────────────
 
@@ -118,6 +119,7 @@ export const router = createBrowserRouter([
                 </CurrencyProvider>
             </AuthProvider>
         ),
+        errorElement: <RootErrorPage />,
         children: [
             // ─── Root / Landing ─────────────────────────────────────────
             {

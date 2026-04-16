@@ -2,34 +2,91 @@ name: SubPool Continuous Integration
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: ["main", "develop"]
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: ["main", "develop"]
 
 jobs:
+  # ─── Level 6 CI: Build & Unit Test ─────────────────────────────────────────
   build-and-test:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
-    - name: Install Dependencies
-      run: npm ci
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
 
-    - name: Run TypeScript Compiler Validation
-      run: npx tsc --noEmit
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
 
-    - name: Verify Bundle Budget (Performance Phase 1)
-      run: |
-        npm run build
-        node scripts/check-bundle-budget.mjs
+      # Level 3: End-to-end TypeScript type safety check
+      - name: Run TypeScript Compiler Validation
+        run: npx tsc --noEmit
 
-    - name: Execute Vitest Functional Suite (QA Phase 4)
-      run: npm run test:run
+      # Level 1: Enforce bundle budget (Vite build + check-bundle-budget.mjs)
+      - name: Verify Bundle Budget (Performance Level 1)
+        run: |
+          pnpm run build
+          node scripts/check-bundle-budget.mjs
+
+      # Level 4: Vitest functional unit suite
+      - name: Execute Vitest Unit Suite (QA Level 4)
+        run: pnpm run test:run
+
+      # Level 6: Dependency vulnerability audit
+      - name: Dependency Security Audit (DevOps Level 6)
+        run: pnpm audit --audit-level=high
+        continue-on-error: true # Warn on findings; do not gate until baseline resolved
+
+  # ─── Level 4 E2E: Playwright Critical Business Flows ───────────────────────
+  e2e:
+    runs-on: ubuntu-latest
+    needs: build-and-test # Only run E2E after build succeeds
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build App for E2E
+        run: pnpm run build
+
+      - name: Run Playwright E2E Suite (QA Level 4)
+        run: pnpm run test:e2e
+        env:
+          CI: true
+          # E2E tests run against the dev server configured in playwright.config.ts
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

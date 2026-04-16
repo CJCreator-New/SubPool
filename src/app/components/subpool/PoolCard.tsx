@@ -9,6 +9,7 @@ import { cn } from '../ui/utils';
 import { C } from '../../tokens';
 import type { Pool } from '../../../lib/types';
 import { getPlatform } from '../../../lib/constants';
+import { useCurrency } from '../../../lib/currency-context';
 
 interface PoolCardProps {
   id?: string;
@@ -63,7 +64,8 @@ export function PoolCard({
   const platformColor = manualColor ?? platform?.bg ?? 'rgba(200,241,53,0.15)';
   const slotsTotal = manualTotal ?? pool?.total_slots ?? 4;
   const slotsFilled = manualFilled ?? pool?.filled_slots ?? 2;
-  const pricePerSlot = manualPrice ?? (pool ? (pool.price_per_slot / 100).toFixed(2) : '0.00');
+  const { formatPrice: currencyFormat } = useCurrency();
+  const pricePerSlot = manualPrice ?? (pool ? currencyFormat(pool.price_per_slot / 100) : '0.00');
   
   const ownerName = manualOwner ?? pool?.owner?.display_name ?? pool?.owner?.username ?? 'Host';
   const ownerInitials = manualInitials ?? ownerName.charAt(0).toUpperCase();
@@ -106,9 +108,10 @@ export function PoolCard({
         if (pool && onClick) onClick(pool);
       }}
       className={cn(
-        "group relative flex w-full flex-col gap-3.5 rounded-lg border p-5 transition-colors duration-300 cursor-pointer overflow-hidden shadow-sm",
+        "group relative flex w-full flex-col gap-3.5 rounded-lg border p-5 transition-all duration-300 cursor-pointer overflow-hidden shadow-sm",
         isHovered ? "border-primary/40 shadow-xl shadow-black/40" : "border-border bg-card",
-        isFlagged && "opacity-60"
+        isFlagged && "opacity-60",
+        status === 'full' && !isHovered && "opacity-60 grayscale-[0.2]"
       )}
     >
       {/* Background Gradient Shine */}
@@ -184,27 +187,27 @@ export function PoolCard({
         </span>
 
         {/* Row 4: Price + Owner */}
-        <div className="mt-5 flex items-center justify-between">
-          <div className="flex items-baseline gap-1">
+        <div className="mt-5 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+          <div className="flex items-baseline gap-1 shrink-0">
             <span className="font-display text-[22px] font-black text-foreground">
-              ${pricePerSlot}
+              {pricePerSlot}
             </span>
-            <span className="font-mono text-[11px] font-medium text-muted-foreground">
+            <span className="font-mono text-[11px] font-medium text-muted-foreground ml-1">
               /mo
             </span>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 overflow-hidden">
             {/* Trust Score */}
             {(ownerRating > 0 || ownerTotalHosted > 0) && (
-              <div className="flex items-center gap-1.5 opacity-90">
+              <div className="flex items-center gap-1.5 opacity-90 hidden sm:flex">
                 <TrustScore rating={ownerRating} size="sm" />
                 {badgeType && <TrustBadge type={badgeType} />}
               </div>
             )}
-            <div className="transition-transform duration-300 group-hover:scale-105">
+            <div className="transition-transform duration-300 group-hover:scale-105 shrink-0">
               <Avatar initials={ownerInitials} size="sm" color={ownerColor} />
             </div>
-            <span className="font-mono text-[11px] font-medium text-muted-foreground max-w-[80px] truncate">
+            <span className="font-mono text-[11px] font-medium text-muted-foreground truncate max-w-[60px]">
               {ownerName}
             </span>
           </div>

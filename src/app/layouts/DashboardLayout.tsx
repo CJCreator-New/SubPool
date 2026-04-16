@@ -97,12 +97,12 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
 
     const { data: notifications } = useNotifications();
     const notificationsList = Array.isArray(notifications) ? notifications : [];
-    const unreadCount = notificationsList.filter((n: any) => !n.read).length;
+    const unreadCount = notificationsList.filter((n: Notification) => !n.read).length;
 
     // Group NAV_ITEMS by section
     const grouped = NAV_SECTIONS.map((section) => ({
         section,
-        items: NAV_ITEMS.filter((item) => item.section === section),
+        items: NAV_ITEMS.filter((item) => { if (item.section !== section) return false; return !!user || !item.requiresAuth; }),
     }));
 
     return (
@@ -208,6 +208,10 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                         size="sm"
                         className="w-full text-xs font-mono uppercase tracking-widest text-muted-foreground h-8 hover:text-foreground hover:bg-secondary/50"
                         onClick={async () => {
+                            if (!user) {
+                                navigate('/login');
+                                return;
+                            }
                             try {
                                 await signOut();
                             } catch {
@@ -215,7 +219,7 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                             }
                         }}
                     >
-                        Sign out
+                        {user ? 'Sign out' : 'Sign in'}
                     </Button>
                 </SidebarFooter>
             </Sidebar>
@@ -252,7 +256,13 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                             <Button
                                 size="sm"
                                 className="font-display font-semibold text-xs"
-                                onClick={() => navigate('/list')}
+                                onClick={() => {
+                                    if (!user) {
+                                        navigate('/login?next=/list');
+                                        return;
+                                    }
+                                    navigate('/list');
+                                }}
                             >
                                 List a Pool
                             </Button>

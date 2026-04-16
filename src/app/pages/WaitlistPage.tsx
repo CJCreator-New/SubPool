@@ -22,8 +22,15 @@ export function WaitlistPage() {
 
     setLoading(true);
     try {
+      if (!supabase) {
+        // Demo/offline mode: simulate a successful waitlist join
+        toast.success("You're on the list! (Demo Mode)");
+        setPosition(Math.floor(Math.random() * 5000) + 100);
+        setSuccess(true);
+        return;
+      }
       const { data, error } = await supabase
-        .from('waitlist')
+        .from('marketing_waitlist')
         .insert({
           email,
           platform: platform || null,

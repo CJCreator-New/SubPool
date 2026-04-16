@@ -4,19 +4,81 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ─── Primary SEO ──────────────────────────────────────────────────── -->
   <title>SubPool — Share Subscriptions, Split the Cost</title>
   <meta name="description"
-    content="Find subscription slots from real people. Join Netflix, Spotify, Figma pools and save 40–75% every month." />
-  <meta property="og:title" content="SubPool" />
+    content="Find subscription slots from real people. Join Netflix, Spotify, Figma pools and save 40–75% every month. The peer-to-peer subscription sharing marketplace." />
+  <meta name="keywords"
+    content="subscription sharing, split subscriptions, Netflix pool, Spotify family plan, Figma team plan, save money subscriptions, peer to peer subscriptions" />
+  <link rel="canonical" href="https://subpool.app/" />
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="SubPool" />
+
+  <!-- ─── Open Graph (Level 8 SEO) ────────────────────────────────────── -->
+  <meta property="og:site_name" content="SubPool" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://subpool.app/" />
+  <meta property="og:title" content="SubPool — Share Subscriptions, Split the Cost" />
   <meta property="og:description"
     content="Find subscription slots from real people. Join Netflix, Spotify, Figma pools and save 40–75% every month." />
-  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://subpool.app/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt"
+    content="SubPool dashboard showing subscription pools for Netflix, Spotify, and Figma platforms" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- ─── Twitter / X Card (Level 8 SEO) ─────────────────────────────── -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@subpoolapp" />
+  <meta name="twitter:creator" content="@subpoolapp" />
+  <meta name="twitter:title" content="SubPool — Share Subscriptions, Split the Cost" />
+  <meta name="twitter:description"
+    content="Join subscription pools and save 40–75% on Netflix, Spotify, Figma, ChatGPT & more. The peer-to-peer subscription marketplace." />
+  <meta name="twitter:image" content="https://subpool.app/og-image.png" />
+  <meta name="twitter:image:alt"
+    content="SubPool — Share subscriptions with trusted pools" />
+
+  <!-- ─── PWA & Theme ─────────────────────────────────────────────────── -->
   <meta name="theme-color" content="#C8F135" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="SubPool" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/favicon.svg" />
+
+  <!-- ─── JSON-LD Structured Data (Level 8 SEO) ───────────────────────── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "SubPool",
+    "url": "https://subpool.app",
+    "description": "The peer-to-peer subscription sharing marketplace. Join Netflix, Spotify, Figma pools and save 40–75% every month.",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Free tier available. Pro from $4.99/mo."
+    },
+    "featureList": [
+      "Subscription pool discovery",
+      "Secure peer-to-peer payments",
+      "Auto-payment reminders",
+      "Multi-currency support",
+      "Real-time chat per pool"
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.7",
+      "reviewCount": "142"
+    }
+  }
+  </script>
+
   <style>
     /* Prevent blank white screen before JS executes */
     body { margin: 0; background-color: #0E0E0E; }

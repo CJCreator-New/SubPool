@@ -124,3 +124,53 @@ describe('zodErrorToString', () => {
         }
     });
 });
+
+// ─── sanitizeInput — Level 5 SecOps XSS Sweep ────────────────────────────────
+
+import { sanitizeInput } from '../lib/validation';
+
+describe('sanitizeInput (XSS Sanitization — Level 5 SecOps)', () => {
+    it('escapes the ampersand character', () => {
+        expect(sanitizeInput('AT&T')).toBe('AT&amp;T');
+    });
+
+    it('escapes opening angle bracket (script injection)', () => {
+        expect(sanitizeInput('<script>')).toContain('&lt;');
+        expect(sanitizeInput('<script>')).not.toContain('<');
+    });
+
+    it('escapes closing angle bracket', () => {
+        expect(sanitizeInput('</script>')).toContain('&gt;');
+        expect(sanitizeInput('</script>')).not.toContain('>');
+    });
+
+    it('escapes double-quote characters', () => {
+        expect(sanitizeInput('"hello"')).toBe('&quot;hello&quot;');
+    });
+
+    it('escapes single-quote characters', () => {
+        expect(sanitizeInput("it's")).toContain('&#x27;');
+    });
+
+    it('escapes forward slashes', () => {
+        expect(sanitizeInput('/etc/passwd')).toContain('&#x2F;');
+    });
+
+    it('neutralises a typical XSS payload', () => {
+        const payload = '<img src=x onerror="alert(1)">';
+        const sanitized = sanitizeInput(payload);
+        expect(sanitized).not.toContain('<');
+        expect(sanitized).not.toContain('>');
+        expect(sanitized).not.toContain('"');
+    });
+
+    it('returns an empty string for empty input', () => {
+        expect(sanitizeInput('')).toBe('');
+    });
+
+    it('leaves safe plain text unchanged', () => {
+        const safe = 'Hello, this is a normal message.';
+        expect(sanitizeInput(safe)).toBe(safe);
+    });
+});
+

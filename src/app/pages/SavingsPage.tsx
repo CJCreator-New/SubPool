@@ -16,7 +16,7 @@ import { CurrencyToggle } from '../components/currency-toggle';
 import { useAuth } from '../../lib/supabase/auth';
 import { toast } from 'sonner';
 import { track } from '../../lib/analytics';
-import html2canvas from 'html2canvas';
+
 import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { BeforeAfterSlider } from '../components/before-after-slider';
@@ -307,6 +307,7 @@ export function SavingsPage() {
                                     onClick={async () => {
                                         if (!cardRef.current) return;
                                         try {
+                                            const html2canvas = (await import('html2canvas')).default;
                                             const canvas = await html2canvas(cardRef.current, { backgroundColor: '#0E0E0E' });
                                             canvas.toBlob(blob => {
                                                 if (blob) {

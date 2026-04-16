@@ -334,11 +334,11 @@ export function Messages() {
                                 const repliedTo = message.reply_to_id ? messages.find(m => m.id === message.reply_to_id) : null;
                                 const repliedSender = repliedTo ? (repliedTo.sender?.display_name ?? repliedTo.sender?.username ?? 'Someone') : '';
 
-                                const reactions = (message.message_reactions || []).reduce((acc, r: any) => {
+                                const reactions = (message.message_reactions || []).reduce((acc: Record<string, string[]>, r: MessageReaction) => {
                                     acc[r.emoji] = acc[r.emoji] || [];
                                     acc[r.emoji].push(r.user_id);
                                     return acc;
-                                }, {} as Record<string, string[]>);
+                                }, {});
 
                                 return (
                                     <motion.div

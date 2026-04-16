@@ -6,8 +6,17 @@ import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import { PLATFORMS } from '../../lib/constants';
 import { useAuth } from '../../lib/supabase/auth';
-import { Shield, Zap, TrendingUp, Users, RefreshCcw, Database, Lock, AlertTriangle } from 'lucide-react';
+import { 
+    Shield, Zap, TrendingUp, Users, RefreshCcw, Database, Lock, AlertTriangle 
+} from 'lucide-react';
 import { cn } from '../components/ui/utils';
+import { 
+    Card, 
+    CardHeader, 
+    CardTitle, 
+    CardDescription, 
+    CardContent 
+} from '../components/ui/card';
 
 export function AdminPage() {
     const { profile, loading: authLoading } = useAuth();
@@ -44,7 +53,7 @@ export function AdminPage() {
                     poolsCreatedToday: created?.length ?? 0,
                     joinRequests: requests?.length ?? 0,
                     suggestionFollowedPct: (requests?.length ?? 0) === 0 ? 0 : Math.round(((market?.length ?? 0) / (requests?.length ?? 0)) * 100),
-                    topPlatform: 'Netflix',
+                    topPlatform: created && created.length > 0 ? 'Netflix' : 'None',
                 });
             } catch (error) {
                 console.warn('Admin stats fallback:', error);
@@ -190,10 +199,10 @@ export function AdminPage() {
 
                     {/* Sync Panel */}
                     <Card className="lg:col-span-2 glass border-border/40 bg-card/60 rounded-[32px] overflow-hidden">
-                        <div className="p-8 border-b border-border/40 flex justify-between items-center bg-white/5">
+                        <CardHeader className="p-8 border-b border-border/40 flex flex-row justify-between items-center bg-white/5 space-y-0">
                             <div>
-                                <h2 className="font-display font-bold text-xl tracking-tight">Platform Synchronisation</h2>
-                                <p className="font-mono text-[9px] text-muted-foreground uppercase mt-1">Direct Uplink to Edge Analytics</p>
+                                <CardTitle className="font-display font-bold text-xl tracking-tight">Platform Synchronisation</CardTitle>
+                                <CardDescription className="font-mono text-[9px] text-muted-foreground uppercase mt-1">Direct Uplink to Edge Analytics</CardDescription>
                             </div>
                             <Button 
                                 size="sm" 
@@ -203,8 +212,9 @@ export function AdminPage() {
                             >
                                 {syncing === 'all_ott' ? 'Synchronising...' : 'Global Sync'}
                             </Button>
-                        </div>
-                        <div className="divide-y divide-border/20 overflow-y-auto max-h-[500px] custom-scrollbar">
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="divide-y divide-border/20 overflow-y-auto max-h-[500px] custom-scrollbar">
                             {PLATFORMS.map(p => (
                                 <div key={p.id} className="p-6 flex justify-between items-center group hover:bg-white/5 transition-all">
                                     <div className="flex items-center gap-4">
@@ -225,17 +235,18 @@ export function AdminPage() {
                                     </Button>
                                 </div>
                             ))}
-                        </div>
+                            </div>
+                        </CardContent>
                     </Card>
 
                     {/* Manual Editor */}
                     <div className="space-y-8">
                         <Card className="glass border-border/40 bg-card/60 rounded-[32px] overflow-hidden">
-                            <div className="p-8 border-b border-border/40 flex items-center gap-3">
+                            <CardHeader className="p-8 border-b border-border/40 flex flex-row items-center gap-3 space-y-0">
                                 <Database size={18} className="text-primary" />
-                                <h2 className="font-display font-bold text-xl tracking-tight">Price Override</h2>
-                            </div>
-                            <div className="p-8 space-y-6">
+                                <CardTitle className="font-display font-bold text-xl tracking-tight">Price Override</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-8 space-y-6">
                                 <div className="space-y-2">
                                     <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground ml-1">Platform Selection</label>
                                     <select
@@ -292,11 +303,6 @@ export function AdminPage() {
                 </div>
             </div>
         </div>
+        </div>
     );
 }
-
-const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div className={cn("border bg-card text-card-foreground shadow-sm", className)}>
-        {children}
-    </div>
-);

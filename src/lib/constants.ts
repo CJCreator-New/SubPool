@@ -74,6 +74,7 @@ export interface NavItem {
     path: string;
     badge?: string;
     section: string;
+    requiresAuth?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -81,17 +82,17 @@ export const NAV_ITEMS: NavItem[] = [
     { icon: '📈', label: 'Market', path: '/market', section: 'DISCOVER' },
     { icon: '💡', label: 'Savings Hub', path: '/savings', section: 'DISCOVER' },
     { icon: '🎯', label: 'Wishlist', path: '/wishlist', section: 'DISCOVER' },
-    { icon: '🗂️', label: 'My Pools', path: '/my-pools', section: 'DISCOVER' },
-    { icon: '➕', label: 'List a Pool', path: '/list', section: 'DISCOVER' },
-    { icon: '💰', label: 'Ledger', path: '/ledger', section: 'MANAGE' },
-    { icon: '💵', label: 'Payouts', path: '/payouts', section: 'MANAGE' },
-    { icon: '🧾', label: 'Billing', path: '/billing', section: 'MANAGE' },
-    { icon: '📊', label: 'Subscriptions', path: '/subscriptions', section: 'MANAGE' },
-    { icon: '💬', label: 'Messages', path: '/messages', section: 'MANAGE' },
-    { icon: '🔔', label: 'Notifications', path: '/notifications', section: 'MANAGE' },
-    { icon: '👤', label: 'Profile', path: '/profile', section: 'ACCOUNT' },
+    { icon: '🗂️', label: 'My Pools', path: '/my-pools', section: 'DISCOVER', requiresAuth: true },
+    { icon: '➕', label: 'List a Pool', path: '/list', section: 'DISCOVER', requiresAuth: true },
+    { icon: '💰', label: 'Ledger', path: '/ledger', section: 'MANAGE', requiresAuth: true },
+    { icon: '💵', label: 'Payouts', path: '/payouts', section: 'MANAGE', requiresAuth: true },
+    { icon: '🧾', label: 'Billing', path: '/billing', section: 'MANAGE', requiresAuth: true },
+    { icon: '📊', label: 'Subscriptions', path: '/subscriptions', section: 'MANAGE', requiresAuth: true },
+    { icon: '💬', label: 'Messages', path: '/messages', section: 'MANAGE', requiresAuth: true },
+    { icon: '🔔', label: 'Notifications', path: '/notifications', section: 'MANAGE', requiresAuth: true },
+    { icon: '👤', label: 'Profile', path: '/profile', section: 'ACCOUNT', requiresAuth: true },
     { icon: '⭐', label: 'Plans', path: '/plans', section: 'ACCOUNT' },
-    { icon: '🛡️', label: 'Admin', path: '/admin', section: 'ACCOUNT' },
+    { icon: '🛡️', label: 'Admin', path: '/admin', section: 'ACCOUNT', requiresAuth: true },
 ];
 
 export const NAV_SECTIONS = ['DISCOVER', 'MANAGE', 'ACCOUNT'] as const;

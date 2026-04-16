@@ -1,7 +1,7 @@
 import React from 'react';
 import { C, F } from '../../tokens';
 
-type PillVariant = 'open' | 'full' | 'pending' | 'owed' | 'paid' | 'active' | 'success';
+type PillVariant = 'open' | 'full' | 'closed' | 'pending' | 'owed' | 'paid' | 'active' | 'success';
 
 interface StatusPillProps {
   variant?: PillVariant;
@@ -12,6 +12,7 @@ interface StatusPillProps {
 const pillConfig: Record<PillVariant, { color: string; label: string }> = {
   open:    { color: C.statusSuccess, label: 'Open' },
   full:    { color: C.textMuted,     label: 'Full' },
+  closed:  { color: C.textMuted,     label: 'Closed' },
   pending: { color: C.statusWarning, label: 'Pending' },
   owed:    { color: C.statusWarning, label: 'Owed' },
   paid:    { color: C.statusSuccess, label: 'Paid' },

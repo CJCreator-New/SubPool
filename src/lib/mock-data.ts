@@ -30,6 +30,7 @@ const RIYA_K: Profile = {
     id: 'user-rk', username: 'riyak', display_name: 'Riya K',
     avatar_color: '#C8F135', is_verified: true, is_pro: false,
     rating: 4.9, review_count: 38, created_at: '2024-06-01T00:00:00Z', bio: null,
+    total_hosted: 12, // Trusted host
 };
 const ALEX_T: Profile = {
     id: 'user-at', username: 'alext', display_name: 'Alex T',
@@ -40,6 +41,7 @@ const SAM_D: Profile = {
     id: 'user-sd', username: 'samd', display_name: 'Sam D',
     avatar_color: '#7B61FF', is_verified: true, is_pro: true,
     rating: 4.8, review_count: 24, created_at: '2024-07-20T00:00:00Z', bio: null,
+    total_hosted: 5, plan: 'host_plus', // Pro host
 };
 const JAY_M: Profile = {
     id: 'user-jm', username: 'jaym', display_name: 'Jay M',
@@ -122,11 +124,11 @@ export const MOCK_POOLS: Pool[] = [
         created_at: '2024-12-20T11:00:00Z', updated_at: '2025-01-22T09:00:00Z',
     },
     {
-        id: 'pool-8', platform: 'youtube', owner_id: CURRENT_USER.id, owner: CURRENT_USER,
+        id: 'pool-8', platform: 'youtube', owner_id: MARCUS_W.id, owner: MARCUS_W,
         category: 'entertainment', status: 'open', plan_name: 'Premium Family',
         price_per_slot: 349, total_slots: 5, filled_slots: 4,
         auto_approve: true,
-        description: 'My YouTube Premium Family pool. 1 slot remaining.',
+        description: 'Elite YouTube cluster. 1 slot remaining.',
         created_at: '2024-11-10T10:00:00Z', updated_at: '2025-01-29T16:00:00Z',
     },
 ];

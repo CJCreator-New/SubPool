@@ -1,4 +1,4 @@
-import {
+import React, {
     createContext,
     useCallback,
     useContext,
@@ -6,6 +6,7 @@ import {
     useMemo,
     useRef,
     useState,
+    ReactNode,
 } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from './client';
@@ -33,7 +34,7 @@ function deriveRole(profile: Profile | null): AuthRole {
     return 'member';
 }
 
-export function AuthProvider({ children }: { children: import('react').ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);

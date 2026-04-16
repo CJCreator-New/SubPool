@@ -67,9 +67,20 @@ const TOP_PLATFORMS = [
   { id: 'youtube', plan: 'Family', name: 'YouTube' }
 ];
 
+// ─── Level 3: typed market metric entry (replaces `any[]`) ────────────────────
+interface MarketMetricEntry {
+  id: string;
+  plan: string;
+  name: string;
+  avg: number;
+  solo: number;
+  savingsPct: number;
+  count: number;
+}
+
 function MarketIntelligenceRow() {
   const [expanded, setExpanded] = useState(false);
-  const [metrics, setMetrics] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<MarketMetricEntry[]>([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [paywallOpen, setPaywallOpen] = useState(false);
   const { profile } = useAuth();
@@ -378,7 +389,7 @@ export function BrowsePools() {
                 <span className="text-muted-foreground text-sm opacity-50">🔍</span>
                 <input
                     type="text"
-                    placeholder="Search platf..."
+                    placeholder="Search systems..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="border-0 bg-transparent p-0 text-sm focus:outline-none w-full text-foreground placeholder:text-muted-foreground/50"
@@ -386,6 +397,23 @@ export function BrowsePools() {
             </div>
         </div>
       </div>
+
+      {/* Guest CTA Banner */}
+      {!user && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-primary/10 border border-primary/20 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6"
+        >
+          <div className="space-y-2 text-center md:text-left">
+            <h3 className="font-display font-black text-xl text-foreground">Unlock your full potential</h3>
+            <p className="text-muted-foreground text-sm max-w-md">Join over 3,200+ members saving up to 75% on premium subscriptions. Create a free account to join these pools.</p>
+          </div>
+          <Button size="lg" onClick={() => navigate('/login')} className="h-14 px-8 rounded-2xl font-display font-bold text-base shadow-xl shadow-primary/20 shrink-0">
+            Get Started — It's Free
+          </Button>
+        </motion.div>
+      )}
 
       {/* Pool Grid */}
       <motion.div 

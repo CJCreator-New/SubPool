@@ -850,6 +850,17 @@ export function useHostEarnings() {
     const [error, setError] = useState<string | null>(null);
 
     const fetchData = useCallback(async () => {
+        const mode = resolveDataMode({ allowDemoFallback: true });
+        if (mode === 'demo') {
+            setSummary([]);
+            setMonthly([
+                { month: 'Jan', earned: 4200, pending: 150 },
+                { month: 'Feb', earned: 3800, pending: 200 }
+            ]);
+            setLoading(false);
+            return;
+        }
+
         if (!isSupabaseConnected || !supabase) {
             setLoading(false);
             return;
@@ -886,6 +897,13 @@ export function useReferralStats() {
     const [error, setError] = useState<string | null>(null);
 
     const fetchData = useCallback(async () => {
+        const mode = resolveDataMode({ allowDemoFallback: true });
+        if (mode === 'demo') {
+            setStats({ count: 12, rewardsGranted: 3 });
+            setLoading(false);
+            return;
+        }
+
         if (!user?.id || !supabase) {
             setLoading(false);
             return;
