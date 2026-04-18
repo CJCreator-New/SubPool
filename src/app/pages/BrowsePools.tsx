@@ -383,6 +383,7 @@ export function BrowsePools() {
                 <option value="recent">Newest Arrival</option>
                 <option value="price-asc">Price: Low to High</option>
                 <option value="price-desc">Price: High to Low</option>
+                <option value="savings-desc">Maximum Savings %</option>
             </select>
 
             <div className="flex items-center gap-2 bg-card/50 border border-border rounded-xl px-4 py-2 flex-1 lg:w-64">

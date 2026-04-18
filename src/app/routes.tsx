@@ -49,6 +49,7 @@ const SubscriptionDetailsPage = lazy(() => import('./pages/SubscriptionDetails')
 const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
 const WaitlistPage = lazy(() => import('./pages/WaitlistPage').then(m => ({ default: m.WaitlistPage })));
 const ReferralPage = lazy(() => import('./pages/ReferralPage').then(m => ({ default: m.ReferralPage })));
+const ActionCenterPage = lazy(() => import('./pages/ActionCenter').then(m => ({ default: m.ActionCenter })));
 
 // Payment pages
 const PaymentMethodPage = lazy(() => import('./pages/payment/PaymentMethodSetup').then(m => ({ default: m.PaymentMethodSetup })));
@@ -68,7 +69,7 @@ function Lazy({ children }: { children: React.ReactNode }) {
     return <Suspense fallback={<PageLoadSkeleton />}>{children}</Suspense>;
 }
 
-function resolveNextPath(search: string, fallback = '/browse') {
+function resolveNextPath(search: string, fallback = '/dashboard') {
     const params = new URLSearchParams(search);
     const next = params.get('next')?.trim() ?? '';
     if (!next.startsWith('/')) return fallback;
@@ -113,6 +114,7 @@ export const router = createBrowserRouter([
             {
                 element: <ErrorBoundary><DashboardLayout /></ErrorBoundary>,
                 children: [
+                    { path: '/dashboard', element: <Lazy><ActionCenterPage /></Lazy> },
                     { path: '/browse', element: <Lazy><BrowsePage /></Lazy> },
                     { path: '/market', element: <Lazy><MarketPage /></Lazy> },
                     { path: '/my-pools', element: <Lazy><MyPoolsPage /></Lazy> },

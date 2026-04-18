@@ -32,6 +32,7 @@ import { NotificationBell } from '../components/notification-bell';
 import { getPricingData } from '../../lib/pricing-service';
 import { toast } from 'sonner';
 import { GuestEmptyState } from '../components/guest-empty-state';
+import { CommandPalette } from '../components/command-palette';
 
 // ─── Protected Route Component ──────────────────────────────────────────────
 
@@ -263,6 +264,7 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
 
                     {/* Right actions */}
                     <div className="flex items-center gap-4">
+                        <CommandPalette />
                         <NotificationBell />
 
                         {/* List a Pool — shown on browse */}

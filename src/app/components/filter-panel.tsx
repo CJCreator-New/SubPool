@@ -4,7 +4,7 @@ import { Label } from './ui/label';
 import { cn } from './ui/utils';
 
 export type BrowseFilterKey = 'all' | 'entertainment' | 'work' | 'ai' | 'open' | 'creative';
-export type BrowseSortKey = 'recent' | 'price-asc' | 'price-desc';
+export type BrowseSortKey = 'recent' | 'price-asc' | 'price-desc' | 'savings-desc';
 
 type FilterChip = {
   key: BrowseFilterKey;
@@ -91,6 +91,7 @@ export function FilterPanel({
               <option value="recent">Newest</option>
               <option value="price-asc">Lowest price</option>
               <option value="price-desc">Highest price</option>
+              <option value="savings-desc">Highest savings %</option>
             </select>
           </div>
 

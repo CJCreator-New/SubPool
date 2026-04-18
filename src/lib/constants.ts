@@ -78,6 +78,7 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
+    { icon: '🏠', label: 'Overview', path: '/dashboard', section: 'DISCOVER', requiresAuth: true },
     { icon: '🌐', label: 'Browse', path: '/', section: 'DISCOVER' },
     { icon: '📈', label: 'Market', path: '/market', section: 'DISCOVER' },
     { icon: '💡', label: 'Savings Hub', path: '/savings', section: 'DISCOVER' },
@@ -111,6 +112,7 @@ export const PROCESSING_FLAT_USD = 0.3;
 
 export const PAGE_TITLES: Record<string, string> = {
     '/': 'Browse Pools',
+    '/dashboard': 'Action Center',
     '/browse': 'Browse Pools',
     '/market': 'Market Intelligence',
     '/wishlist': 'Wishlist',
