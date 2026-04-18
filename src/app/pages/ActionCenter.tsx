@@ -1,12 +1,12 @@
 import { useActionSummary } from '../../lib/hooks/useActionSummary';
-import { StatCard, NumberTicker } from '../components/subpool-components';
+import { NumberTicker } from '../components/subpool-components';
 import { Button } from '../components/ui/button';
-import { Card, CardContent } from '../components/ui/card';
 import { Avatar, AvatarFallback } from '../components/ui/avatar';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router';
 import { formatDistanceToNow } from 'date-fns';
-import { Check, X, CreditCard, Bell, ArrowRight } from 'lucide-react';
+import { Check, X, CreditCard, Bell, ArrowRight, Sparkles } from 'lucide-react';
+import { PremiumCard, MagneticButton } from '../components/premium-ui';
 import { cn } from '../components/ui/utils';
 
 export function ActionCenter() {
@@ -34,75 +34,96 @@ export function ActionCenter() {
     }
 
     return (
-        <div className="max-w-6xl mx-auto p-6 space-y-8 noise-overlay min-h-screen">
+        <div className="relative max-w-7xl mx-auto p-6 space-y-12 noise-overlay min-h-screen">
+            
+            {/* Background Ambient Glows */}
+            <div className="absolute top-0 left-1/4 size-[500px] bg-primary/10 rounded-full blur-[120px] -z-10 animate-pulse" />
+            <div className="absolute bottom-1/4 right-1/4 size-[400px] bg-blue-500/5 rounded-full blur-[100px] -z-10" />
+
             {/* Header: Greeting & Savings */}
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-2 border-b border-white/5">
-                <div>
-                    <h1 className="font-display font-black text-4xl tracking-tight text-foreground">Action Center</h1>
-                    <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.2em] mt-2">
-                        {hasActions ? 'Tasks requiring your attention' : 'All systems clear'}
-                    </p>
-                </div>
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 pb-4 border-b border-white/5">
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                >
+                    <h1 className="font-display font-black text-5xl tracking-tighter text-foreground">Action Center</h1>
+                    <div className="flex items-center gap-2 mt-3">
+                        <p className="text-muted-foreground font-mono text-[10px] uppercase tracking-[0.3em]">
+                            {hasActions ? 'Active Mission Parameters' : 'All Systems Operational'}
+                        </p>
+                        <div className={cn("size-2 rounded-full", hasActions ? "bg-primary shadow-glow-primary animate-pulse" : "bg-white/20")} />
+                    </div>
+                </motion.div>
                 
-                <div className="flex gap-4">
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex gap-10 p-6 rounded-3xl bg-white/[0.02] border border-white/5 backdrop-blur-md"
+                >
                     <div className="text-right">
-                        <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Monthly Savings</p>
-                        <div className="text-2xl font-display font-black text-primary">
-                            $<NumberTicker value={monthlySavingsCents / 100} />
+                        <p className="font-mono text-[9px] text-muted-foreground uppercase tracking-widest mb-1">Projected Savings</p>
+                        <div className="text-3xl font-display font-black text-primary flex items-baseline">
+                            <span className="text-sm mr-1 opacity-50">$</span>
+                            <NumberTicker value={monthlySavingsCents / 100} />
+                            <span className="text-xs text-muted-foreground ml-2 font-mono">/MO</span>
                         </div>
                     </div>
-                </div>
+                </motion.div>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 
                 {/* Primary Actions Column */}
-                <div className="lg:col-span-2 space-y-8">
+                <div className="lg:col-span-8 space-y-12">
                     
                     {/* HOST: Pending Requests */}
                     <AnimatePresence mode="popLayout">
                         {pendingRequests.length > 0 && (
                             <motion.section
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0, y: 30 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="space-y-4"
+                                className="space-y-6"
                             >
-                                <div className="flex items-center gap-2">
-                                    <div className="size-2 rounded-full bg-primary animate-pulse" />
-                                    <h2 className="font-display font-bold text-lg">Join Requests</h2>
-                                    <span className="text-xs font-mono text-muted-foreground ml-auto bg-white/5 px-2 py-0.5 rounded-full">
-                                        {pendingRequests.length} pending
-                                    </span>
+                                <div className="flex items-center gap-3">
+                                    <Sparkles size={18} className="text-primary" />
+                                    <h2 className="font-display font-black text-2xl tracking-tight">Access Requests</h2>
+                                    <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
                                 </div>
                                 
-                                <div className="space-y-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {pendingRequests.map((req) => (
-                                        <Card key={req.id} className="border-white/5 bg-transparent glass-premium overflow-hidden transition-all hover:border-primary/20">
-                                            <CardContent className="p-4 flex items-center gap-4">
-                                                <Avatar className="size-10 border border-primary/20">
-                                                    <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                                                        {req.requester?.username?.[0].toUpperCase()}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-display font-bold text-sm truncate">
-                                                        {req.requester?.username} <span className="text-muted-foreground font-normal">wants to join</span> {req.pool?.plan_name}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground mt-0.5 italic truncate">
-                                                        "{req.message || 'No message provided'}"
-                                                    </p>
+                                        <PremiumCard key={req.id} flareColor="rgba(200, 241, 53, 0.12)" className="hover:border-primary/40">
+                                            <div className="p-6 space-y-6">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar className="size-11 border border-primary/20 p-0.5">
+                                                            <AvatarFallback className="bg-primary/5 text-primary font-black text-sm">
+                                                                {req.requester?.username?.[0].toUpperCase()}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <p className="font-display font-black text-sm">{req.requester?.username}</p>
+                                                            <p className="font-mono text-[9px] text-muted-foreground uppercase tracking-tighter">Verified Member</p>
+                                                        </div>
+                                                    </div>
                                                 </div>
+                                                
+                                                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+                                                    <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2">TARGET POOL</p>
+                                                    <p className="text-sm font-display font-bold">{req.pool?.plan_name}</p>
+                                                </div>
+
                                                 <div className="flex gap-2">
-                                                    <Button size="icon" variant="ghost" className="size-8 rounded-full hover:bg-destructive/10 hover:text-destructive">
-                                                        <X size={16} />
+                                                    <Button variant="ghost" className="flex-1 h-11 rounded-xl font-mono text-[10px] uppercase tracking-widest hover:bg-destructive/10 hover:text-destructive">
+                                                        Deny
                                                     </Button>
-                                                    <Button size="icon" className="size-8 rounded-full shadow-glow-primary">
-                                                        <Check size={16} />
+                                                    <Button className="flex-1 h-11 rounded-xl font-mono text-[10px] uppercase tracking-widest bg-primary text-primary-foreground shadow-glow-primary">
+                                                        Approve
                                                     </Button>
                                                 </div>
-                                            </CardContent>
-                                        </Card>
+                                            </div>
+                                        </PremiumCard>
                                     ))}
                                 </div>
                             </motion.section>
@@ -113,43 +134,49 @@ export function ActionCenter() {
                     <AnimatePresence mode="popLayout">
                         {duePayments.length > 0 && (
                             <motion.section
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0, y: 30 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="space-y-4"
+                                className="space-y-6"
                             >
-                                <div className="flex items-center gap-2">
-                                    <div className="size-2 rounded-full bg-blue-500 animate-pulse" />
-                                    <h2 className="font-display font-bold text-lg">Upcoming Payments</h2>
-                                    <span className="text-xs font-mono text-muted-foreground ml-auto bg-white/5 px-2 py-0.5 rounded-full">
-                                        {duePayments.length} outstanding
-                                    </span>
+                                <div className="flex items-center gap-3">
+                                    <CreditCard size={18} className="text-blue-500" />
+                                    <h2 className="font-display font-black text-2xl tracking-tight">Ledger Settlements</h2>
+                                    <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
                                 </div>
 
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     {duePayments.map((payment) => (
-                                        <Card key={payment.id} className="border-white/5 bg-transparent glass-premium transition-all hover:border-blue-500/20">
-                                            <CardContent className="p-6 flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="size-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
-                                                        <CreditCard size={20} />
+                                        <PremiumCard key={payment.id} flareColor="rgba(59, 130, 246, 0.12)" className="hover:border-blue-500/40">
+                                            <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+                                                <div className="flex items-center gap-6">
+                                                    <div className="size-14 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20 shadow-inner">
+                                                        <CreditCard size={24} />
                                                     </div>
                                                     <div>
-                                                        <p className="font-display font-bold text-sm">{payment.pool_name}</p>
-                                                        <p className="font-mono text-[10px] text-muted-foreground uppercase mt-0.5">
-                                                            Due {formatDistanceToNow(new Date(payment.due_at), { addSuffix: true })}
+                                                        <p className="font-display font-black text-lg tracking-tight">{payment.pool_name}</p>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                                                                Deadline: {formatDistanceToNow(new Date(payment.due_at), { addSuffix: true })}
+                                                            </p>
+                                                            <span className="size-1 rounded-full bg-destructive animate-pulse" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex flex-row items-center gap-8 w-full sm:w-auto">
+                                                    <div className="text-center sm:text-right flex-1 sm:flex-none">
+                                                        <p className="font-mono text-[9px] text-muted-foreground uppercase tracking-widest mb-1">Amount Owed</p>
+                                                        <p className="text-2xl font-display font-black text-foreground">
+                                                            ${(payment.amount_cents / 100).toFixed(2)}
                                                         </p>
                                                     </div>
+                                                    <MagneticButton onClick={() => {}} className="bg-blue-600 hover:bg-blue-500 text-white rounded-2xl px-8 h-12 font-display font-bold tracking-tight shadow-xl shadow-blue-600/20 group overflow-hidden">
+                                                        <span className="relative z-10">Instant Pay</span>
+                                                        <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
+                                                    </MagneticButton>
                                                 </div>
-                                                <div className="text-right flex items-center gap-6">
-                                                    <div className="text-lg font-display font-bold text-foreground">
-                                                        ${(payment.amount_cents / 100).toFixed(2)}
-                                                    </div>
-                                                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-6 shadow-lg shadow-blue-500/20">
-                                                        Pay Now
-                                                    </Button>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
+                                            </div>
+                                        </PremiumCard>
                                     ))}
                                 </div>
                             </motion.section>
@@ -158,73 +185,114 @@ export function ActionCenter() {
 
                     {/* Empty State */}
                     {!hasActions && (
-                        <div className="flex flex-col items-center justify-center py-24 border border-dashed border-white/5 rounded-3xl opacity-50 space-y-4">
-                            <div className="size-16 rounded-full bg-white/5 flex items-center justify-center text-primary">
-                                <Check size={32} />
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="flex flex-col items-center justify-center py-20 border border-dashed border-white/5 rounded-[40px] bg-white/[0.01] space-y-6"
+                        >
+                            <div className="size-24 rounded-full bg-primary/5 flex items-center justify-center text-primary group transition-all duration-700 hover:bg-primary/10">
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                                >
+                                    <Sparkles size={40} className="drop-shadow-glow" />
+                                </motion.div>
                             </div>
-                            <div className="text-center">
-                                <h3 className="font-display font-bold text-xl uppercase tracking-tighter">You're all caught up</h3>
-                                <p className="text-sm font-mono mt-1">No pending actions found for your memberships.</p>
+                            <div className="text-center space-y-2">
+                                <h3 className="font-display font-black text-3xl uppercase tracking-tighter">Optimization Complete</h3>
+                                <p className="text-muted-foreground font-mono text-xs uppercase tracking-widest max-w-xs mx-auto leading-loose">
+                                    Zero pending items detected. <br />Your portfolio is fully synchronized.
+                                </p>
                             </div>
-                            <Button variant="outline" size="sm" onClick={() => navigate('/browse')} className="rounded-full">
-                                Browse New Pools
+                            <Button 
+                                variant="outline" 
+                                size="lg" 
+                                onClick={() => navigate('/browse')} 
+                                className="rounded-full border-white/10 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all font-display font-bold uppercase text-[11px] tracking-widest h-12 px-8"
+                            >
+                                Explore Opportunities
                             </Button>
-                        </div>
+                        </motion.div>
                     )}
                 </div>
 
-                {/* Sidebar: Activity & Notifications */}
-                <div className="space-y-8">
-                    <section className="space-y-4">
-                        <div className="flex items-center gap-2">
-                            <Bell size={18} className="text-muted-foreground" />
-                            <h2 className="font-display font-bold text-lg">Activity</h2>
+                {/* Sidebar Column */}
+                <div className="lg:col-span-4 space-y-10">
+                    
+                    {/* Activity Feed */}
+                    <section className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Bell size={18} className="text-muted-foreground" />
+                                <h2 className="font-display font-black text-xl tracking-tight">Signal Feed</h2>
+                            </div>
+                            <span className="font-mono text-[9px] text-muted-foreground uppercase opacity-40">Live Updates</span>
                         </div>
                         
-                        <div className="bg-white/5 border border-white/5 rounded-2xl overflow-hidden divide-y divide-white/5">
+                        <div className="space-y-2">
                             {unreadNotifications.length > 0 ? (
                                 unreadNotifications.map((notif) => (
-                                    <div key={notif.id} className="p-4 hover:bg-white/5 transition-colors group">
-                                        <p className="text-xs font-bold text-foreground leading-snug">{notif.title}</p>
-                                        <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{notif.body}</p>
-                                        <p className="text-[9px] font-mono text-muted-foreground/50 mt-2 uppercase">
-                                            {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
-                                        </p>
-                                    </div>
+                                    <motion.div 
+                                        key={notif.id}
+                                        whileHover={{ x: 4 }}
+                                        className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all cursor-pointer group"
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <p className="text-[10px] font-mono text-primary uppercase tracking-widest">{notif.type}</p>
+                                            <p className="text-[9px] font-mono text-muted-foreground/50">{timeAgo(notif.created_at)}</p>
+                                        </div>
+                                        <p className="text-xs font-bold text-foreground leading-snug group-hover:text-primary transition-colors">{notif.title}</p>
+                                        <p className="text-[11px] text-muted-foreground mt-2 line-clamp-2 leading-relaxed opacity-80">{notif.body}</p>
+                                    </motion.div>
                                 ))
                             ) : (
-                                <div className="p-12 text-center text-muted-foreground">
-                                    <p className="font-mono text-[10px] uppercase tracking-widest">No notifications</p>
+                                <div className="py-20 text-center rounded-2xl border border-dashed border-white/5">
+                                    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground opacity-50">Silencio</p>
                                 </div>
                             )}
                         </div>
                         
-                        <Button variant="ghost" className="w-full text-xs font-mono text-muted-foreground hover:text-primary transition-colors group">
-                           View All Activity <ArrowRight size={12} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                        <Button variant="ghost" className="w-full h-12 rounded-2xl font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-primary group border border-transparent hover:border-primary/20">
+                           Full Archive Access <ArrowRight size={14} className="ml-3 group-hover:translate-x-1 transition-transform" />
                         </Button>
                     </section>
 
-                    {/* Quick Referral/Pro Card */}
-                    <Card className="bg-primary shadow-glow-primary border-none overflow-hidden group">
-                        <CardContent className="p-6 relative">
-                            <div className="relative z-10 space-y-4">
-                                <h3 className="font-display font-black text-2xl text-primary-foreground tracking-tighter leading-none">
-                                    INVITE & <br />SAVE MORE
+                    {/* Pro Upgrade Card */}
+                    <PremiumCard flareColor="rgba(255,255,255,0.05)" className="bg-primary shadow-glow-primary border-none overflow-hidden hover:scale-[1.02] transition-transform duration-500">
+                        <div className="p-8 space-y-6 relative overflow-hidden">
+                            <div className="relative z-10 space-y-2">
+                                <h3 className="font-display font-black text-3xl text-primary-foreground tracking-tighter leading-none italic uppercase">
+                                    Expand <br />Capacity
                                 </h3>
-                                <p className="text-primary-foreground/80 font-mono text-[10px] uppercase tracking-widest">
-                                    Get Pro free for 1 month by inviting 3 friends.
+                                <p className="text-primary-foreground/70 font-mono text-[10px] uppercase tracking-widest leading-relaxed">
+                                    Upgrade to <b>Host Plus</b> to list unlimited pools and get priority signals.
                                 </p>
-                                <Button className="w-full bg-primary-foreground text-primary font-bold hover:bg-white rounded-full">
-                                    Share Referral Link
-                                </Button>
                             </div>
-                            {/* Decorative background circle */}
-                            <div className="absolute -right-8 -bottom-8 size-32 bg-white/20 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-500" />
-                        </CardContent>
-                    </Card>
+                            <Button className="w-full bg-primary-foreground text-primary font-black uppercase tracking-widest text-[11px] hover:bg-white rounded-2xl h-12 shadow-2xl relative z-10">
+                                Upgrade Terminal
+                            </Button>
+                            
+                            {/* Decorative background artifacts */}
+                            <div className="absolute top-0 right-0 size-32 bg-white/10 rounded-full blur-3xl" />
+                            <div className="absolute -bottom-8 -left-8 size-48 bg-white/5 rounded-full blur-[80px]" />
+                        </div>
+                    </PremiumCard>
                 </div>
 
             </div>
         </div>
     );
+}
+
+// Helper (normally imported)
+function timeAgo(iso: string): string {
+    const diff = Date.now() - new Date(iso).getTime();
+    const minutes = Math.floor(diff / 60_000);
+    const hours = Math.floor(diff / 3_600_000);
+    const days = Math.floor(diff / 86_400_000);
+    if (minutes < 1) return 'JUST NOW';
+    if (minutes < 60) return `${minutes}M AGO`;
+    if (hours < 24) return `${hours}H AGO`;
+    if (days < 7) return `${days}D AGO`;
+    return 'LATELY';
 }

@@ -111,8 +111,23 @@ export function LandingPage() {
         show: { opacity: 1, transition: { staggerChildren: 0.1 } }
     };
 
+
+    const mouseX = useMotionValue(0);
+    const mouseY = useMotionValue(0);
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        const { clientX, clientY } = e;
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        mouseX.set((clientX - centerX) / 50);
+        mouseY.set((clientY - centerY) / 50);
+    };
+
     return (
-        <div className="relative min-h-screen bg-[#090909] text-foreground overflow-x-hidden selection:bg-primary selection:text-primary-foreground noise-overlay">
+        <div 
+            onMouseMove={handleMouseMove}
+            className="relative min-h-screen bg-[#090909] text-foreground overflow-x-hidden selection:bg-primary selection:text-primary-foreground noise-overlay"
+        >
 
             {/* ━━━ BACKGROUND ATMOSPHERE ━━━ */}
             <div className="fixed inset-0 bg-background -z-20 aria-hidden pointer-events-none" />
@@ -266,7 +281,11 @@ export function LandingPage() {
                         initial={{ opacity: 0, x: -50, rotate: -5 }}
                         animate={{ opacity: 1, x: 0, rotate: -3 }}
                         transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                        style={{ translateY: useTransform(smoothProgress, [0, 1], [-80, -200]) }}
+                        style={{ 
+                            translateY: useTransform(smoothProgress, [0, 1], [-80, -200]),
+                            x: useSpring(useTransform(mouseX, [-20, 20], [20, -20]), { stiffness: 50, damping: 20 }),
+                            y: useSpring(useTransform(mouseY, [-20, 20], [20, -20]), { stiffness: 50, damping: 20 })
+                        }}
                         className="absolute z-10"
                     >
                         <div className="w-[300px] shadow-premium hover:scale-[1.02] transition-transform duration-500">
@@ -279,7 +298,11 @@ export function LandingPage() {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 1, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                        style={{ translateY: useTransform(smoothProgress, [0, 1], [0, -100]) }}
+                        style={{ 
+                            translateY: useTransform(smoothProgress, [0, 1], [0, -100]),
+                            x: useSpring(useTransform(mouseX, [-20, 20], [-30, 30]), { stiffness: 100, damping: 30 }),
+                            y: useSpring(useTransform(mouseY, [-20, 20], [-30, 30]), { stiffness: 100, damping: 30 })
+                        }}
                         className="absolute z-20"
                     >
                         <div className="w-[300px] shadow-premium hover:scale-[1.05] transition-transform duration-500">
@@ -292,7 +315,11 @@ export function LandingPage() {
                         initial={{ opacity: 0, x: 50, rotate: 5 }}
                         animate={{ opacity: 1, x: 0, rotate: 3 }}
                         transition={{ duration: 1, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                        style={{ translateY: useTransform(smoothProgress, [0, 1], [80, 0]) }}
+                        style={{ 
+                            translateY: useTransform(smoothProgress, [0, 1], [80, 0]),
+                            x: useSpring(useTransform(mouseX, [-20, 20], [10, -10]), { stiffness: 30, damping: 10 }),
+                            y: useSpring(useTransform(mouseY, [-20, 20], [10, -10]), { stiffness: 30, damping: 10 })
+                        }}
                         className="absolute z-10"
                     >
                         <div className="w-[300px] shadow-premium hover:scale-[1.02] transition-transform duration-500">

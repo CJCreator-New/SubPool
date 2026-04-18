@@ -156,10 +156,10 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                                                 isActive={isActive}
                                                 tooltip={item.label}
                                                 className={cn(
-                                                    'font-display font-semibold text-[13px] px-5 h-11 transition-all duration-300',
-                                                    'rounded-r-full border-l-[3px] border-transparent',
-                                                    'text-muted-foreground/70 hover:text-foreground hover:bg-white/5',
-                                                    isActive && 'border-l-primary text-primary bg-primary/10 shadow-[inset_10px_0_20px_-10px_rgba(200,241,53,0.2)]',
+                                                    'font-display font-semibold text-[13px] px-5 h-11 transition-all duration-300 relative group/nav',
+                                                    'rounded-xl border-l-[3px] border-transparent mx-2',
+                                                    'text-muted-foreground/60 hover:text-foreground hover:bg-white/5',
+                                                    isActive && 'border-l-primary text-primary bg-primary/10 shadow-[inner_20px_0_40px_-20px_rgba(200,241,53,0.15)] bg-white/[0.02]',
                                                 )}
                                             >
                                                 <Link to={item.path} className="flex items-center w-full">
@@ -168,8 +168,8 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                                                         isActive && "drop-shadow-[0_0_8px_rgba(200,241,53,0.6)] scale-110"
                                                     )}>{item.icon}</span>
                                                     <span className={cn(
-                                                        "transition-all duration-300",
-                                                        isActive ? "font-black tracking-tight" : "font-semibold"
+                                                        "transition-all duration-500",
+                                                        isActive ? "font-black tracking-tight translate-x-1" : "font-semibold group-hover/nav:translate-x-1"
                                                     )}>{item.label}</span>
                                                     {itemBadge && (
                                                         <span className="ml-auto font-mono text-[10px] bg-primary text-primary-foreground px-1.5 rounded-full leading-5 inline-flex items-center justify-center min-w-[20px] h-5 shadow-[0_2px_8px_rgba(200,241,53,0.3)]">
