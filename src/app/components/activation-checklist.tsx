@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { track } from '../../lib/analytics';
 import { useAuth } from '../../lib/supabase/auth';
 import { useMemberships, useNotifications, useReferralStats } from '../../lib/supabase/hooks';
+import { cn } from './ui/utils';
 
 type ChecklistStepId = 'profile_completed' | 'first_join_request' | 'notification_interaction' | 'invite_friends';
 
@@ -55,29 +56,51 @@ export function ActivationChecklist() {
   if (!user || remaining === 0) return null;
 
   return (
-    <section className="rounded-[8px] border border-border bg-card p-4">
-      <div className="mb-3">
-        <p className="font-display text-base font-bold text-foreground">Getting Started Checklist</p>
-        <p className="font-mono text-[11px] text-muted-foreground">
-          Complete these to unlock the full SubPool experience.
+    <section className="rounded-2xl border border-white/5 bg-transparent glass-premium p-6 shadow-premium">
+      <div className="mb-5">
+        <p className="font-display text-lg font-black text-foreground tracking-tight">Getting Started</p>
+        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
+          {4 - remaining}/4 tasks completed
         </p>
       </div>
-      <ul className="space-y-2">
-        {steps.map((step) => (
-          <li key={step} className="flex items-center justify-between rounded-[6px] border border-border px-3 py-2">
-            <span className="font-display text-sm text-foreground">{STEP_LABELS[step]}</span>
-            {completed[step] ? (
-              <span className="font-mono text-[11px] text-success">Done</span>
-            ) : (
-              <Link
-                to={STEP_ACTIONS[step].path}
-                className="rounded-[4px] border border-primary/40 px-2 py-1 font-mono text-[10px] uppercase tracking-wide text-primary hover:bg-primary/10"
-              >
-                {STEP_ACTIONS[step].label}
-              </Link>
-            )}
-          </li>
-        ))}
+      <ul className="space-y-2.5">
+        {steps.map((step) => {
+          const isDone = completed[step];
+          return (
+            <li 
+              key={step} 
+              className={cn(
+                "flex items-center justify-between rounded-xl px-4 py-3 transition-all duration-300",
+                isDone 
+                  ? "bg-primary/5 border border-primary/10 opacity-60" 
+                  : "bg-white/5 border border-white/5 hover:border-primary/30"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "size-5 rounded-full border-2 flex items-center justify-center transition-colors",
+                  isDone ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30"
+                )}>
+                  {isDone && <span className="text-[10px] font-black">✓</span>}
+                </div>
+                <span className={cn(
+                    "font-display text-sm",
+                    isDone ? "text-muted-foreground line-through" : "text-foreground font-semibold"
+                )}>
+                  {STEP_LABELS[step]}
+                </span>
+              </div>
+              {!isDone && (
+                <Link
+                  to={STEP_ACTIONS[step].path}
+                  className="rounded-full bg-primary/10 px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-primary font-black hover:bg-primary hover:text-primary-foreground transition-all"
+                >
+                  {STEP_ACTIONS[step].label}
+                </Link>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

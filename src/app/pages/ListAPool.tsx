@@ -46,12 +46,12 @@ function StepIndicator({ step }: { step: number }) {
           {/* Circle */}
           <div
             className={`
-              w-8 h-8 rounded-full flex items-center justify-center text-xs font-mono font-bold transition-all
+              w-10 h-10 rounded-full flex items-center justify-center text-xs font-mono font-black transition-all duration-300
               ${step > n
-                ? 'bg-primary/30 text-primary'
+                ? 'bg-primary/20 text-primary border border-primary/20'
                 : step === n
-                  ? 'bg-primary text-primary-foreground'
-                  : 'border border-border text-muted-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-glow-primary'
+                  : 'bg-white/5 border border-white/5 text-muted-foreground'
               }
             `}
           >
@@ -92,7 +92,6 @@ export function ListAPool() {
   const [paywallOpen, setPaywallOpen] = useState(false);
 
   const userPlan = profile?.plan || 'free';
-  // Simplified for execution: we'll count pools in a useEffect or use a simplified check
   const [hostedCount, setHostedCount] = useState(0);
 
   React.useEffect(() => {
@@ -107,7 +106,6 @@ export function ListAPool() {
   }, [user?.id]);
 
 
-  // Computed
   const pricePerSlot =
     form.totalCost && form.slots
       ? (parseFloat(form.totalCost) / parseInt(form.slots)).toFixed(2)
@@ -125,7 +123,6 @@ export function ListAPool() {
   const updateForm = (key: string, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  // Auto-fill form values when platform is selected
   React.useEffect(() => {
     if (selectedPlatform && step === 2 && !form.planName) {
       const plans = PLATFORM_PRICING_SEED.filter((s: PlatformPricing) => s.platform_id === selectedPlatform && s.currency === currency);
@@ -139,13 +136,11 @@ export function ListAPool() {
     }
   }, [selectedPlatform, step, currency]);
 
-  // Fetch market metrics
   React.useEffect(() => {
     if (selectedPlatform && form.planName) {
       import('../../lib/pricing-service').then(m => {
         m.getMarketMetrics(selectedPlatform, form.planName).then(data => {
           setMarketMetrics(data);
-          // Simple heuristic for "LIVE": if it has more than just seed fallback properties or if we can detect DB connection
           setIsLive(!!data && !data.is_mock);
         });
       });
@@ -153,7 +148,6 @@ export function ListAPool() {
   }, [selectedPlatform, form.planName]);
 
 
-  // Pricing Intelligence computation
   const analysis = React.useMemo(() => {
     if (!selectedPlatform || !form.planName || !form.slots || !form.totalCost) return null;
     return analyzePricing({
@@ -167,7 +161,6 @@ export function ListAPool() {
   }, [selectedPlatform, form.planName, form.totalCost, form.slots, currency]);
 
 
-  // Pricing Guard logic
   const handleContinueToStep3 = () => {
     if (analysis && (analysis.band === 'overpriced' || analysis.band === 'aggressive' || analysis.band === 'steal')) {
       track('pricing_guard_shown', { band: analysis.band, userPrice: analysis.userSlotPrice, platformId: selectedPlatform });
@@ -187,8 +180,6 @@ export function ListAPool() {
   }, [step, analysis?.band, selectedPlatform, form.planName, form.slots, currency]);
 
 
-  // ─── Step 1 — Choose Platform ──────────────────────────────────────────────
-
   const sharingNote =
     selectedPlatform && form.planName
       ? getPlatformSharingNote(selectedPlatform, form.planName)
@@ -196,7 +187,6 @@ export function ListAPool() {
         ? getPlatformSharingNote(selectedPlatform, PLATFORM_PRICING_SEED.find((s: PlatformPricing) => s.platform_id === selectedPlatform)?.plan_name || '')
         : null;
 
-  // Platform Search — P3 Feature
   const [searchQuery, setSearchQuery] = useState('');
   const [allPricing, setAllPricing] = useState<any[]>([]);
   const [allPlatforms, setAllPlatforms] = useState<any[]>([]);
@@ -204,7 +194,6 @@ export function ListAPool() {
   React.useEffect(() => {
     getPricingData().then((data: any[]) => {
       setAllPricing(data);
-      // Extract unique platforms from pricing data
       const unique = Array.from(new Set(data.map((p: any) => p.platform_id))).map(id => {
         const item = data.find((p: any) => p.platform_id === id);
         const staticP = PLATFORMS.find(sp => sp.id === id);
@@ -248,10 +237,10 @@ export function ListAPool() {
               key={p.id}
               onClick={() => setSelectedPlatform(p.id)}
               className={`
-                flex flex-col items-center p-3 border rounded-[6px] transition-all text-center cursor-pointer min-h-[90px]
+                flex flex-col items-center p-4 border rounded-xl transition-all text-center cursor-pointer min-h-[100px]
                 ${isSelected
-                  ? 'border-primary bg-primary/8 text-primary'
-                  : 'border-border hover:border-muted-foreground'
+                  ? 'border-primary bg-primary/10 text-primary shadow-glow-primary scale-[1.02]'
+                  : 'border-white/5 bg-white/5 hover:border-white/20 hover:bg-white/10'
                 }
               `}
             >
@@ -260,20 +249,14 @@ export function ListAPool() {
               ) : (
                 <span className="text-xl mb-1">{p.icon}</span>
               )}
-              <span className="font-display font-semibold text-[11px] mt-1.5 line-clamp-2">
+              <span className="font-display font-black text-[10px] uppercase tracking-wider mt-2 line-clamp-2">
                 {p.name}
               </span>
             </button>
           );
         })}
-
-        {/* If searching and no results found in DB either, we still allow custom? Or just show nothing. 
-            Per requirement: "search and select option for the new saas based products" 
-            The platform_pricing table has many more products now from the consolidated seed.
-        */}
       </div>
 
-      {/* Sharing Policy Note */}
       {sharingNote && (
         <div
           className={`mt-6 p-3 rounded-[6px] border transition-all ${sharingNote.policy === 'allowed'
@@ -292,8 +275,8 @@ export function ListAPool() {
               }`}
           >
             {sharingNote.policy === 'allowed' && `✅ ${platform?.name || 'Platform'} officially supports account sharing on family plans.`}
-            {sharingNote.policy === 'grey_area' && `⚠ï¸  ${platform?.name || 'Platform'} is licensed per-user. Position this pool as cost-splitting for small teams, not credential sharing.`}
-            {sharingNote.policy === 'not_recommended' && `ℹï¸  ${platform?.name || 'Platform'} requires each user to have their own seat. Use SubPool to coordinate team billing, not share one login.`}
+            {sharingNote.policy === 'grey_area' && `⚠️ ${platform?.name || 'Platform'} is licensed per-user. Position this pool as cost-splitting for small teams, not credential sharing.`}
+            {sharingNote.policy === 'not_recommended' && `ℹ️ ${platform?.name || 'Platform'} requires each user to have their own seat. Use SubPool to coordinate team billing, not share one login.`}
           </p>
         </div>
       )}
@@ -322,22 +305,14 @@ export function ListAPool() {
     </div>
   );
 
-  // ─── Step 2 — Configure ────────────────────────────────────────────────────
-
   const renderStep2 = () => {
     const plans = allPricing.filter((s: any) => s.platform_id === selectedPlatform && s.currency === currency);
-
     return (
       <div className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-8">
-        {/* Left Column - Form */}
         <div className="flex-1 space-y-5 lg:min-w-[400px]">
           <h2 className="font-display font-bold text-xl mb-6">Configure your pool</h2>
-
-          {/* Plan Name */}
           <div className="space-y-1.5">
-            <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              Plan Name
-            </Label>
+            <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Plan Name</Label>
             {plans.length > 0 ? (
               <Select
                 value={form.planName}
@@ -366,19 +341,10 @@ export function ListAPool() {
               />
             )}
           </div>
-
-          {/* Category */}
           <div className="space-y-1.5">
-            <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              Category
-            </Label>
-            <Select
-              value={form.category}
-              onValueChange={(v) => updateForm('category', v)}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
+            <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Category</Label>
+            <Select value={form.category} onValueChange={(v) => updateForm('category', v)}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="entertainment">Entertainment (OTT)</SelectItem>
                 <SelectItem value="productivity">Productivity (SaaS)</SelectItem>
@@ -386,79 +352,37 @@ export function ListAPool() {
               </SelectContent>
             </Select>
           </div>
-
-          {/* 2-col: Cost + Slots */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <div className="flex justify-between items-center h-4">
-                <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Total cost / mo
-                </Label>
-                {/* Currency Toggle */}
-                <div className="scale-75 origin-top-right">
-                  <CurrencyToggle />
-                </div>
+                <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Total cost / mo</Label>
+                <div className="scale-75 origin-top-right"><CurrencyToggle /></div>
               </div>
               <div className="relative">
                 <span className="absolute left-3 top-2 text-muted-foreground font-mono">{sym}</span>
-                <Input
-                  className="pl-7"
-                  type="number"
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  value={form.totalCost}
-                  onChange={(e) => updateForm('totalCost', e.target.value)}
-                />
+                <Input className="pl-7" type="number" placeholder="0.00" value={form.totalCost} onChange={(e) => updateForm('totalCost', e.target.value)} />
               </div>
             </div>
-
             <div className="space-y-1.5">
-              <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground flex items-center h-4">
-                Total Slots
-              </Label>
-              <Input
-                type="number"
-                placeholder="2"
-                min="2"
-                max="10"
-                value={form.slots}
-                onChange={(e) => updateForm('slots', e.target.value)}
-              />
+              <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground flex items-center h-4">Total Slots</Label>
+              <Input type="number" placeholder="2" min="2" max="10" value={form.slots} onChange={(e) => updateForm('slots', e.target.value)} />
             </div>
           </div>
-
-          {/* Billing Cycle */}
           <div className="space-y-1.5">
-            <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              Billing Cycle
-            </Label>
-            <Select
-              value={form.billingCycle}
-              onValueChange={(v) => updateForm('billingCycle', v)}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
+            <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Billing Cycle</Label>
+            <Select value={form.billingCycle} onValueChange={(v) => updateForm('billingCycle', v)}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="monthly">Monthly</SelectItem>
                 <SelectItem value="yearly">Yearly</SelectItem>
               </SelectContent>
             </Select>
           </div>
-
-          {/* Nav */}
           <div className="flex justify-between pt-6">
-            <Button variant="ghost" onClick={() => setStep(1)}>
-              Back
-            </Button>
-            <Button disabled={!allFieldsFilled} onClick={handleContinueToStep3}>
-              Continue
-            </Button>
+            <Button variant="ghost" onClick={() => setStep(1)}>Back</Button>
+            <Button disabled={!allFieldsFilled} onClick={handleContinueToStep3}>Continue</Button>
           </div>
         </div>
-
-        {/* Right Column - Pricing Intelligence Panel */}
         <div className="lg:w-[320px] lg:border-l lg:border-border lg:pl-8 mt-8 lg:mt-0 flex flex-col gap-6">
           <div className="flex items-center gap-2">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Pricing Intelligence</span>
@@ -467,167 +391,21 @@ export function ListAPool() {
               <span className="text-[9px] font-mono font-bold tracking-wider text-muted-foreground">{isLive ? 'LIVE' : 'SEED'}</span>
             </div>
           </div>
-
-
           {analysis ? (
             <>
-              {/* Section A: Official Pricing Reference */}
               <div className="grid grid-cols-2 gap-y-2 font-mono text-[12px]">
-                <div className="text-muted-foreground">Official solo:</div>
-                <div className="text-right">{sym}{analysis.officialSoloPrice.toFixed(2)}</div>
-
-                <div className="text-muted-foreground">Max seats:</div>
-                <div className="text-right">{form.slots}</div>
-
-                <div className="text-muted-foreground">Category:</div>
-                <div className="text-right truncate">{platform?.category}</div>
+                <div className="text-muted-foreground">Official solo:</div><div className="text-right">{sym}{analysis.officialSoloPrice.toFixed(2)}</div>
+                <div className="text-muted-foreground">Max seats:</div><div className="text-right">{form.slots}</div>
               </div>
-
-              {/* Section B: Gauge */}
               <div className="bg-card border rounded-[8px] p-5 shadow-sm text-center">
                 <div className="font-display font-bold text-[36px]" style={{ color: analysis.color }}>
                   {sym}{analysis.userSlotPrice.toFixed(2)}<span className="text-xl text-muted-foreground opacity-50">/mo</span>
                 </div>
-
-                {/* Horizontal Gauge */}
                 <div className="relative h-2 rounded-full bg-muted mt-4 overflow-hidden">
-                  <div
-                    className="absolute top-0 left-0 h-full rounded-full transition-all duration-300"
-                    style={{
-                      width: `${Math.min(100, (analysis.userSlotPrice / analysis.officialSoloPrice) * 100)}%`,
-                      backgroundColor: analysis.color
-                    }}
-                  />
+                  <div className="absolute top-0 left-0 h-full transition-all duration-300" style={{ width: `${Math.min(100, (analysis.userSlotPrice / analysis.officialSoloPrice) * 100)}%`, backgroundColor: analysis.color }} />
                 </div>
-                {/* Tick marks */}
-                <div className="relative h-4 mt-1">
-                  <div className="absolute left-[65%] w-px h-1.5 bg-border top-0" />
-                  <div className="absolute left-[75%] w-px h-2 bg-muted-foreground top-0" />
-                  <div className="absolute left-[85%] w-px h-1.5 bg-border top-0" />
-                  <div className="flex justify-between w-full font-mono text-[9px] text-muted-foreground mt-1.5">
-                    <span>Min</span>
-                    <span className="text-primary font-bold">Sweet spot</span>
-                    <span>Max</span>
-                  </div>
-                </div>
-
-
-                <div
-                  className="mt-4 font-mono text-[11px] font-bold border rounded-full px-3 py-1 inline-block"
-                  style={{ color: analysis.color, borderColor: `${analysis.color}40` }}
-                >
-                  {analysis.label.toUpperCase()}
-                </div>
-
-                {analysis.warningMessage && (
-                  <div className="mt-4 p-2.5 rounded-[6px] font-mono text-[11px] text-left leading-relaxed" style={{ backgroundColor: '#F5A62310', border: '1px solid #F5A62320', color: '#F5A623' }}>
-                    {analysis.warningMessage}
-                  </div>
-                )}
-                {analysis.tipMessage && (
-                  <div className="mt-4 p-2.5 rounded-[6px] font-mono text-[11px] text-left leading-relaxed" style={{ backgroundColor: `${analysis.color}15`, border: `1px solid ${analysis.color}30`, color: analysis.color }}>
-                    {analysis.tipMessage}
-                  </div>
-                )}
+                <div className="mt-4 font-mono text-[11px] font-bold border rounded-full px-3 py-1 inline-block" style={{ color: analysis.color, borderColor: `${analysis.color}40` }}>{analysis.label.toUpperCase()}</div>
               </div>
-
-              {/* Section C: Economics Breakdown */}
-              <div className="space-y-3 font-mono text-[12px]">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Members save:</span>
-                  <span className="font-bold text-[#4DFF91]">{analysis.savingsPct.toFixed(0)}% vs solo</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">You earn/mo:</span>
-                  <span>{sym}{analysis.hostEarnings.toFixed(2)} from members</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Your net cost:</span>
-                  <span className={analysis.hostEarnings > analysis.officialSoloPrice ? 'text-primary' : ''}>
-                    {sym}{(analysis.officialSoloPrice - analysis.hostEarnings).toFixed(2)}
-                  </span>
-                </div>
-                <p className="font-mono text-[10px] text-muted-foreground mt-1 leading-tight border-t pt-2">
-                  You pay {sym}{analysis.officialSoloPrice.toFixed(2)},
-                  collect {sym}{analysis.hostEarnings.toFixed(2)} from {parseInt(form.slots) - 1} members.
-                </p>
-              </div>
-
-              {/* Section D: Market Comparison */}
-              {marketMetrics && (
-                <div className="space-y-3">
-                  <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                    MARKET RATES FOR {platform?.name.toUpperCase()} {form.planName.toUpperCase()}
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="relative h-12 flex items-end gap-1">
-                      {[
-                        { label: 'Min', value: marketMetrics.min_slot_price },
-                        { label: 'Median', value: marketMetrics.median_slot_price },
-                        { label: 'Max', value: marketMetrics.max_slot_price }
-                      ].map((m, i) => {
-                        const maxValue = Math.max(marketMetrics.max_slot_price, analysis.userSlotPrice);
-                        const height = (m.value / maxValue) * 100;
-                        return (
-                          <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                            <div className="w-full bg-muted rounded-t-[2px] relative overflow-hidden h-8">
-                              <div
-                                className="absolute bottom-0 left-0 w-full bg-primary/40 transition-all duration-500"
-                                style={{ height: `${height}%` }}
-                              />
-                              {/* Price Marker for user's price */}
-                              {i === 1 && (
-                                <div
-                                  className="absolute bottom-0 left-1/2 -ml-1 transition-all duration-300 z-10"
-                                  style={{ bottom: `${(analysis.userSlotPrice / maxValue) * 100}%` }}
-                                >
-                                  <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[6px] border-b-primary" />
-                                </div>
-                              )}
-                            </div>
-                            <span className="font-mono text-[9px] text-muted-foreground">{sym}{m.value.toFixed(0)}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="font-mono text-[10px] text-muted-foreground">
-                    Based on {marketMetrics.pool_count || 12} active pools
-                  </div>
-                </div>
-              )}
-
-
-              {/* Section E: Suggestion CTA */}
-              {(analysis.band === 'steal' || analysis.band === 'overpriced' || analysis.band === 'aggressive') && (
-                <div
-                  className={`mt-2 p-3 rounded-[6px] border ${analysis.band === 'steal' ? 'border-primary/30' : 'border-[#F5A623]/30'
-                    }`}
-                >
-                  <p className="font-bold font-display text-base mb-1">
-                    {analysis.band === 'steal'
-                      ? `You could charge ${sym}${getSuggestion(selectedPlatform!, form.planName, parseInt(form.slots), currency).recommended.toFixed(0)} and still save members ${Math.round((1 - (getSuggestion(selectedPlatform!, form.planName, parseInt(form.slots), currency).recommended / analysis.officialSoloPrice)) * 100)}%`
-                      : `Suggested: ${sym}${getSuggestion(selectedPlatform!, form.planName, parseInt(form.slots), currency).recommended.toFixed(0)}/slot`
-                    }
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 -ml-2 text-primary"
-                    onClick={() => {
-                      const sugg = getSuggestion(selectedPlatform!, form.planName, parseInt(form.slots), currency);
-                      track('pricing_suggestion_applied', { platformId: selectedPlatform, suggestedPrice: sugg.recommended });
-                      updateForm('totalCost', (sugg.recommended * parseInt(form.slots)).toFixed(0));
-                    }}
-                  >
-                    Apply suggestion →
-                  </Button>
-                </div>
-              )}
-
-
             </>
           ) : (
             <div className="flex items-center justify-center h-48 border border-dashed rounded-[8px] opacity-50">
@@ -639,221 +417,78 @@ export function ListAPool() {
     );
   };
 
-  // ─── Step 3 — Review ───────────────────────────────────────────────────────
-
   const handlePublish = async () => {
-  if (!selectedPlatform || !platform || !user) return;
-  if (!pricePerSlot || Number.isNaN(Number(pricePerSlot))) {
-    toast.error('Please verify total cost and slots before publishing.');
-    return;
-  }
-
-  setSubmitting(true);
-  const slotPriceCents = Math.round(parseFloat(pricePerSlot) * 100);
-
-  try {
-    const result = await createPool({
-      platform: selectedPlatform,
-      owner_id: user.id,
-      category: form.category,
-      status: 'open',
-      plan_name: form.planName,
-      price_per_slot: slotPriceCents,
-      total_slots: parseInt(form.slots),
-      auto_approve: false,
-      description: null,
-    });
-
-    if (!result.success) {
-      const friendly = getUserFacingError(result.error, 'publish this pool');
-      toast.error(friendly.message);
-      return;
+    if (!selectedPlatform || !platform || !user) return;
+    setSubmitting(true);
+    const slotPriceCents = Math.round(parseFloat(pricePerSlot!) * 100);
+    try {
+      const result = await createPool({
+        platform: selectedPlatform,
+        owner_id: user.id,
+        category: form.category,
+        status: 'open',
+        plan_name: form.planName,
+        price_per_slot: slotPriceCents,
+        total_slots: parseInt(form.slots),
+        auto_approve: false,
+        description: null,
+      });
+      if (!result.success) throw result.error;
+      track('pool_created', { platformId: selectedPlatform, slotPrice: slotPriceCents });
+      navigate('/my-pools');
+      toast.success('Your pool is live!');
+    } catch (error) {
+      toast.error(getUserFacingError(error, 'publish this pool').message);
+    } finally {
+      setSubmitting(false);
     }
-
-    track('pool_created', { platformId: selectedPlatform, slotPrice: slotPriceCents, band: analysis?.band, totalSlots: parseInt(form.slots) });
-    navigate('/my-pools');
-    toast.success('Your pool is live!');
-  } catch (error) {
-    const friendly = getUserFacingError(error, 'publish this pool');
-    toast.error(friendly.message);
-  } finally {
-    setSubmitting(false);
-  }
-};
-
-  const summaryRows = [
-    { label: 'Platform', value: platform?.name ?? '' },
-    { label: 'Plan', value: form.planName },
-    { label: 'Category', value: form.category.charAt(0).toUpperCase() + form.category.slice(1) },
-    { label: 'Total cost', value: `${sym}${parseFloat(form.totalCost).toFixed(2)}` },
-    { label: 'Slots', value: form.slots },
-    {
-      label: 'Price per slot',
-      value: `${sym}${pricePerSlot}/mo`,
-      highlight: true,
-    },
-    { label: 'Billing cycle', value: form.billingCycle === 'monthly' ? 'Monthly' : 'Yearly' },
-  ];
+  };
 
   const renderStep3 = () => (
     <div className="max-w-lg mx-auto">
       <h2 className="font-display font-bold text-xl mb-6">Review your pool</h2>
-
-      {/* Summary Card */}
       <div className="bg-card border rounded-[6px] p-6">
-        {/* Header */}
         <div className="flex items-center gap-3 mb-5">
           <PlatformIcon platformId={selectedPlatform ?? ''} size="lg" />
           <div>
             <div className="font-display font-bold text-base">{platform?.name}</div>
-            <div className="font-mono text-[11px] text-muted-foreground flex items-center gap-2">
-              {form.planName}
-              {analysis && (
-                <span
-                  className="px-2 py-0.5 rounded-full border text-[9px] font-bold tracking-wider uppercase"
-                  style={{ color: analysis.color, borderColor: `${analysis.color}40`, backgroundColor: `${analysis.color}10` }}
-                >
-                  {analysis.label}
-                </span>
-              )}
-            </div>
+            <div className="font-mono text-[11px] text-muted-foreground">{form.planName}</div>
           </div>
         </div>
-
-        {/* Key/value rows */}
-        {summaryRows.map((row, i) => (
-          <div
-            key={row.label}
-            className={`flex justify-between items-center py-3 border-b border-border`}
-          >
-            <span className="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">
-              {row.label}
-            </span>
-            <div className="flex items-center gap-2">
-              {row.label === 'Price per slot' && analysis && (
-                <span
-                  className="px-2 py-0.5 rounded-full border text-[9px] font-bold tracking-wider uppercase"
-                  style={{ color: analysis.color, borderColor: `${analysis.color}40`, backgroundColor: `${analysis.color}10` }}
-                >
-                  {analysis.label}
-                </span>
-              )}
-              <span
-                className={
-                  row.highlight
-                    ? 'font-display font-bold text-xl text-primary'
-                    : 'font-mono text-sm'
-                }
-              >
-                {row.value}
-              </span>
-            </div>
+        {[
+          { label: 'Platform', value: platform?.name ?? '' },
+          { label: 'Plan', value: form.planName },
+          { label: 'Price per slot', value: `${sym}${pricePerSlot}/mo`, highlight: true }
+        ].map((row) => (
+          <div key={row.label} className="flex justify-between items-center py-3 border-b border-border">
+            <span className="font-mono text-[11px] text-muted-foreground uppercase">{row.label}</span>
+            <span className={row.highlight ? 'font-display font-bold text-xl text-primary' : 'font-mono text-sm'}>{row.value}</span>
           </div>
         ))}
-
-
-        {/* Economics Sub-summary */}
-        {analysis && (
-          <div className="py-4 border-b border-border bg-muted/30 -mx-6 px-6 relative">
-            <span className="font-mono text-[11px] text-muted-foreground uppercase tracking-wider block mb-2">Pool Economics</span>
-            <div className="space-y-1.5 font-mono text-xs">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Member savings:</span>
-                <span className="font-bold text-[#4DFF91]">{analysis.savingsPct.toFixed(0)}% vs solo</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Cost offset:</span>
-                <span className="font-bold text-primary">
-                  {analysis.hostOffset.toFixed(0)}% of total
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Your net cost:</span>
-                <span className={analysis.hostEarnings > analysis.officialSoloPrice ? 'text-primary' : ''}>
-                  {sym}{(analysis.officialSoloPrice - analysis.hostEarnings).toFixed(0)}/mo
-                </span>
-              </div>
-
-            </div>
-          </div>
-        )}
       </div>
-
-      {/* Publish Button */}
-      <Button
-        className="w-full h-12 text-base mt-6"
-        disabled={submitting}
-        onClick={handlePublish}
-      >
+      <Button className="w-full h-12 text-base mt-6" disabled={submitting} onClick={handlePublish}>
         {submitting ? 'Publishing...' : '🚀 Publish Pool'}
       </Button>
-
-      {/* Back */}
-      <Button
-        variant="ghost"
-        className="w-full mt-3"
-        onClick={() => setStep(2)}
-        disabled={submitting}
-      >
-        Back
-      </Button>
+      <Button variant="ghost" className="w-full mt-3" onClick={() => setStep(2)}>Back</Button>
     </div>
   );
 
-  // ─── Modals ────────────────────────────────────────────────────────────────
-  const renderGuardModal = () => {
-    if (!analysis) return null;
-    const isOverpriced = analysis.band === 'overpriced' || analysis.band === 'aggressive';
-
-    return (
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {isOverpriced
-                ? 'Your price is above the usual range'
-                : "You're significantly undercharging"}
-            </DialogTitle>
-            <DialogDescription className="pt-2 font-mono text-sm leading-relaxed">
-              {isOverpriced ? (
-                <>At <span className="text-foreground font-bold">{sym}{analysis.userSlotPrice.toFixed(0)}</span>/slot, you're charging more than the typical solo plan. Most users will see better options elsewhere. Are you sure?</>
-              ) : (
-                <>At <span className="text-foreground font-bold">{sym}{analysis.userSlotPrice.toFixed(0)}</span>/slot, you're essentially subsidising members. The fair range for this pool is <span className="text-[#4DFF91] font-bold" role="img" aria-label="icon">{sym}{analysis.fairRangeMin.toFixed(0)}–{sym}{analysis.fairRangeMax.toFixed(0)}</span>/slot.</>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-2 mt-4">
-            <Button variant="ghost" onClick={() => {
-              track('pricing_guard_overridden', { band: analysis.band });
-              setModalOpen(false);
-              setStep(3);
-            }}>
-              {isOverpriced ? 'Continue anyway' : "That's fine, continue"}
-            </Button>
-            <Button onClick={() => {
-              const sugg = getSuggestion(selectedPlatform!, form.planName, parseInt(form.slots), currency);
-              track('pricing_suggestion_applied', { platformId: selectedPlatform, suggestedPrice: sugg.recommended });
-              setModalOpen(false);
-              updateForm('totalCost', (sugg.recommended * parseInt(form.slots)).toFixed(0));
-            }}>
-              {isOverpriced ? 'Lower my price' : 'Adjust price'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-    );
-  };
-
-  // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="py-6">
+    <div className="container py-12 px-4">
+      <div className="text-center mb-10">
+        <h1 className="font-display font-black text-3xl tracking-tight text-foreground">List a Pool</h1>
+        <p className="text-muted-foreground font-display text-sm mt-2">Start sharing and offset your costs</p>
+      </div>
       <StepIndicator step={step} />
       {step === 1 && renderStep1()}
       {step === 2 && renderStep2()}
       {step === 3 && renderStep3()}
-      {renderGuardModal()}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Pricing Check</DialogTitle><DialogDescription>Your pricing is {analysis?.band}. Do you want to continue?</DialogDescription></DialogHeader>
+          <DialogFooter><Button onClick={() => setModalOpen(false)}>Refine Price</Button><Button onClick={() => { setModalOpen(false); setStep(3); }}>Continue anyway</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-

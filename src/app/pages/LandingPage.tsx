@@ -6,6 +6,7 @@ import { PLATFORMS } from '../../lib/constants';
 import type { Pool } from '../../lib/types';
 import { cn } from '../components/ui/utils';
 import { useAuth } from '../../lib/supabase/auth';
+import { motion, useScroll, useTransform, useSpring } from 'motion/react';
 
 export function LandingPage() {
     const navigate = useNavigate();
@@ -100,13 +101,23 @@ export function LandingPage() {
         },
     ];
 
+    const { scrollYProgress } = useScroll();
+    const smoothProgress = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
+    const heroOpacity = useTransform(smoothProgress, [0, 0.2], [1, 0]);
+    const heroScale = useTransform(smoothProgress, [0, 0.2], [1, 0.95]);
+
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    };
+
     return (
-        <div className="relative min-h-screen bg-[#0E0E0E] text-foreground overflow-x-hidden selection:bg-primary selection:text-primary-foreground">
+        <div className="relative min-h-screen bg-[#090909] text-foreground overflow-x-hidden selection:bg-primary selection:text-primary-foreground noise-overlay">
 
             {/* ━━━ BACKGROUND ATMOSPHERE ━━━ */}
             <div className="fixed inset-0 bg-background -z-20 aria-hidden pointer-events-none" />
-            <div className="fixed top-0 right-0 w-[600px] h-[300px] bg-primary/6 blur-[120px] rounded-full -z-10 aria-hidden pointer-events-none" />
-            <div className="fixed top-1/2 left-0 w-[500px] h-[400px] bg-[#0D4F3C]/10 blur-[100px] rounded-full -z-10 aria-hidden pointer-events-none" />
+            <div className="fixed top-0 right-0 w-[600px] h-[300px] bg-primary/10 blur-[120px] rounded-full -z-10 aria-hidden pointer-events-none animate-pulse" style={{ animationDuration: '8s' }} />
+            <div className="fixed bottom-0 left-0 w-[500px] h-[400px] bg-[#0D4F3C]/20 blur-[100px] rounded-full -z-10 aria-hidden pointer-events-none" />
 
             {/* ━━━ NAVBAR ━━━ */}
             <nav className="fixed top-0 left-0 right-0 h-16 flex items-center justify-between px-6 md:px-12 bg-background/80 backdrop-blur-md border-b border-[#2A2A2A]/50 z-50">
@@ -143,25 +154,38 @@ export function LandingPage() {
                 </div>
 
                 {/* LEFT HALF */}
-                <div className="w-full md:w-1/2 px-6 md:px-16 py-16 md:py-24 flex flex-col justify-center">
+                <motion.div 
+                    style={{ opacity: heroOpacity, scale: heroScale }}
+                    className="w-full md:w-1/2 px-6 md:px-16 py-16 md:py-24 flex flex-col justify-center relative z-10"
+                >
                     {/* Mobile Logo Repeat */}
                     <div className="md:hidden flex items-center gap-0 mb-10">
                         <span className="font-display font-black text-2xl text-white">Sub</span>
                         <span className="font-display font-black text-2xl text-primary">Pool</span>
                     </div>
 
-                    <div className="mt-4 md:mt-12 space-y-1">
-                        <h1 className="font-display font-black text-[42px] md:text-[52px] leading-[1.05] tracking-[-2px] text-foreground">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                        className="mt-4 md:mt-12 space-y-1"
+                    >
+                        <h1 className="font-display font-black text-[42px] md:text-[64px] leading-[0.95] tracking-[-3px] text-foreground">
                             Share subscriptions.
                         </h1>
-                        <h1 className="font-display font-black text-[42px] md:text-[52px] leading-[1.05] tracking-[-2px] text-primary">
+                        <h1 className="font-display font-black text-[42px] md:text-[64px] leading-[0.95] tracking-[-3px] text-primary">
                             Split the cost.
                         </h1>
-                    </div>
+                    </motion.div>
 
-                    <p className="mt-5 max-w-[460px] font-display font-normal text-base md:text-[18px] text-muted-foreground leading-relaxed">
+                    <motion.p 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                        className="mt-6 max-w-[460px] font-display font-normal text-base md:text-[20px] text-muted-foreground/80 leading-relaxed"
+                    >
                         No awkward group chats. No ghosting. No overpaying for a plan nobody else is using.
-                    </p>
+                    </motion.p>
 
                     <div className="mt-8 space-y-3.5">
                         {[
@@ -235,28 +259,46 @@ export function LandingPage() {
                 {/* RIGHT HALF */}
                 <div className="hidden md:flex flex-1 relative items-center justify-center overflow-visible">
                     {/* Background Glow */}
-                    <div className="absolute w-[400px] h-[200px] bg-primary/8 blur-[80px] rounded-full aria-hidden pointer-events-none" />
+                    <div className="absolute w-[400px] h-[400px] bg-primary/10 blur-[100px] rounded-full aria-hidden pointer-events-none" />
 
                     {/* Card A (Netflix) */}
-                    <div className="absolute z-10" style={{ transform: 'rotate(-3deg) translateY(-80px) translateX(-30px)' }}>
-                        <div className="w-[280px] shadow-[0_32px_80px_rgba(0,0,0,0.7)] hover:scale-[1.02] transition-transform duration-500 pointer-events-none">
-                            <PoolCard pool={cardPools[0]} />
+                    <motion.div 
+                        initial={{ opacity: 0, x: -50, rotate: -5 }}
+                        animate={{ opacity: 1, x: 0, rotate: -3 }}
+                        transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                        style={{ translateY: useTransform(smoothProgress, [0, 1], [-80, -200]) }}
+                        className="absolute z-10"
+                    >
+                        <div className="w-[300px] shadow-premium hover:scale-[1.02] transition-transform duration-500">
+                            <PoolCard pool={cardPools[0]} animate />
                         </div>
-                    </div>
+                    </motion.div>
 
                     {/* Card B (ChatGPT) */}
-                    <div className="absolute z-20" style={{ transform: 'rotate(0deg)' }}>
-                        <div className="w-[280px] shadow-[0_24px_60px_rgba(0,0,0,0.6)] hover:scale-[1.05] transition-transform duration-500 pointer-events-none">
-                            <PoolCard pool={cardPools[1]} />
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 1, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                        style={{ translateY: useTransform(smoothProgress, [0, 1], [0, -100]) }}
+                        className="absolute z-20"
+                    >
+                        <div className="w-[300px] shadow-premium hover:scale-[1.05] transition-transform duration-500">
+                            <PoolCard pool={cardPools[1]} animate />
                         </div>
-                    </div>
+                    </motion.div>
 
                     {/* Card C (Figma) */}
-                    <div className="absolute z-10" style={{ transform: 'rotate(3deg) translateY(80px) translateX(30px)' }}>
-                        <div className="w-[280px] shadow-[0_16px_40px_rgba(0,0,0,0.5)] hover:scale-[1.02] transition-transform duration-500 pointer-events-none">
-                            <PoolCard pool={cardPools[2]} />
+                    <motion.div 
+                        initial={{ opacity: 0, x: 50, rotate: 5 }}
+                        animate={{ opacity: 1, x: 0, rotate: 3 }}
+                        transition={{ duration: 1, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                        style={{ translateY: useTransform(smoothProgress, [0, 1], [80, 0]) }}
+                        className="absolute z-10"
+                    >
+                        <div className="w-[300px] shadow-premium hover:scale-[1.02] transition-transform duration-500">
+                            <PoolCard pool={cardPools[2]} animate />
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
             </div>
 
@@ -268,7 +310,13 @@ export function LandingPage() {
                         Three steps to start saving
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <motion.div 
+                        variants={containerVariants}
+                        initial="hidden"
+                        whileInView="show"
+                        viewport={{ once: true, margin: "-100px" }}
+                        className="grid grid-cols-1 md:grid-cols-3 gap-8"
+                    >
                         {[
                             {
                                 num: '1',
@@ -289,7 +337,11 @@ export function LandingPage() {
                                 body: 'Pay your share each month via the built-in ledger. Track payments, get reminders. Save 40–75% forever.'
                             }
                         ].map((step, i) => (
-                            <div key={i} className="bg-card border border-[#2A2A2A] rounded-[6px] p-8 relative group transition-all duration-300 hover:border-primary/20">
+                            <motion.div 
+                                key={i} 
+                                variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}
+                                className="bg-card border border-[#2A2A2A] rounded-[6px] p-8 relative group transition-all duration-300 hover:border-primary/20"
+                            >
                                 <div className="absolute -top-4 left-6 size-8 rounded-full bg-primary text-primary-foreground font-display font-black text-sm flex items-center justify-center shadow-lg">
                                     {step.num}
                                 </div>
@@ -298,9 +350,9 @@ export function LandingPage() {
                                 <p className="text-muted-foreground text-sm leading-relaxed">
                                     {step.body}
                                 </p>
-                            </div>
+                            </motion.div>
                         ))}
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
@@ -325,19 +377,19 @@ export function LandingPage() {
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-0">
                         {[
-                            { value: '3,241', label: 'Members saving' },
-                            { value: '142', label: 'Open pools today' },
-                            { value: '64%', label: 'Average savings' },
-                            { value: '$4,103', label: 'Market value matched' },
-                            { value: '₹22,560', label: 'Avg. saved per year' }
-                        ].map((stat, i) => (
-                            <div key={i} className="text-center px-4">
-                                <div className="font-display font-black text-[48px] text-primary tracking-[-2px] leading-tight">
-                                    {stat.value}
-                                </div>
-                                <div className="font-mono text-[13px] text-muted-foreground mt-1 lowercase font-medium">
+                            { value: 3241, label: 'Members saving' },
+                            { value: 142, label: 'Open pools today' },
+                            { value: 64, label: 'Average savings', suffix: '%' },
+                            { value: 4103, label: 'Market value matched', prefix: '$' },
+                            { value: 22560, label: 'Avg. saved per year', prefix: '₹' }
+                        ].map((stat, idx) => (
+                            <div key={idx} className="flex flex-col">
+                                <span className="font-display font-black text-4xl text-foreground tracking-tight">
+                                    <NumberTicker value={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
+                                </span>
+                                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
                                     {stat.label}
-                                </div>
+                                </span>
                             </div>
                         ))}
                     </div>

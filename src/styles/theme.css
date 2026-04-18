@@ -2,19 +2,19 @@
 
 :root {
   --font-size: 16px;
-  --background: #0E0E0E;
-  --foreground: #FFFFFF;
-  --card: #161616;
+  --background: #090909; /* Deeper black */
+  --foreground: #F5F5F5;
+  --card: #121212;
   --card-foreground: #FFFFFF;
   --primary: #C8F135;
   --primary-foreground: #000000;
-  --muted: #2A2A2A;
-  --muted-foreground: #6B6860;
+  --muted: #242424;
+  --muted-foreground: #8A8A8E; /* Better contrast */
   --accent: #C8F135;
   --accent-foreground: #000000;
-  --border: #2A2A2A;
-  --input: #161616;
-  --radius: 10px;
+  --border: #242424;
+  --input: #121212;
+  --radius: 12px; /* Slightly smoother corners */
   --font-syne: 'Syne', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
 }

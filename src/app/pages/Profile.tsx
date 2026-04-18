@@ -155,9 +155,9 @@ export function Profile() {
     : 'subpool.app/ref/unknown';
 
   return (
-    <div className="max-w-4xl mx-auto py-6 space-y-6">
+    <div className="max-w-4xl mx-auto py-8 space-y-8 px-4 noise-overlay min-h-screen">
       {/* HERO CARD */}
-      <Card className="border-border">
+      <Card className="border-white/5 bg-transparent glass-premium overflow-hidden shadow-premium">
         <CardContent className="p-8">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
             <Avatar className="size-[80px] shrink-0 border-2 border-primary/20">
@@ -166,9 +166,9 @@ export function Profile() {
               </AvatarFallback>
             </Avatar>
 
-            <div className="flex-1 text-center md:text-left space-y-4">
+            <div className="flex-1 text-center md:text-left space-y-5">
               <div>
-                <h2 className="font-display font-bold text-3xl">{profile?.username ?? 'You'}</h2>
+                <h2 className="font-display font-black text-4xl tracking-tighter text-foreground">{profile?.username ?? 'You'}</h2>
                 <p className="font-mono text-xs text-muted-foreground mt-1 uppercase tracking-wider">
                   {profile ? `@${profile.username}` : '@yourusername'} · member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Jan 2025'}
                 </p>
@@ -200,7 +200,7 @@ export function Profile() {
               <div className="flex flex-wrap justify-center md:justify-start gap-8 pt-2">
                 {stats.map((stat) => (
                   <div key={stat.label} className="space-y-1 relative">
-                    <p className="font-display font-bold text-2xl text-foreground">
+                    <p className="font-display font-black text-2xl text-foreground">
                       {stat.value}
                     </p>
                     <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">

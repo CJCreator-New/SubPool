@@ -106,7 +106,7 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
     }));
 
     return (
-        <SidebarProvider>
+        <SidebarProvider className="noise-overlay">
             <a
                 href="#main-content"
                 className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:font-bold focus:shadow-xl"
@@ -116,8 +116,8 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
             {/* ─── Sidebar ───────────────────────────────────────────────── */}
             <Sidebar
                 className={cn(
-                    "hidden md:flex border-r bg-card transition-shadow duration-300",
-                    isScrolled ? "border-transparent shadow-[4px_0_24px_rgba(0,0,0,0.4)]" : "border-[#2A2A2A]"
+                    "hidden md:flex border-r bg-card/50 backdrop-blur-xl transition-all duration-500",
+                    isScrolled ? "border-transparent shadow-premium" : "border-border"
                 )}
                 style={{ '--sidebar-width': '220px' } as React.CSSProperties}
             >
@@ -155,17 +155,23 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                                                 isActive={isActive}
                                                 tooltip={item.label}
                                                 className={cn(
-                                                    'font-display font-semibold text-sm px-5 h-10',
-                                                    'rounded-none border-l-[3px] border-transparent',
-                                                    'text-muted-foreground hover:text-foreground hover:bg-secondary/50',
-                                                    isActive && 'border-l-primary text-primary bg-primary/5',
+                                                    'font-display font-semibold text-[13px] px-5 h-11 transition-all duration-300',
+                                                    'rounded-r-full border-l-[3px] border-transparent',
+                                                    'text-muted-foreground/70 hover:text-foreground hover:bg-white/5',
+                                                    isActive && 'border-l-primary text-primary bg-primary/10 shadow-[inset_10px_0_20px_-10px_rgba(200,241,53,0.2)]',
                                                 )}
                                             >
-                                                <Link to={item.path}>
-                                                    <span className="text-base mr-1">{item.icon}</span>
-                                                    <span>{item.label}</span>
+                                                <Link to={item.path} className="flex items-center w-full">
+                                                    <span className={cn(
+                                                        "text-lg mr-2 transition-all duration-300",
+                                                        isActive && "drop-shadow-[0_0_8px_rgba(200,241,53,0.6)] scale-110"
+                                                    )}>{item.icon}</span>
+                                                    <span className={cn(
+                                                        "transition-all duration-300",
+                                                        isActive ? "font-black tracking-tight" : "font-semibold"
+                                                    )}>{item.label}</span>
                                                     {itemBadge && (
-                                                        <span className="ml-auto font-mono text-[10px] bg-primary text-primary-foreground px-1.5 rounded-full leading-5 inline-flex items-center justify-center min-w-[20px] h-5">
+                                                        <span className="ml-auto font-mono text-[10px] bg-primary text-primary-foreground px-1.5 rounded-full leading-5 inline-flex items-center justify-center min-w-[20px] h-5 shadow-[0_2px_8px_rgba(200,241,53,0.3)]">
                                                             {itemBadge}
                                                         </span>
                                                     )}
@@ -180,24 +186,27 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                 </SidebarContent>
 
                 {/* Footer — user info */}
-                <SidebarFooter className="border-t border-border p-4 gap-4">
+                <SidebarFooter className="border-t border-white/5 p-4 gap-4 bg-muted/20">
                     <div className="flex items-center gap-3">
-                        <Avatar className="size-8">
-                            <AvatarFallback className="bg-primary text-primary-foreground font-bold text-xs">
-                                {(profile?.username?.[0] ?? 'Y').toUpperCase()}
-                            </AvatarFallback>
-                        </Avatar>
+                        <div className="relative group">
+                            <Avatar className="size-9 border border-white/10 shadow-sm group-hover:border-primary/50 transition-colors">
+                                <AvatarFallback className="bg-primary text-primary-foreground font-black text-xs">
+                                    {(profile?.username?.[0] ?? 'Y').toUpperCase()}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="absolute -bottom-0.5 -right-0.5 size-3 bg-[#4DFF91] border-2 border-[#121212] rounded-full" />
+                        </div>
                         <div className="min-w-0 flex-1">
-                            <p className="font-display text-sm font-semibold text-foreground truncate">
+                            <p className="font-display text-[13px] font-black text-foreground truncate tracking-tight">
                                 {profile?.username ?? 'You'}
                             </p>
-                            <p className="font-mono text-[10px] text-muted-foreground truncate">
+                            <p className="font-mono text-[9px] text-muted-foreground/60 truncate uppercase tracking-tighter">
                                 {profile ? '@' + profile.username : '@yourusername'}
                             </p>
                         </div>
                         <div className="flex flex-col items-end shrink-0 ml-1">
-                            <span className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground mr-0.5">Saved</span>
-                            <span className="font-mono text-[10px] font-bold text-[#4DFF91] bg-[#4DFF91]/10 px-1 py-0.5 rounded border border-[#4DFF91]/20">
+                            <span className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60 mr-0.5">Saved</span>
+                            <span className="font-mono text-[10px] font-black text-[#4DFF91] bg-[#4DFF91]/10 px-1.5 py-0.5 rounded border border-[#4DFF91]/20">
                                 $341
                             </span>
                         </div>
@@ -227,35 +236,40 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
             {/* ─── Main Content Area (SidebarInset) ──────────────────── */}
             <SidebarInset className="flex flex-col flex-1 md:ml-0 min-w-0 w-full">
                 {/* Sticky Topbar */}
-                <header className="sticky top-0 z-30 flex items-center h-[60px] bg-background/90 backdrop-blur-md border-b border-border px-4 md:px-8 gap-3">
+                <header className={cn(
+                    "sticky top-0 z-30 flex items-center h-[64px] border-b transition-all duration-300 px-4 md:px-8 gap-3",
+                    isScrolled 
+                        ? "bg-background/80 backdrop-blur-xl border-white/5 shadow-premium" 
+                        : "bg-background border-border"
+                )}>
                     {/* Sidebar toggle */}
-                    <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+                    <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
 
                     <div className="flex-1 flex items-center gap-2">
-                        <h1 className="font-display font-bold text-[15px] text-foreground">
+                        <h1 className="font-display font-black text-[16px] text-foreground tracking-tight">
                             {pageTitle}
                         </h1>
                         {!user && (
-                            <span className="font-mono text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 uppercase tracking-wider">
-                                GUEST MODE
+                            <span className="font-mono text-[9px] text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 uppercase tracking-widest font-bold">
+                                GUEST
                             </span>
                         )}
                         {!isSupabaseConnected && (
-                            <span className="font-mono text-[10px] text-warning bg-warning/10 px-1.5 py-0.5 rounded border border-warning/20 animate-pulse">
-                                Using offline data
+                            <span className="font-mono text-[9px] text-warning bg-warning/10 px-2 py-0.5 rounded-full border border-warning/20 animate-pulse font-bold tracking-widest uppercase">
+                                OFFLINE
                             </span>
                         )}
                     </div>
 
                     {/* Right actions */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                         <NotificationBell />
 
                         {/* List a Pool — shown on browse */}
                         {(activePath === '/' || activePath === '/browse') && (
                             <Button
                                 size="sm"
-                                className="font-display font-semibold text-xs"
+                                className="font-display font-bold text-[11px] uppercase tracking-wider h-8 px-4 rounded-full shadow-glow-primary"
                                 onClick={() => {
                                     if (!user) {
                                         navigate('/login?next=/list');
@@ -272,11 +286,26 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
 
                 {/* Page Content */}
                 <main id="main-content" className="flex-1 p-4 md:p-8 pb-16 md:pb-0 outline-none" tabIndex={-1}>
-                    {guestFallbackMessage ? <GuestEmptyState message={guestFallbackMessage} /> : <Outlet />}
+                    {guestFallbackMessage ? (
+                        <GuestEmptyState message={guestFallbackMessage} />
+                    ) : (
+                        <motion.div
+                            key={location.pathname}
+                            initial={{ opacity: 0, x: 20, filter: 'blur(10px)' }}
+                            animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                            transition={{ 
+                                duration: 0.6, 
+                                ease: [0.16, 1, 0.3, 1],
+                                opacity: { duration: 0.4 }
+                            }}
+                        >
+                            <Outlet />
+                        </motion.div>
+                    )}
                 </main>
 
                 {/* ─── Mobile Bottom Tab Bar ─────────────────────────────── */}
-                <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden h-[calc(60px+env(safe-area-inset-bottom))] bg-card/90 backdrop-blur-md border-t border-border flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)]">
+                <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden h-[calc(64px+env(safe-area-inset-bottom))] bg-card/60 backdrop-blur-xl border-t border-white/5 flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
                     {BOTTOM_TABS.map((tab) => {
                         const isActive =
                             activePath === tab.path ||
@@ -287,12 +316,17 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                                 key={tab.path}
                                 to={tab.path}
                                 className={cn(
-                                    'flex flex-col items-center gap-0.5 p-2 flex-1 rounded-lg transition-colors',
-                                    isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/40',
+                                    'flex flex-col items-center gap-1 p-2 flex-1 rounded-2xl transition-all duration-300',
+                                    isActive 
+                                        ? 'text-primary scale-110' 
+                                        : 'text-muted-foreground/60 hover:text-foreground hover:bg-white/5',
                                 )}
                             >
-                                <span className="text-xl">{tab.icon}</span>
-                                <span className="font-mono text-[9px] uppercase tracking-widest font-bold">
+                                <span className={cn(
+                                    "text-xl transition-transform",
+                                    isActive && "drop-shadow-[0_0_8px_rgba(200,241,53,0.5)]"
+                                )}>{tab.icon}</span>
+                                <span className="font-mono text-[9px] uppercase tracking-widest font-black">
                                     {tab.label === 'Browse' ? 'Browse' : tab.label.replace('My Pools', 'Pools')}
                                 </span>
                             </Link>
