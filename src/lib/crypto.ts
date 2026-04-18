@@ -7,7 +7,9 @@ import naclUtil from 'tweetnacl-util';
  * In production, keys should be securely derived client-side per user or via a KMS.
  */
 function getMasterKey(): Uint8Array {
-    const rawEnvKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'default_fallback_demo_key_for_testing';
+    const rawEnvKey = (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_ANON_KEY : undefined) 
+        || (import.meta.env ? import.meta.env.VITE_SUPABASE_ANON_KEY : undefined)
+        || 'default_fallback_demo_key_for_testing';
     const keyString = rawEnvKey.padEnd(32, '0').slice(0, 32);
     return naclUtil.decodeUTF8(keyString);
 }

@@ -325,7 +325,7 @@ export function BrowsePools() {
   }), []);
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-8 pb-10 overflow-x-hidden">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <h1 className="font-display font-black text-4xl sm:text-5xl tracking-tight text-foreground drop-shadow-sm">
           Browse Pools

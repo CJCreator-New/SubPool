@@ -87,4 +87,41 @@ describe('Supabase Mutations', () => {
             expect(result.error).toBe('DB Error');
         });
     });
+
+    describe('createPool', () => {
+        it('successfully inserts a new pool and invokes wishlist matching', async () => {
+            const mockInput = {
+                platform: 'netflix',
+                owner_id: 'user-123',
+                category: 'entertainment' as const,
+                status: 'open' as const,
+                plan_name: 'Premium',
+                price_per_slot: 400,
+                total_slots: 4,
+                auto_approve: false,
+                description: '',
+            };
+
+            const mockSingle = vi.fn().mockResolvedValue({ data: { id: 'pool-789' }, error: null });
+            const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+            const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
+
+            (supabase!.auth.getUser as Mock).mockResolvedValue({ data: { user: { user_metadata: { name: 'Test User' } } } });
+            
+            (supabase!.from as Mock).mockImplementation((table) => {
+                if (table === 'pools') return { insert: mockInsert };
+                return { insert: vi.fn().mockResolvedValue({ error: null }) };
+            });
+
+            const result = await createPool(mockInput);
+
+            expect(result.success).toBe(true);
+            expect(result.data?.poolId).toBe('pool-789');
+            expect(mockInsert).toHaveBeenCalledWith({ ...mockInput, slots_filled: 0 });
+            // Wishlist matching is fire-and-forget but should still be called
+            expect(supabase!.functions.invoke).toHaveBeenCalledWith('match-wishlist', {
+                body: { pool_id: 'pool-789' }
+            });
+        });
+    });
 });

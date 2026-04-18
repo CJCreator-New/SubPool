@@ -285,24 +285,23 @@ export function AdminPage() {
                                 >
                                     Push to Database
                                 </Button>
-                            </div>
-                        </Card>
-
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 1 }}
-                            className="p-6 rounded-3xl border border-destructive/20 bg-destructive/5 flex items-start gap-4"
-                        >
-                            <AlertTriangle size={20} className="text-destructive shrink-0 mt-1" />
-                            <p className="font-mono text-[10px] text-destructive/80 uppercase leading-relaxed tracking-wider">
-                                CAUTION: Data overrides bypass standard retail verification. High impact on market metrics engine.
-                            </p>
-                        </motion.div>
+                                </CardContent>
+                            </Card>
+    
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 1 }}
+                                className="p-6 rounded-3xl border border-destructive/20 bg-destructive/5 flex items-start gap-4"
+                            >
+                                <AlertTriangle size={20} className="text-destructive shrink-0 mt-1" />
+                                <p className="font-mono text-[10px] text-destructive/80 uppercase leading-relaxed tracking-wider">
+                                    CAUTION: Data overrides bypass standard retail verification. High impact on market metrics engine.
+                                </p>
+                            </motion.div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        </div>
-    );
-}
+        );
+    }

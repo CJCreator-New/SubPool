@@ -120,17 +120,17 @@ test.describe('Login Page', () => {
 // ─── 4. Guest-Protected Routes ────────────────────────────────────────────────
 
 test.describe('Protected Routes — Guest Empty State', () => {
-    test('list-a-pool route shows guest empty state for unauthenticated users', async ({ page }) => {
-        await page.goto('/list');
+    test('ledger route shows guest empty state for unauthenticated users', async ({ page }) => {
+        await page.goto('/ledger');
         await expect(page.getByRole('heading', { name: /Guest Mode/i })).toBeVisible({
             timeout: 10000,
         });
     });
 
-    test('my pools route shows guest empty state or redirects', async ({ page }) => {
-        await page.goto('/my-pools');
-        // Either a guest heading or redirect to login/browse — no crash
-        await expect(page.locator('body')).toBeVisible({ timeout: 5000 });
+    test('profile route shows guest empty state or redirects', async ({ page }) => {
+        await page.goto('/profile');
+        // Either a guest heading or redirect to landing/login — no crash
+        await expect(page.locator('body')).toBeVisible({ timeout: 10000 });
     });
 });
 

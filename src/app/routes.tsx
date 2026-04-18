@@ -15,18 +15,6 @@ import { RootErrorPage } from './components/root-error-page';
 
 // ─── Suspense wrapper ─────────────────────────────────────────────────────────
 
-function PageSuspense({ children }: { children: React.ReactNode }) {
-    return (
-        <ErrorBoundary>
-            <Suspense fallback={<PageLoadSkeleton />}>
-                {children}
-            </Suspense>
-        </ErrorBoundary>
-    );
-}
-
-// ─── Suspense fallback ────────────────────────────────────────────────────────
-
 function LoadingFallback() {
     return (
         <div className="flex items-center justify-center min-h-screen bg-[#0E0E0E]">
@@ -67,7 +55,7 @@ const PaymentMethodPage = lazy(() => import('./pages/payment/PaymentMethodSetup'
 const PaymentConfirmPage = lazy(() => import('./pages/payment/PaymentConfirmation').then(m => ({ default: m.PaymentConfirmation })));
 const PaymentSuccessPage = lazy(() => import('./pages/payment/PaymentSuccess').then(m => ({ default: m.PaymentSuccess })));
 
-// Dev-only pages (not bundled in production)
+// Dev-only pages
 const isDev = import.meta.env.DEV;
 const DesignSystemPage = isDev
     ? lazy(() => import('./pages/DesignSystem').then(m => ({ default: m.DesignSystem })))
@@ -75,9 +63,6 @@ const DesignSystemPage = isDev
 const EmptyStatesPage = isDev
     ? lazy(() => import('./pages/EmptyStatesShowcase').then(m => ({ default: m.EmptyStatesShowcase })))
     : lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
-
-
-// ─── Suspense wrapper ─────────────────────────────────────────────────────────
 
 function Lazy({ children }: { children: React.ReactNode }) {
     return <Suspense fallback={<PageLoadSkeleton />}>{children}</Suspense>;
@@ -92,21 +77,13 @@ function resolveNextPath(search: string, fallback = '/browse') {
     return next;
 }
 
-// ─── Auth Redirect (for /login) ──────────────────────────────────────────────
-
 function AuthRedirect({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
     const location = useLocation();
-
     if (loading) return <LoadingFallback />;
-    if (user) {
-        return <Navigate to={resolveNextPath(location.search)} replace />;
-    }
-
+    if (user) return <Navigate to={resolveNextPath(location.search)} replace />;
     return <>{children}</>;
 }
-
-// ─── Router ───────────────────────────────────────────────────────────────────
 
 export const router = createBrowserRouter([
     {
@@ -121,13 +98,7 @@ export const router = createBrowserRouter([
         ),
         errorElement: <RootErrorPage />,
         children: [
-            // ─── Root / Landing ─────────────────────────────────────────
-            {
-                path: '/',
-                element: <Lazy><LandingPage /></Lazy>,
-            },
-
-            // ─── Auth Pages ─────────────────────────────────────────────
+            { path: '/', element: <Lazy><LandingPage /></Lazy> },
             {
                 path: '/login',
                 element: (
@@ -136,65 +107,22 @@ export const router = createBrowserRouter([
                     </AuthRedirect>
                 ),
             },
-            {
-                path: '/landing',
-                element: <Navigate to="/" replace />,
-            },
-            {
-                path: '/onboarding',
-                element: <Lazy><OnboardingPage /></Lazy>,
-            },
+            { path: '/onboarding', element: <Lazy><OnboardingPage /></Lazy> },
 
-
-
-            // ─── Mobile Routes → Redirect to desktop equivalents (P2-22) ──
-            // The main pages are fully responsive; no separate mobile pages needed.
+            // Dashboard Layout (Semi-Public)
             {
-                path: '/mobile',
-                element: <Navigate to="/browse" replace />,
-            },
-            {
-                path: '/mobile/pool-detail',
-                element: <Navigate to="/browse" replace />,
-            },
-            {
-                path: '/mobile/my-pools',
-                element: <Navigate to="/my-pools" replace />,
-            },
-            {
-                path: '/mobile/ledger',
-                element: <Navigate to="/ledger" replace />,
-            },
-            {
-                path: '/mobile/notifications',
-                element: <Navigate to="/notifications" replace />,
-            },
-            {
-                path: '/mobile/create-pool',
-                element: <Navigate to="/list" replace />,
-            },
-
-            // ─── Misc Public Pages ───────────────────────────────────────
-            {
-                path: '/payment/success',
-                element: <Lazy><PaymentSuccessPage /></Lazy>,
-            },
-
-            // ─── Semi-public pages (guests allowed, no auth required) ────
-            // The sidebar is shown but no redirect if user is not logged in.
-            {
-                element: (
-                    <ErrorBoundary>
-                        <DashboardLayout />
-                    </ErrorBoundary>
-                ),
+                element: <ErrorBoundary><DashboardLayout /></ErrorBoundary>,
                 children: [
                     { path: '/browse', element: <Lazy><BrowsePage /></Lazy> },
                     { path: '/market', element: <Lazy><MarketPage /></Lazy> },
+                    { path: '/my-pools', element: <Lazy><MyPoolsPage /></Lazy> },
+                    { path: '/list', element: <Lazy><CreatePoolPage /></Lazy> },
+                    { path: '/create', element: <Lazy><CreatePoolPage /></Lazy> },
                     { path: '/savings', element: <Lazy><SavingsPage /></Lazy> },
                     { path: '/wishlist', element: <Lazy><WishlistPage /></Lazy> },
                     { path: '/plans', element: <Lazy><PlansPage /></Lazy> },
                     { path: '/waitlist', element: <Lazy><WaitlistPage /></Lazy> },
+                    { path: '/referrals', element: <Lazy><ReferralPage /></Lazy> },
                     { path: '/admin', element: <GuestEmptyState message="Admin access requires an authenticated account and admin PIN." /> },
                     { path: '/design-system', element: <Lazy><DesignSystemPage /></Lazy> },
                     { path: '/empty-states', element: <Lazy><EmptyStatesPage /></Lazy> },
@@ -202,23 +130,17 @@ export const router = createBrowserRouter([
                 ],
             },
 
-            // ─── Private pages (login required) ─────────────────────────
+            // Protected Routes
             {
                 element: (
                     <ProtectedRoute>
-                        <ErrorBoundary>
-                            <DashboardLayout />
-                        </ErrorBoundary>
+                        <ErrorBoundary><DashboardLayout /></ErrorBoundary>
                     </ProtectedRoute>
                 ),
                 children: [
-                    { path: '/my-pools', element: <Lazy><MyPoolsPage /></Lazy> },
-                    { path: '/list', element: <Lazy><CreatePoolPage /></Lazy> },
-                    { path: '/create', element: <Lazy><CreatePoolPage /></Lazy> },
                     { path: '/ledger', element: <Lazy><LedgerPage /></Lazy> },
                     { path: '/notifications', element: <Lazy><NotificationsPage /></Lazy> },
                     { path: '/profile', element: <Lazy><ProfilePage /></Lazy> },
-                    { path: '/referrals', element: <Lazy><ReferralPage /></Lazy> },
                     { path: '/messages', element: <Lazy><MessagesPage /></Lazy> },
                     { path: '/billing', element: <Lazy><BillingPage /></Lazy> },
                     { path: '/subscriptions', element: <Lazy><SubscriptionDetailsPage /></Lazy> },

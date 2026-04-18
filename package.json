@@ -12,9 +12,14 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
-    "test:a11y": "playwright test tests/a11y.spec.ts",
-    "test:e2e:ui": "playwright test --ui"
+    "test:performance": "jest tests/performance",
+    "test:security": "jest tests/security",
+    "test:api": "jest tests/api",
+    "test:watch": "vitest --watch",
+    "test:ci": "vitest run --ci --coverage"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -99,13 +104,13 @@
     "supabase": "^2.76.16",
     "tailwindcss": "4.1.12",
     "typescript": "^5.9.3",
-    "vite": "6.3.5",
+    "vite": "6.4.2",
     "vitest": "^2.0.0",
     "zod": "^3.23.0"
   },
   "pnpm": {
     "overrides": {
-      "vite": "6.3.5"
+      "vite": "6.4.2"
     }
   }
 }
