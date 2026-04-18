@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { Outlet, useLocation, Link, useNavigate } from 'react-router';
+import { motion } from 'motion/react';
 import {
     SidebarProvider,
     Sidebar,
@@ -25,6 +26,7 @@ import { useNotifications } from '../../lib/supabase/hooks';
 import { useAuth } from '../../lib/supabase/auth';
 import { isSupabaseConnected } from '../../lib/supabase/client';
 import { NAV_ITEMS, NAV_SECTIONS, PAGE_TITLES, BOTTOM_TABS } from '../../lib/constants';
+import type { Notification } from '../../lib/types';
 import { useDemo } from '../components/demo-mode';
 import { Navigate } from 'react-router';
 import { CharacterCard } from '../components/character-card';
@@ -98,7 +100,7 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
 
     const { data: notifications } = useNotifications();
     const notificationsList = Array.isArray(notifications) ? notifications : [];
-    const unreadCount = notificationsList.filter((n: Notification) => !n.read).length;
+    const unreadCount = (notificationsList as unknown as Notification[]).filter((n: Notification) => !n.read).length;
 
     // Group NAV_ITEMS by section
     const grouped = NAV_SECTIONS.map((section) => ({

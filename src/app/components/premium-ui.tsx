@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
-import { cn } from '../lib/ui/utils';
+import { cn } from './ui/utils';
 
 interface PremiumCardProps {
     children: React.ReactNode;

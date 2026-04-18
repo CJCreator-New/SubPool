@@ -1,12 +1,12 @@
 import React from 'react';
 import { useNavigate, Link, Navigate } from 'react-router';
 import { Button } from '../components/ui/button';
-import { PoolCard, PlatformIcon } from '../components/subpool-components';
+import { PoolCard, PlatformIcon, NumberTicker } from '../components/subpool-components';
 import { PLATFORMS } from '../../lib/constants';
 import type { Pool } from '../../lib/types';
 import { cn } from '../components/ui/utils';
 import { useAuth } from '../../lib/supabase/auth';
-import { motion, useScroll, useTransform, useSpring } from 'motion/react';
+import { motion, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence } from 'motion/react';
 
 export function LandingPage() {
     const navigate = useNavigate();
@@ -269,7 +269,7 @@ export function LandingPage() {
                             </div>
                         ))}
                     </div>
-                </div>
+                </motion.div>
 
                 {/* RIGHT HALF */}
                 <div className="hidden md:flex flex-1 relative items-center justify-center overflow-visible">
