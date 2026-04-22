@@ -26,7 +26,7 @@ export function LandingPage() {
             total_slots: 4,
             price_per_slot: 499,
             status: 'open',
-            category: 'entertainment',
+            category: 'OTT',
             owner_id: 'owner-1',
             owner: {
                 id: 'owner-1',
@@ -80,7 +80,7 @@ export function LandingPage() {
             total_slots: 5,
             price_per_slot: 600,
             status: 'open',
-            category: 'work',
+            category: 'productivity',
             owner_id: 'owner-3',
             owner: {
                 id: 'owner-3',

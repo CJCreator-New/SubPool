@@ -21,20 +21,6 @@ function delay(ms: number) { return new Promise<void>((r) => setTimeout(r, ms));
 
 /**
  * Returns true only when we are explicitly in offline/demo mode.
-
-// ─── Result type ───────────────────────────────────────────────────────────
-
-export interface MutationResult<T = void> {
-    data: T | null;
-    error: string | null;
-    success: boolean;
-}
-function ok<T>(data: T): MutationResult<T> { return { data, error: null, success: true }; }
-function fail(msg: string): MutationResult<never> { return { data: null, error: msg, success: false }; }
-function delay(ms: number) { return new Promise<void>((r) => setTimeout(r, ms)); }
-
-/**
- * Returns true only when we are explicitly in offline/demo mode.
  * A missing URL means dev mode; a configured URL means production → never mock.
  */
 function isDemoMode(allowDemoFallback = false): boolean {
@@ -94,8 +80,9 @@ export function joinPool(
         }
 
         try {
+            const db = requireSupabase();
             // 1. Check not already member
-            const { data: memberRows } = await supabase!
+            const { data: memberRows } = await db
                 .from('memberships')
                 .select('id')
                 .eq('pool_id', poolId)
@@ -106,7 +93,7 @@ export function joinPool(
             }
 
             // 2. Check pool not full
-            const { data: poolData, error: poolErr } = await supabase!
+            const { data: poolData, error: poolErr } = await db
                 .from('pools')
                 .select('filled_slots, total_slots, owner_id, platform, plan_name')
                 .eq('id', poolId)
@@ -118,7 +105,7 @@ export function joinPool(
             }
 
             // 3. Insert join_request
-            const { data: reqData, error: reqErr } = await supabase!
+            const { data: reqData, error: reqErr } = await db
                 .from('join_requests')
                 .insert({
                     pool_id: poolId,
@@ -131,10 +118,10 @@ export function joinPool(
             if (reqErr) return fail(reqErr.message);
 
             // 4. Insert notification for pool owner
-            const { data: userData } = await supabase!.auth.getUser();
+            const { data: userData } = await db.auth.getUser();
             const username = userData.user?.user_metadata?.name || 'Someone';
 
-            await supabase!.from('notifications').insert({
+            await db.from('notifications').insert({
                 user_id: poolData.owner_id,
                 type: 'join_request',
                 title: `${username} wants to join your pool`,
@@ -147,12 +134,7 @@ export function joinPool(
     });
 }
 
-/** Approve a join request.
- *  Delegates to the `approve_join_request` Postgres RPC which runs the entire
- *  flow (status update, membership insert, atomic slot increment, ledger entry,
- *  requester notification) inside a single ACID transaction.
- *  This eliminates the previous race condition on filled_slots.
- */
+/** Approve a join request. */
 export function approveRequest(
     requestId: string,
     options?: { allowDemoFallback?: boolean },
@@ -209,17 +191,17 @@ export function createPool(
             const db = requireSupabase();
             const { data, error } = await db
                 .from('pools')
-                .insert({ ...input, slots_filled: 0 })
+                .insert({ ...input, filled_slots: 0 } as any)
                 .select('id').single();
             if (error) return fail(error.message);
             const poolId = (data as { id: string }).id;
             
-                        // Fire-and-forget: notify wishlist users who match this new pool
-                        void db.functions.invoke('match-wishlist', {
-                            body: { pool_id: poolId }
-                        }).catch(() => { /* non-critical */ });
+            // Fire-and-forget: notify wishlist users who match this new pool
+            void db.functions.invoke('match-wishlist', {
+                body: { pool_id: poolId }
+            }).catch(() => { /* non-critical */ });
             
-                        return ok({ poolId });
+            return ok({ poolId });
         } catch (e) { return fail((e as Error).message); }
     });
 }
@@ -244,12 +226,10 @@ export function updatePoolStatus(
 
 /**
  * Update safe profile fields.
- * NOTE: `is_pro` is intentionally excluded — elevation to Pro must happen
- * server-side (e.g., via a Stripe webhook) to prevent self-promotion.
  */
 export function updateProfile(
     userId: string,
-    updates: Partial<Pick<Profile, 'display_name' | 'bio' | 'avatar_color'>>,
+    updates: Partial<Pick<Profile, 'display_name' | 'bio' | 'avatar_color' | 'onboarding_completed' | 'onboarding_role' | 'onboarding_step'>>,
     options?: { allowDemoFallback?: boolean },
 ): Promise<MutationResult> {
     return withRateLimit(`updateProfile:${userId}`, async () => {
@@ -284,33 +264,6 @@ export function markAllNotificationsRead(userId: string): Promise<MutationResult
     });
 }
 
-// ─── Message mutations ────────────────────────────────────────────────────────
-
-export function sendMessage(
-    threadId: string,
-    body: string,
-    options?: { allowDemoFallback?: boolean },
-): Promise<MutationResult<{ messageId: string }>> {
-    return withRateLimit(`sendMessage:${threadId}`, async () => {
-        if (isDemoMode(options?.allowDemoFallback ?? false)) {
-            await delay(250);
-            return ok({ messageId: `msg-mock-${Date.now()}` });
-        }
-        try {
-            const db = requireSupabase();
-            const { data, error } = await db
-                .from('messages')
-                .insert({ thread_id: threadId, body })
-                .select('id').single();
-            if (error) return fail(error.message);
-
-            await db.from('threads')
-                .update({ last_message: body, last_message_at: new Date().toISOString() }).eq('id', threadId);
-            return ok({ messageId: (data as { id: string }).id });
-        } catch (e) { return fail((e as Error).message); }
-    });
-}
-
 // ─── Ledger mutations ─────────────────────────────────────────────────────────
 
 export function markLedgerPaid(ledgerId: string): Promise<MutationResult> {
@@ -329,17 +282,20 @@ export function markLedgerPaid(ledgerId: string): Promise<MutationResult> {
 
             if (error) return fail(error.message);
 
-            // 2. Notify pool owner (self-reported payment — flagged for future Stripe verification)
+            // 2. Notify pool owner (self-reported payment)
             const { data: { user } } = await db.auth.getUser();
             const username = user?.user_metadata?.name || 'Someone';
 
-            await db.from('notifications').insert({
-                user_id: (led as any).membership.pool.owner_id,
-                type: 'payment_received',
-                title: 'Payment received 💸',
-                body: `${username} marked payment as sent — please verify.`,
-                action_url: '/ledger'
-            });
+            const enrichedLedger = led as any;
+            if (enrichedLedger?.membership?.pool?.owner_id) {
+                await db.from('notifications').insert({
+                    user_id: enrichedLedger.membership.pool.owner_id,
+                    type: 'payment_received',
+                    title: 'Payment received 💸',
+                    body: `${username} marked payment as sent — please verify.`,
+                    action_url: '/ledger'
+                });
+            }
 
             return ok(undefined);
         } catch (e) { return fail((e as Error).message); }
@@ -371,4 +327,3 @@ export function submitRating(
         } catch (e) { return fail((e as Error).message); }
     });
 }
-

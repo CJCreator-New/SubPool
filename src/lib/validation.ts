@@ -9,7 +9,7 @@ import { z } from 'zod';
 export const CreatePoolSchema = z.object({
     platform: z.string().min(1, 'Select a platform'),
     plan_name: z.string().min(1, 'Plan name is required').max(80),
-    category: z.enum(['entertainment', 'productivity', 'ai'], {
+    category: z.enum(['OTT', 'AI_IDE', 'productivity', 'ai'], {
         required_error: 'Select a category',
     }),
     total_cost: z

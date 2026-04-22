@@ -37,6 +37,14 @@ export function PaywallModal({ feature, requiredPlan, open, onClose }: PaywallMo
                 'Scale recurring savings faster.',
             ],
         },
+        'Advanced Filters': {
+            blockedAction: 'Calibrate precision filters',
+            outcomes: [
+                'Filter by host rating and trust metrics.',
+                'Set custom price ranges for budget control.',
+                'Find high-utility nodes with HUD-precision.',
+            ],
+        },
     };
 
     const context = featureContext[feature] ?? {

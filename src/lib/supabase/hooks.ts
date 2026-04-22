@@ -192,7 +192,26 @@ export function usePools(filters?: PoolFilters, options?: DataHookOptions): Hook
         }
     }, [filters?.category, filters?.status, filters?.searchQuery, filters?.maxPrice, filters?.sortBy, filters?.ownerId, options?.allowDemoFallback]);
 
-    useEffect(() => { fetchPools(); }, [fetchPools, filters?.ownerId]);
+    useEffect(() => { 
+        fetchPools(); 
+
+        const mode = resolveDataMode({ allowDemoFallback: options?.allowDemoFallback ?? false });
+        if (mode !== 'production' || !isSupabaseConnected || !supabase) return;
+
+        const channel = supabase.channel('pools-all')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'pools' },
+                (payload) => {
+                    if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+                        fetchPools(); // Refetch to get joined profile data
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => { supabase?.removeChannel(channel); };
+    }, [fetchPools, filters?.ownerId, supabase]);
     return { data, loading, error, refetch: fetchPools };
 }
 
@@ -307,7 +326,23 @@ export function usePool(id: string, options?: DataHookOptions): HookState<Pool |
         }
     }, [id, options?.allowDemoFallback]);
 
-    useEffect(() => { fetchData(); }, [fetchData]);
+    useEffect(() => { 
+        fetchData(); 
+
+        const mode = resolveDataMode({ allowDemoFallback: options?.allowDemoFallback ?? false });
+        if (mode !== 'production' || !isSupabaseConnected || !supabase || !id) return;
+
+        const channel = supabase.channel(`pool:${id}`)
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'pools', filter: `id=eq.${id}` },
+                () => { fetchData(); }
+            )
+            .subscribe();
+
+        return () => { supabase?.removeChannel(channel); };
+    }, [fetchData, supabase]);
+
     return { data, loading, error, refetch: fetchData };
 }
 
@@ -726,7 +761,7 @@ export function useMessages(poolId?: string, options?: { allowDemoFallback?: boo
                 reply_to_id: replyToId || null,
                 sender_id: profile.id,
                 message_type: 'text'
-            } as any);
+            });
 
             if (error) throw error;
             
@@ -809,7 +844,7 @@ export function usePushNotifications() {
 
         try {
             const { error } = await supabase
-                .from('push_tokens' as any)
+                .from('push_tokens')
                 .upsert({
                     user_id: user.id,
                     token,
@@ -934,9 +969,61 @@ export function useReferralStats() {
         }
     }, [user?.id]);
 
+    return { stats, loading, error, refetch: fetchData };
+}
+
+export function useAdminUsers() {
+    const [users, setUsers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchData = useCallback(async () => {
+        if (!supabase) return;
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*, referrals:referrals(count)')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            setUsers(data || []);
+        } catch (e: any) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    return { stats, loading, error, refetch: fetchData };
+    return { users, loading, error, refetch: fetchData };
+}
+
+export function useAdminPools() {
+    const [pools, setPools] = useState<Pool[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchData = useCallback(async () => {
+        if (!supabase) return;
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('pools')
+                .select('*, owner:profiles(*)')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            setPools(data || []);
+        } catch (e: any) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { fetchData(); }, [fetchData]);
+
+    return { pools, loading, error, refetch: fetchData };
 }
 
 export { useJoinRequests } from './useJoinRequests';

@@ -10,17 +10,17 @@ export interface Platform {
 }
 
 export const PLATFORMS: Platform[] = [
-    { id: 'netflix', name: 'Netflix', icon: '🎬', color: '#E50914', bg: '#1A0203', category: 'entertainment' },
-    { id: 'spotify', name: 'Spotify', icon: '🎵', color: '#1DB954', bg: '#011B09', category: 'entertainment' },
-    { id: 'youtube', name: 'YouTube', icon: '▶️', color: '#FF0000', bg: '#1A0000', category: 'entertainment' },
-    { id: 'disneyplus', name: 'Disney+', icon: '✨', color: '#113CCF', bg: '#000E24', category: 'entertainment' },
-    { id: 'hulu', name: 'Hulu', icon: '📺', color: '#1CE783', bg: '#001A0B', category: 'entertainment' },
-    { id: 'appletv', name: 'Apple TV+', icon: '🍎', color: '#F5F5F5', bg: '#1A1A1A', category: 'entertainment' },
-    { id: 'notion', name: 'Notion', icon: '📋', color: '#FFFFFF', bg: '#1A1A1A', category: 'work' },
-    { id: 'figma', name: 'Figma', icon: '🎨', color: '#A259FF', bg: '#140A24', category: 'work' },
-    { id: 'slack', name: 'Slack', icon: '💬', color: '#611F69', bg: '#0A0A1A', category: 'work' },
-    { id: 'github', name: 'GitHub', icon: '🐙', color: '#F0F6FC', bg: '#0D1117', category: 'work' },
-    { id: 'adobe', name: 'Adobe CC', icon: '🅰️', color: '#FF0000', bg: '#1A0000', category: 'work' },
+    { id: 'netflix', name: 'Netflix', icon: '🎬', color: '#E50914', bg: '#1A0203', category: 'OTT' },
+    { id: 'spotify', name: 'Spotify', icon: '🎵', color: '#1DB954', bg: '#011B09', category: 'OTT' },
+    { id: 'youtube', name: 'YouTube', icon: '▶️', color: '#FF0000', bg: '#1A0000', category: 'OTT' },
+    { id: 'disneyplus', name: 'Disney+', icon: '✨', color: '#113CCF', bg: '#000E24', category: 'OTT' },
+    { id: 'hulu', name: 'Hulu', icon: '📺', color: '#1CE783', bg: '#001A0B', category: 'OTT' },
+    { id: 'appletv', name: 'Apple TV+', icon: '🍎', color: '#F5F5F5', bg: '#1A1A1A', category: 'OTT' },
+    { id: 'notion', name: 'Notion', icon: '📋', color: '#FFFFFF', bg: '#1A1A1A', category: 'AI_IDE' },
+    { id: 'figma', name: 'Figma', icon: '🎨', color: '#A259FF', bg: '#140A24', category: 'AI_IDE' },
+    { id: 'slack', name: 'Slack', icon: '💬', color: '#611F69', bg: '#0A0A1A', category: 'AI_IDE' },
+    { id: 'github', name: 'GitHub', icon: '🐙', color: '#F0F6FC', bg: '#0D1117', category: 'AI_IDE' },
+    { id: 'adobe', name: 'Adobe CC', icon: '🅰️', color: '#FF0000', bg: '#1A0000', category: 'AI_IDE' },
     { id: 'linear', name: 'Linear', icon: '🔏', color: '#5E6AD2', bg: '#0A0A1A', category: 'productivity' },
     { id: 'chatgpt', name: 'ChatGPT', icon: '🤖', color: '#10A37F', bg: '#031A14', category: 'ai' },
     { id: 'claude', name: 'Claude', icon: '🧠', color: '#D4A574', bg: '#1A1200', category: 'ai' },
@@ -89,6 +89,7 @@ export const NAV_ITEMS: NavItem[] = [
     { icon: '💵', label: 'Payouts', path: '/payouts', section: 'MANAGE', requiresAuth: true },
     { icon: '🧾', label: 'Billing', path: '/billing', section: 'MANAGE', requiresAuth: true },
     { icon: '📊', label: 'Subscriptions', path: '/subscriptions', section: 'MANAGE', requiresAuth: true },
+    { icon: '🏢', label: 'Enterprise', path: '/enterprise', section: 'MANAGE', requiresAuth: true },
     { icon: '💬', label: 'Messages', path: '/messages', section: 'MANAGE', requiresAuth: true },
     { icon: '🔔', label: 'Notifications', path: '/notifications', section: 'MANAGE', requiresAuth: true },
     { icon: '👤', label: 'Profile', path: '/profile', section: 'ACCOUNT', requiresAuth: true },
@@ -133,7 +134,7 @@ export const PAGE_TITLES: Record<string, string> = {
     '/payment/confirm': 'Confirm Payment',
 };
 
-export const POOL_FILTERS = ['all', 'entertainment', 'work', 'productivity', 'ai', 'open only'] as const;
+export const POOL_FILTERS = ['all', 'OTT', 'AI_IDE', 'productivity', 'ai', 'open only'] as const;
 export type PoolFilter = (typeof POOL_FILTERS)[number];
 
 export const SORT_OPTIONS = [

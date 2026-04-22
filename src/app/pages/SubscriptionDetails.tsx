@@ -15,23 +15,23 @@ import { cn } from '../components/ui/utils';
 import type { PoolCategory } from '../../lib/types';
 import { getUserFacingError } from '../../lib/error-feedback';
 
-// Category filter types aligned with existing pool categories
-type FilterCategory = 'all' | 'entertainment' | 'work' | 'ai';
+// Category filter types aligned with updated roadmap categories
+type FilterCategory = 'all' | 'OTT' | 'AI_IDE' | 'ai';
 
 const CATEGORY_MAP: Record<string, FilterCategory> = {
-    'OTT': 'entertainment',
-    'TEAM_SAAS': 'work',
-    'AI_IDE': 'ai',
-    'entertainment': 'entertainment',
-    'work': 'work',
-    'productivity': 'work',
+    'OTT': 'OTT',
+    'TEAM_SAAS': 'AI_IDE',
+    'AI_IDE': 'AI_IDE',
+    'entertainment': 'OTT',
+    'work': 'AI_IDE',
+    'productivity': 'AI_IDE',
     'ai': 'ai',
 };
 
 const CATEGORIES: { id: FilterCategory; label: string; icon: string }[] = [
     { id: 'all', label: 'All', icon: '📊' },
-    { id: 'entertainment', label: 'Entertainment', icon: '🎬' },
-    { id: 'work', label: 'Work & SaaS', icon: '💼' },
+    { id: 'OTT', label: 'OTT / Media', icon: '🎬' },
+    { id: 'AI_IDE', label: 'AI & Dev Tools', icon: '💼' },
     { id: 'ai', label: 'AI Tools', icon: '🤖' },
 ];
 
@@ -57,20 +57,21 @@ export function SubscriptionDetails() {
     const filteredSubscriptions = useMemo(() => {
         if (selectedCategory === 'all') return subscriptions;
         return subscriptions.filter((sub) => {
-            const cat = CATEGORY_MAP[sub.membership.pool.category as string] ?? 'entertainment';
+            const cat = CATEGORY_MAP[sub.membership.pool.category as string] ?? 'OTT';
             return cat === selectedCategory;
         });
     }, [subscriptions, selectedCategory]);
 
     // Category counts for badges
     const categoryCounts = useMemo(() => {
-        const counts: Record<FilterCategory, number> = { all: subscriptions.length, entertainment: 0, work: 0, ai: 0 };
+        const counts: Record<FilterCategory, number> = { all: subscriptions.length, OTT: 0, AI_IDE: 0, ai: 0 };
         subscriptions.forEach((sub) => {
-            const cat = CATEGORY_MAP[sub.membership.pool.category as string] ?? 'entertainment';
+            const cat = CATEGORY_MAP[sub.membership.pool.category as string] ?? 'OTT';
             counts[cat] = (counts[cat] || 0) + 1;
         });
         return counts;
     }, [subscriptions]);
+
     const subscriptionErrorMessage = error
         ? getUserFacingError(error, 'load subscription details').message
         : null;

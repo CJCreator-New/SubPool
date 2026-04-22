@@ -327,11 +327,30 @@ export function Messages() {
 
                         <AnimatePresence initial={false}>
                             {messages.map((message) => {
-                                const isYou = message.sender_id === currentUser?.id;
-                                const senderName = message.sender?.display_name ?? message.sender?.username ?? 'Member';
-                                const readByOthers = (message.read_by ?? []).filter((id) => id !== currentUser?.id);
-                                
-                                const repliedTo = message.reply_to_id ? messages.find(m => m.id === message.reply_to_id) : null;
+                                 const isYou = message.sender_id === currentUser?.id;
+                                 const isSystem = message.message_type === 'system';
+                                 const senderName = message.sender?.display_name ?? message.sender?.username ?? 'Member';
+                                 const readByOthers = (message.read_by ?? []).filter((id) => id !== currentUser?.id);
+                                 
+                                 if (isSystem) {
+                                     return (
+                                         <motion.div
+                                             key={message.id}
+                                             initial={{ opacity: 0, scale: 0.95 }}
+                                             animate={{ opacity: 1, scale: 1 }}
+                                             className="flex justify-center py-2"
+                                         >
+                                             <div className="px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/5 backdrop-blur-sm">
+                                                 <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 flex items-center gap-2">
+                                                     <span className="size-1 rounded-full bg-primary/40" />
+                                                     {message.content}
+                                                 </p>
+                                             </div>
+                                         </motion.div>
+                                     );
+                                 }
+
+                                 const repliedTo = message.reply_to_id ? messages.find(m => m.id === message.reply_to_id) : null;
                                 const repliedSender = repliedTo ? (repliedTo.sender?.display_name ?? repliedTo.sender?.username ?? 'Someone') : '';
 
                                 const reactions = (message.message_reactions || []).reduce((acc: Record<string, string[]>, r: MessageReaction) => {

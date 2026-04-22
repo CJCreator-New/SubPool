@@ -1,35 +1,56 @@
-import { useCurrency } from "../../lib/currency-context";
+import { useCurrency, CurrencyCode } from "../../lib/currency-context";
 import { cn } from "./ui/utils";
+import { 
+    DropdownMenu, 
+    DropdownMenuContent, 
+    DropdownMenuItem, 
+    DropdownMenuTrigger 
+} from "./ui/dropdown-menu";
+import { Globe, ChevronDown } from "lucide-react";
+import { Button } from "./ui/button";
+
+const CURRENCIES: { code: CurrencyCode; label: string; symbol: string }[] = [
+    { code: 'USD', label: 'USD', symbol: '$' },
+    { code: 'EUR', label: 'EUR', symbol: '€' },
+    { code: 'GBP', label: 'GBP', symbol: '£' },
+    { code: 'INR', label: 'INR', symbol: '₹' },
+    { code: 'TRY', label: 'TRY', symbol: '₺' },
+];
 
 export function CurrencyToggle() {
-    const { currency, setCurrency } = useCurrency();
+    const { currency, setCurrency, symbol } = useCurrency();
 
     return (
-        <div className="flex bg-secondary/50 p-1 rounded-lg border border-border">
-            <button
-                type="button"
-                onClick={() => setCurrency('INR')}
-                className={cn(
-                    "px-3 py-1.5 rounded-md text-[10px] font-bold transition-all relative z-10",
-                    currency === 'INR'
-                        ? "bg-primary text-primary-foreground font-bold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                )}
-            >
-                INR ₹
-            </button>
-            <button
-                type="button"
-                onClick={() => setCurrency('USD')}
-                className={cn(
-                    "px-3 py-1.5 rounded-md text-[10px] font-bold transition-all relative z-10",
-                    currency === 'USD'
-                        ? "bg-primary text-primary-foreground font-bold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                )}
-            >
-                USD $
-            </button>
-        </div>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-9 px-3 gap-2 bg-white/[0.02] border border-white/5 hover:bg-white/10 transition-all rounded-xl"
+                >
+                    <Globe size={14} className="text-primary/70" />
+                    <span className="font-mono text-[10px] font-black uppercase tracking-widest">{currency}</span>
+                    <span className="text-[10px] opacity-40">{symbol}</span>
+                    <ChevronDown size={12} className="opacity-40" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32 bg-card/80 backdrop-blur-xl border-white/5 p-1 rounded-xl">
+                {CURRENCIES.map((c) => (
+                    <DropdownMenuItem
+                        key={c.code}
+                        onClick={() => setCurrency(c.code)}
+                        className={cn(
+                            "flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors",
+                            currency === c.code 
+                                ? "bg-primary/20 text-primary font-black" 
+                                : "text-muted-foreground hover:bg-white/5"
+                        )}
+                    >
+                        <span className="font-mono text-[10px] uppercase tracking-widest">{c.label}</span>
+                        <span className="text-[10px] opacity-60">{c.symbol}</span>
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }

@@ -1,4 +1,12 @@
-import React, {
+import * as React from 'react';
+import { User } from '@supabase/supabase-js';
+import { supabase } from './client';
+import { Profile } from '../types';
+import { resolveDataMode } from '../data-mode';
+
+console.log('[AuthProvider] Module loaded, React version:', React.version);
+
+const {
     createContext,
     useCallback,
     useContext,
@@ -6,12 +14,9 @@ import React, {
     useMemo,
     useRef,
     useState,
-    ReactNode,
-} from 'react';
-import { User } from '@supabase/supabase-js';
-import { supabase } from './client';
-import { Profile } from '../types';
-import { resolveDataMode } from '../data-mode';
+} = React;
+
+export type ReactNode = React.ReactNode;
 
 export type AuthRole = 'guest' | 'member' | 'host';
 const AUTH_BOOT_TIMEOUT_MS = 4000;
@@ -34,13 +39,14 @@ function deriveRole(profile: Profile | null): AuthRole {
     return 'member';
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
-    const [profile, setProfile] = useState<Profile | null>(null);
-    const [loading, setLoading] = useState(true);
-    const userIdRef = useRef<string | null>(null);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    console.log('[AuthProvider] Rendering...');
+    const [user, setUser] = React.useState<User | null>(null);
+    const [profile, setProfile] = React.useState<Profile | null>(null);
+    const [loading, setLoading] = React.useState(true);
+    const userIdRef = React.useRef<string | null>(null);
 
-    const fetchProfile = useCallback(async (userId: string) => {
+    const fetchProfile = React.useCallback(async (userId: string) => {
         if (!supabase) return;
         try {
             const [{ data: profileData, error: profileError }, { data: planData }] = await Promise.all([
@@ -60,12 +66,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    const refreshProfile = useCallback(async () => {
+    const refreshProfile = React.useCallback(async () => {
         if (!userIdRef.current) return;
         await fetchProfile(userIdRef.current);
     }, [fetchProfile]);
 
-    const applySession = useCallback(async (session: { user?: User | null } | null) => {
+    const applySession = React.useCallback(async (session: { user?: User | null } | null) => {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
         userIdRef.current = currentUser?.id ?? null;
@@ -99,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
     }, [fetchProfile]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (!supabase) {
             setLoading(false);
             return;
@@ -149,12 +155,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
     }, [applySession]);
 
-    const signOut = useCallback(async () => {
+    const signOut = React.useCallback(async () => {
         if (!supabase) return;
         await supabase.auth.signOut();
     }, []);
 
-    const value = useMemo<AuthContextValue>(() => ({
+    const value = React.useMemo<AuthContextValue>(() => ({
         user,
         profile,
         loading,
@@ -168,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAuth(): AuthContextValue {
-    const ctx = useContext(AuthContext);
+    const ctx = React.useContext(AuthContext);
     if (!ctx) {
         throw new Error('useAuth must be used within AuthProvider');
     }

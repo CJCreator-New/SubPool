@@ -1,61 +1,83 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+
+export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'INR' | 'TRY';
 
 export interface CurrencyContextValue {
-    currency: 'INR' | 'USD';
-    setCurrency: (c: 'INR' | 'USD') => void;
-    formatPrice: (amount: number) => string;
-    symbol: '₹' | '$';
+    currency: CurrencyCode;
+    setCurrency: (c: CurrencyCode) => void;
+    formatPrice: (cents: number) => string;
+    symbol: string;
+    exchangeRate: number; // Against USD base
 }
 
 const CurrencyContext = createContext<CurrencyContextValue | undefined>(undefined);
 
+const SYMBOLS: Record<CurrencyCode, string> = {
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    INR: '₹',
+    TRY: '₺',
+};
+
+const RATES: Record<CurrencyCode, number> = {
+    USD: 1,
+    EUR: 0.92,
+    GBP: 0.79,
+    INR: 83.42,
+    TRY: 32.55,
+};
+
+const LOCALES: Record<CurrencyCode, string> = {
+    USD: 'en-US',
+    EUR: 'de-DE',
+    GBP: 'en-GB',
+    INR: 'en-IN',
+    TRY: 'tr-TR',
+};
+
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-    // 1. Initial State Detection
-    const [currency, setCurrencyState] = useState<'INR' | 'USD'>(() => {
-        // Check local storage first
+    const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
         if (typeof window !== 'undefined') {
             const stored = localStorage.getItem('subpool_currency');
-            if (stored === 'INR' || stored === 'USD') return stored;
+            if (stored && Object.keys(SYMBOLS).includes(stored)) return stored as CurrencyCode;
         }
 
-        // Default detection
-        const isIndia =
-            typeof navigator !== 'undefined' &&
-            (navigator.language.startsWith('hi') ||
-                navigator.language === 'en-IN' ||
-                (Intl.DateTimeFormat().resolvedOptions().timeZone || '').includes('Kolkata'));
-
-        return isIndia ? 'INR' : 'USD';
+        // Region detection
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        if (tz.includes('Kolkata')) return 'INR';
+        if (tz.includes('Istanbul')) return 'TRY';
+        if (tz.includes('London')) return 'GBP';
+        if (tz.includes('Europe')) return 'EUR';
+        
+        return 'USD';
     });
 
-    // 2. Persist Changes
-    const setCurrency = (c: 'INR' | 'USD') => {
+    const setCurrency = (c: CurrencyCode) => {
         setCurrencyState(c);
         if (typeof window !== 'undefined') {
             localStorage.setItem('subpool_currency', c);
         }
     };
 
-    // 3. Formatters
-    const formatPrice = (amount: number) => {
-        if (currency === 'INR') {
-            return new Intl.NumberFormat('en-IN', {
-                style: 'currency',
-                currency: 'INR',
-                maximumFractionDigits: 0,
-            }).format(amount); // e.g., ₹1,499
-        } else {
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-            }).format(amount); // e.g., $14.99
-        }
+    const formatPrice = (cents: number) => {
+        const converted = (cents / 100) * RATES[currency];
+        return new Intl.NumberFormat(LOCALES[currency], {
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: (currency === 'INR' || currency === 'TRY') ? 0 : 2,
+            maximumFractionDigits: 2,
+        }).format(converted);
     };
 
-    const symbol = currency === 'INR' ? '₹' : '$';
-
     return (
-        <CurrencyContext.Provider value={{ currency, setCurrency, formatPrice, symbol }}>
+        <CurrencyContext.Provider value={{ 
+            currency, 
+            setCurrency, 
+            formatPrice, 
+            symbol: SYMBOLS[currency],
+            exchangeRate: RATES[currency]
+        }}>
             {children}
         </CurrencyContext.Provider>
     );

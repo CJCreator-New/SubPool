@@ -6,7 +6,7 @@ describe('CreatePoolSchema', () => {
         const result = CreatePoolSchema.safeParse({
             platform: 'netflix',
             plan_name: 'Standard 4K',
-            category: 'entertainment',
+            category: 'OTT',
             total_cost: 17.99,
             total_slots: 4,
             billing_cycle: 'monthly',
@@ -18,7 +18,7 @@ describe('CreatePoolSchema', () => {
         const result = CreatePoolSchema.safeParse({
             platform: '',
             plan_name: 'Plan',
-            category: 'entertainment',
+            category: 'OTT',
             total_cost: 10,
             total_slots: 2,
             billing_cycle: 'monthly',
@@ -30,7 +30,7 @@ describe('CreatePoolSchema', () => {
         const result = CreatePoolSchema.safeParse({
             platform: 'netflix',
             plan_name: 'Plan',
-            category: 'productivity',
+            category: 'AI_IDE',
             total_cost: 10,
             total_slots: 1,
             billing_cycle: 'monthly',

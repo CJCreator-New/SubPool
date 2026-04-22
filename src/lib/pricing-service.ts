@@ -25,8 +25,6 @@ export async function getPricingData() {
                 PRICING_CACHE = data;
                 return data;
             }
-        } catch (e) {
-            console.error('Failed to fetch platform_pricing, using seed:', e);
         } finally {
             isFetching = false;
         }
@@ -82,7 +80,7 @@ export function analyzePricing(params: {
     planName: string;
     userSlotPrice: number;
     totalSlots: number;
-    currency: 'USD' | 'INR';
+    currency: string;
     countryCode: string;
 }): PricingAnalysis {
     const seed = findPlatformPricing(params.platformId, params.planName, params.currency);

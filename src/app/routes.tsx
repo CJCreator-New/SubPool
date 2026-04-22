@@ -2,7 +2,8 @@
 // All dashboard children are lazy-loaded with Suspense fallback.
 // DashboardLayout wraps all authenticated pages with sidebar + topbar.
 
-import React, { lazy, Suspense } from 'react';
+import * as React from 'react';
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router';
 import { DashboardLayout, ProtectedRoute } from './layouts/DashboardLayout';
 import { AuthProvider, useAuth } from '../lib/supabase/auth';
@@ -50,6 +51,7 @@ const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m
 const WaitlistPage = lazy(() => import('./pages/WaitlistPage').then(m => ({ default: m.WaitlistPage })));
 const ReferralPage = lazy(() => import('./pages/ReferralPage').then(m => ({ default: m.ReferralPage })));
 const ActionCenterPage = lazy(() => import('./pages/ActionCenter').then(m => ({ default: m.ActionCenter })));
+const EnterpriseHubPage = lazy(() => import('./pages/EnterpriseHub').then(m => ({ default: m.EnterpriseHub })));
 
 // Payment pages
 const PaymentMethodPage = lazy(() => import('./pages/payment/PaymentMethodSetup').then(m => ({ default: m.PaymentMethodSetup })));
@@ -57,7 +59,7 @@ const PaymentConfirmPage = lazy(() => import('./pages/payment/PaymentConfirmatio
 const PaymentSuccessPage = lazy(() => import('./pages/payment/PaymentSuccess').then(m => ({ default: m.PaymentSuccess })));
 
 // Dev-only pages
-const isDev = import.meta.env.DEV;
+const isDev = (import.meta as any).env?.DEV;
 const DesignSystemPage = isDev
     ? lazy(() => import('./pages/DesignSystem').then(m => ({ default: m.DesignSystem })))
     : lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
@@ -125,6 +127,7 @@ export const router = createBrowserRouter([
                     { path: '/plans', element: <Lazy><PlansPage /></Lazy> },
                     { path: '/waitlist', element: <Lazy><WaitlistPage /></Lazy> },
                     { path: '/referrals', element: <Lazy><ReferralPage /></Lazy> },
+                    { path: '/enterprise', element: <Lazy><EnterpriseHubPage /></Lazy> },
                     { path: '/admin', element: <GuestEmptyState message="Admin access requires an authenticated account and admin PIN." /> },
                     { path: '/design-system', element: <Lazy><DesignSystemPage /></Lazy> },
                     { path: '/empty-states', element: <Lazy><EmptyStatesPage /></Lazy> },

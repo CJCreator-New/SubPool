@@ -1,7 +1,8 @@
 // ─── BrowsePools Page ──────────────────────────────────────────────────────────
 // Filterable grid of pool cards with stats, search, and detail modal.
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { motion, AnimatePresence } from 'motion/react';
 import { StatCard } from '../components/subpool-components';
 import { PoolCard } from '../components/subpool/PoolCard';
@@ -26,20 +27,27 @@ import { useCountUp } from '../../hooks/useCountUp';
 import { useCurrency } from '../../lib/currency-context';
 import { CurrencyToggle } from '../components/currency-toggle';
 import { ActivationChecklist } from '../components/activation-checklist';
-import type { BrowseFilterKey, BrowseSortKey } from '../components/filter-panel';
+import { AdvancedFilterPanel, type FilterState, type BrowseFilterKey, type BrowseSortKey } from '../components/advanced-filter-panel';
 
 // ─── Filter constants ─────────────────────────────────────────────────────────
 
-const FILTER_VALUES: BrowseFilterKey[] = ['all', 'entertainment', 'work', 'ai', 'open', 'creative'];
+const FILTER_VALUES: BrowseFilterKey[] = ['all', 'OTT', 'AI_IDE', 'ai', 'open', 'creative'];
 const SORT_VALUES: BrowseSortKey[] = ['recent', 'price-asc', 'price-desc'];
 const CATEGORY_CHIPS: { key: BrowseFilterKey; label: string }[] = [
   { key: 'all', label: 'All Pools' },
   { key: 'open', label: 'Open only' },
-  { key: 'entertainment', label: 'Entertainment' },
-  { key: 'work', label: 'Team SaaS' },
+  { key: 'OTT', label: 'OTT / Media' },
+  { key: 'AI_IDE', label: 'AI & Dev Tools' },
   { key: 'ai', label: 'AI Tools' },
   { key: 'creative', label: 'Creative' },
 ];
+
+const INITIAL_FILTERS: FilterState = {
+  category: 'all',
+  status: 'all',
+  priceRange: [0, 100],
+  minRating: 0
+};
 
 // ─── Toast helper (inline) ──────────────────────────────────────────────────
 
@@ -186,18 +194,25 @@ function MarketIntelligenceRow() {
   );
 }
 
-// ─── Main Component ──────────────────────────────────────────────────────────
-
 export function BrowsePools() {
+  const { profile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialFilter = searchParams.get('filter');
-  const initialSort = searchParams.get('sort');
+  const initialFilter = searchParams.get('filter') as BrowseFilterKey;
+  const initialSort = searchParams.get('sort') as BrowseSortKey;
   const initialSearch = searchParams.get('q') ?? '';
-  const [filter, setFilter] = useState<BrowseFilterKey>(
-    FILTER_VALUES.includes(initialFilter as BrowseFilterKey) ? (initialFilter as BrowseFilterKey) : 'all',
-  );
+  
+  const [filters, setFilters] = useState<FilterState>({
+    category: FILTER_VALUES.includes(initialFilter) ? initialFilter : 'all',
+    status: searchParams.get('status') === 'open' ? 'open' : 'all',
+    priceRange: [
+      Number(searchParams.get('min_price') ?? 0),
+      Number(searchParams.get('max_price') ?? 100)
+    ],
+    minRating: Number(searchParams.get('min_rating') ?? 0)
+  });
+
   const [sort, setSort] = useState<BrowseSortKey>(
-    SORT_VALUES.includes(initialSort as BrowseSortKey) ? (initialSort as BrowseSortKey) : 'recent',
+    SORT_VALUES.includes(initialSort) ? initialSort : 'recent',
   );
   const [search, setSearch] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
@@ -211,22 +226,36 @@ export function BrowsePools() {
 
   useEffect(() => {
     const nextParams = new URLSearchParams();
-    if (filter !== 'all') nextParams.set('filter', filter);
+    if (filters.category !== 'all') nextParams.set('filter', filters.category);
+    if (filters.status === 'open') nextParams.set('status', 'open');
+    if (filters.priceRange[0] > 0) nextParams.set('min_price', String(filters.priceRange[0]));
+    if (filters.priceRange[1] < 100) nextParams.set('max_price', String(filters.priceRange[1]));
+    if (filters.minRating > 0) nextParams.set('min_rating', String(filters.minRating));
     if (debouncedSearch.trim()) nextParams.set('q', debouncedSearch.trim());
     if (sort !== 'recent') nextParams.set('sort', sort);
+    
     if (nextParams.toString() !== searchParams.toString()) {
       setSearchParams(nextParams, { replace: true });
     }
-  }, [debouncedSearch, filter, sort, setSearchParams]);
+  }, [debouncedSearch, filters, sort, setSearchParams]);
 
   const buildDemoPage = useCallback((cursorParam: string | undefined, limit: number) => {
     const start = cursorParam ? Number(cursorParam) : 0;
     const base = MOCK_POOLS;
     const filteredResult = base.filter((pool) => {
-      const category = filter === 'all' || filter === 'open' ? undefined : filter;
-      const status = filter === 'open' ? 'open only' : undefined;
+      const category = filters.category === 'all' || filters.category === 'open' ? undefined : filters.category;
+      const status = filters.status === 'open' ? 'open only' : undefined;
+      
       if (category && pool.category !== category) return false;
       if (status === 'open only' && pool.status !== 'open') return false;
+      
+      // Price Range Check (cents to dollars)
+      const priceUSD = pool.price_per_slot / 100;
+      if (priceUSD < filters.priceRange[0] || priceUSD > filters.priceRange[1]) return false;
+      
+      // Rating Check
+      if (filters.minRating > 0 && (pool.owner?.rating ?? 0) < filters.minRating) return false;
+
       if (debouncedSearch) {
         const q = debouncedSearch.toLowerCase();
         const plat = getPlatform(pool.platform);
@@ -240,7 +269,7 @@ export function BrowsePools() {
     const page = filteredResult.slice(start, start + limit);
     const nextCursor = start + limit < filteredResult.length ? String(start + limit) : undefined;
     return { items: page, nextCursor };
-  }, [debouncedSearch, filter]);
+  }, [debouncedSearch, filters]);
 
   const fetchPage = useCallback(async (cursorParam: string | undefined, limit: number) => {
     const mode = resolveDataMode({ allowDemoFallback: true });
@@ -250,9 +279,20 @@ export function BrowsePools() {
     if (!supabaseClient) throw new Error('Supabase not available');
     
     let query = supabaseClient.from('pools').select('*, owner:profiles(*)').order('created_at', { ascending: false });
-    const category = filter === 'all' || filter === 'open' ? undefined : filter;
-    if (category) query = query.eq('category', category);
-    if (filter === 'open') query = query.eq('status', 'open');
+    
+    // Apply Filters
+    if (filters.category !== 'all') query = query.eq('category', filters.category);
+    if (filters.status === 'open') query = query.eq('status', 'open');
+    
+    // Price Range (dollars to cents for DB)
+    query = query.gte('price_per_slot', filters.priceRange[0] * 100);
+    query = query.lte('price_per_slot', filters.priceRange[1] * 100);
+
+    // Host Rating
+    if (filters.minRating > 0) {
+      query = query.gte('profiles.rating', filters.minRating);
+    }
+
     if (debouncedSearch) {
       query = query.textSearch('search_vector', debouncedSearch, { type: 'websearch', config: 'english' });
     }
@@ -269,7 +309,7 @@ export function BrowsePools() {
     const items = (rows ?? []) as Pool[];
     const nextCursor = items.length === limit ? String(start + limit) : undefined;
     return { items, nextCursor };
-  }, [buildDemoPage, debouncedSearch, filter]);
+  }, [buildDemoPage, debouncedSearch, filters]);
 
   const { data: pagedPools, loading, loadMore, hasMore, refetch } = useCursorPagination<Pool>({
     limit: 9,
@@ -300,6 +340,29 @@ export function BrowsePools() {
     });
   }, [pagedPools?.items, sort]);
 
+  const [columns, setColumns] = useState(3);
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const updateColumns = () => {
+      if (window.innerWidth >= 1024) setColumns(3);
+      else if (window.innerWidth >= 768) setColumns(2);
+      else setColumns(1);
+    };
+    updateColumns();
+    window.addEventListener('resize', updateColumns);
+    return () => window.removeEventListener('resize', updateColumns);
+  }, []);
+
+  const rowCount = Math.ceil(filtered.length / columns);
+
+  const virtualizer = useWindowVirtualizer({
+    count: rowCount,
+    estimateSize: () => 450, // Average height of PoolCard
+    overscan: 2,
+    scrollMargin: parentRef.current?.offsetTop ?? 0,
+  });
+
   const handleRequestJoin = async (_pool: Pool) => {
     if (!user) {
       showToast('Sign in to join pools.');
@@ -312,7 +375,7 @@ export function BrowsePools() {
   };
 
   const clearFilters = () => {
-    setFilter('all');
+    setFilters(INITIAL_FILTERS);
     setSort('recent');
     setSearch('');
     setDebouncedSearch('');
@@ -359,10 +422,10 @@ export function BrowsePools() {
           {CATEGORY_CHIPS.map((chip) => (
             <button
               key={chip.key}
-              onClick={() => setFilter(chip.key)}
+              onClick={() => setFilters(prev => ({ ...prev, category: chip.key }))}
               className={cn(
                 'rounded-full border px-4 py-1.5 text-xs font-display font-bold transition-all duration-300',
-                filter === chip.key
+                filters.category === chip.key
                   ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
                   : 'border-border bg-card/40 text-muted-foreground hover:border-primary/40 hover:text-foreground',
               )}
@@ -374,6 +437,15 @@ export function BrowsePools() {
 
         <div className="flex w-full lg:w-auto items-center gap-3">
             <CurrencyToggle />
+            
+            <AdvancedFilterPanel 
+              filters={filters}
+              onFiltersChange={setFilters}
+              onReset={clearFilters}
+              resultCount={pagedPools?.items.length || 0}
+              isPro={profile?.plan !== 'free' && !!profile}
+            />
+
             <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as BrowseSortKey)}
@@ -416,29 +488,56 @@ export function BrowsePools() {
         </motion.div>
       )}
 
-      {/* Pool Grid */}
-      <motion.div 
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      {/* Pool Grid with Virtualization */}
+      <div 
+        ref={parentRef}
+        className="relative w-full"
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+        }}
       >
         {loading && !filtered.length ? (
-          [1, 2, 3, 4, 5, 6].map((i) => <PoolCardSkeleton key={i} />)
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => <PoolCardSkeleton key={i} />)}
+          </div>
         ) : filtered.length > 0 ? (
-          filtered.map((pool, index) => (
-            <PoolCard
-              key={pool.id}
-              pool={pool}
-              index={index}
-              onClick={(p) => {
-                track('pool_card_clicked', { poolId: p.id });
-                setSelectedPool(p);
-              }}
-            />
-          ))
+          virtualizer.getVirtualItems().map((virtualRow) => {
+            const start = virtualRow.index * columns;
+            const rowItems = filtered.slice(start, start + columns);
+
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                className="absolute top-0 left-0 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                style={{
+                  transform: `translateY(${virtualRow.start}px)`,
+                  paddingBottom: '24px' // Gap simulation
+                }}
+              >
+                {rowItems.map((pool, idx) => (
+                  <motion.div
+                    key={pool.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                  >
+                    <PoolCard
+                      pool={pool}
+                      index={start + idx}
+                      onClick={(p) => {
+                        track('pool_card_clicked', { poolId: p.id });
+                        setSelectedPool(p);
+                      }}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            );
+          })
         ) : (
-          <div className="col-span-full py-20 bg-card/30 rounded-3xl border border-dashed border-border flex flex-center">
+          <div className="py-20 bg-card/30 rounded-3xl border border-dashed border-border flex justify-center items-center w-full">
             <EmptyState
               icon="🔭"
               title="Pipeline empty"
@@ -448,7 +547,7 @@ export function BrowsePools() {
             />
           </div>
         )}
-      </motion.div>
+      </div>
 
       {hasMore && (
         <div className="flex justify-center pt-8">

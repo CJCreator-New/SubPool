@@ -93,7 +93,7 @@ describe('Supabase Mutations', () => {
             const mockInput = {
                 platform: 'netflix',
                 owner_id: 'user-123',
-                category: 'entertainment' as const,
+                category: 'OTT' as const,
                 status: 'open' as const,
                 plan_name: 'Premium',
                 price_per_slot: 400,
@@ -117,7 +117,7 @@ describe('Supabase Mutations', () => {
 
             expect(result.success).toBe(true);
             expect(result.data?.poolId).toBe('pool-789');
-            expect(mockInsert).toHaveBeenCalledWith({ ...mockInput, slots_filled: 0 });
+            expect(mockInsert).toHaveBeenCalledWith({ ...mockInput, filled_slots: 0 });
             // Wishlist matching is fire-and-forget but should still be called
             expect(supabase!.functions.invoke).toHaveBeenCalledWith('match-wishlist', {
                 body: { pool_id: 'pool-789' }

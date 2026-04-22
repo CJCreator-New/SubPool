@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { Outlet, useLocation, Link, useNavigate } from 'react-router';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
     SidebarProvider,
     Sidebar,
@@ -36,6 +36,7 @@ import { getPricingData } from '../../lib/pricing-service';
 import { toast } from 'sonner';
 import { GuestEmptyState } from '../components/guest-empty-state';
 import { CommandPalette } from '../components/command-palette';
+import { PWAInstallPrompt } from '../components/pwa-install-prompt';
 
 // ─── Protected Route Component ──────────────────────────────────────────────
 
@@ -93,10 +94,9 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // P2-23: Prefetch pricing data
     React.useEffect(() => {
         void getPricingData().catch(() => {
-            // Non-blocking prefetch; ignore failures to keep layout resilient.
+            // Non-blocking prefetch
         });
     }, []);
 
@@ -110,15 +110,21 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
         items: NAV_ITEMS.filter((item) => { if (item.section !== section) return false; return !!user || !item.requiresAuth; }),
     }));
 
+    const hapticTap = () => {
+        if ('vibrate' in navigator) {
+            navigator.vibrate(10);
+        }
+    };
+
     return (
-        <SidebarProvider className="noise-overlay">
+        <SidebarProvider className="noise-overlay overflow-hidden">
             <a
                 href="#main-content"
                 className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:font-bold focus:shadow-xl"
             >
                 Skip to content
             </a>
-            {/* ─── Sidebar ───────────────────────────────────────────────── */}
+            {/* ─── Sidebar (Desktop) ───────────────────────────────────────────────── */}
             <Sidebar
                 className={cn(
                     "hidden md:flex border-r bg-card/50 backdrop-blur-xl transition-all duration-500",
@@ -193,14 +199,11 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                 {/* Footer — user info */}
                 <SidebarFooter className="border-t border-white/5 p-4 gap-4 bg-muted/20">
                     <div className="flex items-center gap-3">
-                        <div className="relative group">
-                            <Avatar className="size-9 border border-white/10 shadow-sm group-hover:border-primary/50 transition-colors">
-                                <AvatarFallback className="bg-primary text-primary-foreground font-black text-xs">
-                                    {(profile?.username?.[0] ?? 'Y').toUpperCase()}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="absolute -bottom-0.5 -right-0.5 size-3 bg-[#4DFF91] border-2 border-[#121212] rounded-full" />
-                        </div>
+                        <Avatar className="size-9 border border-white/10 shadow-sm">
+                            <AvatarFallback className="bg-primary text-primary-foreground font-black text-xs">
+                                {(profile?.username?.[0] ?? 'Y').toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
                         <div className="min-w-0 flex-1">
                             <p className="font-display text-[13px] font-black text-foreground truncate tracking-tight">
                                 {profile?.username ?? 'You'}
@@ -209,28 +212,14 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                                 {profile ? '@' + profile.username : '@yourusername'}
                             </p>
                         </div>
-                        <div className="flex flex-col items-end shrink-0 ml-1">
-                            <span className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60 mr-0.5">Saved</span>
-                            <span className="font-mono text-[10px] font-black text-[#4DFF91] bg-[#4DFF91]/10 px-1.5 py-0.5 rounded border border-[#4DFF91]/20">
-                                $341
-                            </span>
-                        </div>
                     </div>
-                    {/* Sign out button */}
                     <Button
                         variant="ghost"
                         size="sm"
                         className="w-full text-xs font-mono uppercase tracking-widest text-muted-foreground h-8 hover:text-foreground hover:bg-secondary/50"
                         onClick={async () => {
-                            if (!user) {
-                                navigate('/login');
-                                return;
-                            }
-                            try {
-                                await signOut();
-                            } catch {
-                                toast.error('Could not sign out. Please try again.');
-                            }
+                            if (!user) { navigate('/login'); return; }
+                            try { await signOut(); } catch { toast.error('Could not sign out.'); }
                         }}
                     >
                         {user ? 'Sign out' : 'Sign in'}
@@ -238,127 +227,88 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                 </SidebarFooter>
             </Sidebar>
 
-            {/* ─── Main Content Area (SidebarInset) ──────────────────── */}
-            <SidebarInset className="flex flex-col flex-1 md:ml-0 min-w-0 w-full">
-                {/* Sticky Topbar */}
+            {/* ─── Main Content Area ──────────────────── */}
+            <SidebarInset className="flex flex-col flex-1 min-w-0 w-full relative">
                 <header className={cn(
                     "sticky top-0 z-30 flex items-center h-[64px] border-b transition-all duration-300 px-4 md:px-8 gap-3",
-                    isScrolled 
-                        ? "bg-background/80 backdrop-blur-xl border-white/5 shadow-premium" 
-                        : "bg-background border-border"
+                    isScrolled ? "bg-background/80 backdrop-blur-xl border-white/5 shadow-premium" : "bg-background border-border"
                 )}>
-                    {/* Sidebar toggle */}
                     <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
-
                     <div className="flex-1 flex items-center gap-3">
-                        <div className="hidden sm:flex items-center gap-2">
-                            <span className="font-mono text-[10px] text-muted-foreground/30 font-black tracking-widest uppercase mb-0.5">Subpool /</span>
-                            <h1 className="font-display font-black text-[14px] text-foreground tracking-tight uppercase">
-                                {pageTitle}
-                            </h1>
-                        </div>
-                        <div className="sm:hidden">
-                            <h1 className="font-display font-black text-[14px] text-foreground tracking-tight uppercase">
-                                {pageTitle}
-                            </h1>
-                        </div>
-                        {!user && (
-                            <span className="font-mono text-[9px] text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 uppercase tracking-widest font-bold">
-                                GUEST
-                            </span>
-                        )}
-                        {!isSupabaseConnected && (
-                            <span className="font-mono text-[9px] text-warning bg-warning/10 px-2 py-0.5 rounded-full border border-warning/20 animate-pulse font-bold tracking-widest uppercase">
-                                OFFLINE
-                            </span>
-                        )}
+                        <h1 className="font-display font-black text-[14px] text-foreground tracking-tight uppercase">
+                            {pageTitle}
+                        </h1>
+                        {!user && <span className="font-mono text-[9px] text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 uppercase tracking-widest font-bold">GUEST</span>}
                     </div>
-
-                    {/* Right actions */}
                     <div className="flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-2xl p-1 backdrop-blur-md">
-                        <div className="flex items-center gap-2 px-3 border-r border-white/5 hidden lg:flex">
-                            <div className="size-1.5 rounded-full bg-primary shadow-glow-primary animate-pulse" />
-                            <span className="font-mono text-[9px] text-primary/80 uppercase font-black tracking-widest">Network Live</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 px-2">
-                            <CommandPalette />
-                            <NotificationBell />
-                        </div>
+                        <CommandPalette />
+                        <NotificationBell />
                     </div>
-
-                        {/* List a Pool — shown on browse */}
-                        {(activePath === '/' || activePath === '/browse') && (
-                            <Button
-                                size="sm"
-                                className="font-display font-bold text-[11px] uppercase tracking-wider h-8 px-4 rounded-full shadow-glow-primary"
-                                onClick={() => {
-                                    if (!user) {
-                                        navigate('/login?next=/list');
-                                        return;
-                                    }
-                                    navigate('/list');
-                                }}
-                            >
-                                List a Pool
-                            </Button>
-                        )}
                 </header>
 
-                {/* Page Content */}
-                <main id="main-content" className="flex-1 p-4 md:p-8 pb-16 md:pb-0 outline-none" tabIndex={-1}>
+                <main id="main-content" className="flex-1 p-4 md:p-8 pb-24 md:pb-8 outline-none" tabIndex={-1}>
                     {guestFallbackMessage ? (
                         <GuestEmptyState message={guestFallbackMessage} />
                     ) : (
-                        <motion.div
-                            key={location.pathname}
-                            initial={{ opacity: 0, x: 20, filter: 'blur(10px)' }}
-                            animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-                            transition={{ 
-                                duration: 0.6, 
-                                ease: [0.16, 1, 0.3, 1],
-                                opacity: { duration: 0.4 }
-                            }}
-                        >
-                            <Outlet />
-                        </motion.div>
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={location.pathname}
+                                initial={{ opacity: 0, y: 10, filter: 'blur(8px)' }}
+                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                exit={{ opacity: 0, y: -10, filter: 'blur(8px)' }}
+                                transition={{ 
+                                    duration: 0.4, 
+                                    ease: [0.22, 1, 0.36, 1]
+                                }}
+                                className="w-full h-full"
+                            >
+                                <Outlet />
+                            </motion.div>
+                        </AnimatePresence>
                     )}
                 </main>
 
-                {/* ─── Mobile Bottom Tab Bar ─────────────────────────────── */}
-                <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden h-[calc(64px+env(safe-area-inset-bottom))] bg-card/60 backdrop-blur-xl border-t border-white/5 flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-                    {BOTTOM_TABS.map((tab) => {
-                        const isActive =
-                            activePath === tab.path ||
-                            (tab.path === '/' && activePath === '/browse');
-
-                        return (
-                            <Link
-                                key={tab.path}
-                                to={tab.path}
-                                className={cn(
-                                    'flex flex-col items-center gap-1 p-2 flex-1 rounded-2xl transition-all duration-300',
-                                    isActive 
-                                        ? 'text-primary scale-110' 
-                                        : 'text-muted-foreground/60 hover:text-foreground hover:bg-white/5',
-                                )}
-                            >
-                                <span className={cn(
-                                    "text-xl transition-transform",
-                                    isActive && "drop-shadow-[0_0_8px_rgba(200,241,53,0.5)]"
-                                )}>{tab.icon}</span>
-                                <span className="font-mono text-[9px] uppercase tracking-widest font-black">
-                                    {tab.label === 'Browse' ? 'Browse' : tab.label.replace('My Pools', 'Pools')}
-                                </span>
-                            </Link>
-                        );
-                    })}
+                {/* ─── Mobile Bottom Tab Bar (Optimized) ─────────────────────────────── */}
+                <nav className="fixed bottom-0 left-0 right-0 z-[60] md:hidden px-4 pb-[calc(env(safe-area-inset-bottom)+8px)]">
+                    <div className="max-w-lg mx-auto bg-[#1A1A1A]/80 backdrop-blur-2xl border border-white/10 h-16 rounded-[24px] flex items-center justify-around px-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                        {BOTTOM_TABS.map((tab) => {
+                            const isActive = activePath === tab.path || (tab.path === '/' && activePath === '/browse');
+                            return (
+                                <Link
+                                    key={tab.path}
+                                    to={tab.path}
+                                    onClick={hapticTap}
+                                    className={cn(
+                                        'relative flex flex-col items-center justify-center flex-1 h-full rounded-2xl transition-all duration-500 touch-none active:scale-90',
+                                        isActive ? 'text-primary' : 'text-muted-foreground/40'
+                                    )}
+                                >
+                                    <span className={cn(
+                                        "text-xl transition-all duration-500 relative z-10",
+                                        isActive && "scale-110 drop-shadow-[0_0_10px_rgba(200,241,53,0.5)]"
+                                    )}>
+                                        {tab.icon}
+                                    </span>
+                                    <span className="font-mono text-[8px] uppercase tracking-widest font-black mt-1 opacity-80 z-10">
+                                        {tab.label === 'Browse' ? 'Browse' : tab.label.replace('My Pools', 'Pools')}
+                                    </span>
+                                    {isActive && (
+                                        <motion.div 
+                                            layoutId="activeTab"
+                                            className="absolute inset-x-2 inset-y-1 bg-primary/10 rounded-xl border border-primary/20 -z-0"
+                                            transition={{ type: "spring", bounce: 0.3, duration: 0.6 }}
+                                        />
+                                    )}
+                                </Link>
+                            );
+                        })}
+                    </div>
                 </nav>
-                <div className="h-16 md:hidden" /> {/* Spacer for bottom tab bar */}
             </SidebarInset>
 
             {/* ─── TECHNICAL HUD (Fixed Bottom Right) ────────────────────────── */}
             <div className="fixed bottom-6 right-6 z-[60] hidden lg:block">
-                <div className="glass-premium border-l-2 border-l-primary px-4 py-2.5 rounded-l-md flex flex-col gap-1 min-w-[180px] shadow-2xl">
+                <div className="bg-card/40 backdrop-blur-xl border-l-2 border-l-primary px-4 py-2.5 rounded-l-md flex flex-col gap-1 min-w-[180px] shadow-2xl border border-white/5">
                     <div className="flex items-center justify-between gap-8">
                         <span className="font-mono text-[9px] text-muted-foreground uppercase tracking-widest">Savings / MO</span>
                         <span className="font-display font-black text-primary text-sm">${(monthlySavingsCents / 100).toFixed(0)}</span>
@@ -370,21 +320,11 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                             <span className="font-mono text-[8px] text-primary uppercase font-bold tracking-tighter">Optimized</span>
                         </div>
                     </div>
-                    <div className="h-px bg-white/5 my-1" />
-                    <div className="flex items-center justify-between">
-                        <span className="font-mono text-[8px] text-muted-foreground/40 uppercase">SP-CORE-0.0.1</span>
-                        <span className="font-mono text-[8px] text-muted-foreground/40 uppercase tracking-tighter">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                    </div>
                 </div>
             </div>
 
-            {/* ─── Demo Character Cards ────────────────────────────────────── */}
-            {demoCharacter && (
-                <CharacterCard
-                    character={demoCharacter!}
-                    visible={characterVisible}
-                />
-            )}
+            {demoCharacter && <CharacterCard character={demoCharacter!} visible={characterVisible} />}
+            <PWAInstallPrompt />
         </SidebarProvider>
     );
 }

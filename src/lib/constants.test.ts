@@ -6,7 +6,7 @@ describe('Constants Utilities', () => {
         it('returns correct platform for valid id', () => {
             const p = getPlatform('netflix');
             expect(p?.name).toBe('Netflix');
-            expect(p?.category).toBe('entertainment');
+            expect(p?.category).toBe('OTT');
         });
 
         it('returns undefined for invalid id', () => {

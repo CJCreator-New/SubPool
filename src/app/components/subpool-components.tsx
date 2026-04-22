@@ -119,15 +119,16 @@ interface PlatformIconProps {
     platformId: string;
     size?: 'sm' | 'md' | 'lg';
     glowColor?: string;
+    className?: string;
 }
 
-export function PlatformIcon({ platformId, size = 'md', glowColor }: PlatformIconProps) {
+export function PlatformIcon({ platformId, size = 'md', glowColor, className }: PlatformIconProps) {
     const platform = getPlatform(platformId);
     const { box, fontSize } = ICON_SIZES[size];
 
     return (
         <div
-            className={cn('flex items-center justify-center shrink-0 transition-transform duration-300 hover:scale-110', box)}
+            className={cn('flex items-center justify-center shrink-0 transition-transform duration-300 hover:scale-110', box, className)}
             style={{ backgroundColor: platform?.bg ?? '#1A1A1A' }}
         >
             <span style={{ fontSize, lineHeight: 1 }} role="img" aria-label={platform?.name ?? 'Platform icon'}>{platform?.icon ?? '📦'}</span>

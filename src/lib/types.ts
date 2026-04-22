@@ -4,8 +4,8 @@
 
 // ─── Pool ─────────────────────────────────────────────────────────────────────
 
-export type PoolStatus = 'open' | 'full' | 'closed';
-export type PoolCategory = 'entertainment' | 'work' | 'productivity' | 'ai';
+export type PoolStatus = 'open' | 'active' | 'closed' | 'full';
+export type PoolCategory = 'OTT' | 'AI_IDE' | 'ai' | 'productivity';
 
 export interface PlatformPricing {
   platform_id: string;
@@ -67,7 +67,7 @@ export interface Profile {
   review_count?: number;          // migration-added alias
   is_verified?: boolean;          // migration-added
   is_pro?: boolean;               // migration-added
-  plan?: 'free' | 'pro' | 'host_plus';
+  plan?: 'free' | 'pro' | 'host_plus' | 'enterprise';
   total_hosted?: number;          // P2.2: trust score calculation
   disputes?: number;              // P2.2: trust score calculation
   avg_response_time_mins?: number;// P2.2: trust score calculation

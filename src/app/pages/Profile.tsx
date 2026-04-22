@@ -14,12 +14,21 @@ import { toast } from 'sonner';
 import { track } from '../../lib/analytics';
 import { Insight } from '../components/demo-mode';
 import { getUserFacingError } from '../../lib/error-feedback';
+import { 
+  ShieldCheck, 
+  UserCheck, 
+  Camera, 
+  CreditCard, 
+  Zap, 
+  Award 
+} from 'lucide-react';
 import {
   fetchReminderPreferences,
   upsertReminderPreferences,
   ReminderPreferencesRecord,
 } from '../../lib/supabase/reminder-preferences';
 import { Setup2FA } from '../components/security/setup-2fa';
+import { useReferralStats } from '../../lib/supabase/hooks';
 
 type ReminderPreferences = {
   allNotifs: boolean;
@@ -44,6 +53,7 @@ function toPreferencePayload(userId: string, settings: ReminderPreferences): Rem
 export function Profile() {
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
+  const { stats } = useReferralStats();
   const [settings, setSettings] = useState<ReminderPreferences>({
     profilePublic: true,
     allNotifs: true,
@@ -106,7 +116,7 @@ export function Profile() {
     );
   }
 
-  const stats = [
+  const profileStats = [
     { label: 'Pools Owned', value: String(profile?.review_count || 0) }, // Using review_count as a placeholder for stats
     { label: 'Rating', value: `⭐ ${profile?.rating || '0.0'}` },
     { label: 'Member Since', value: profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Jan 2025' },
@@ -160,33 +170,55 @@ export function Profile() {
       <Card className="border-white/5 bg-transparent glass-premium overflow-hidden shadow-premium">
         <CardContent className="p-8">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-            <Avatar className="size-[80px] shrink-0 border-2 border-primary/20">
-              <AvatarFallback className="bg-primary text-primary-foreground font-display font-black text-4xl">
-                {(profile?.username?.[0] ?? 'Y').toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative group">
+              <Avatar className="size-[100px] shrink-0 border-2 border-primary/20 shadow-glow-primary ring-4 ring-black/50">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-[#86A61F] text-primary-foreground font-display font-black text-4xl">
+                  {(profile?.username?.[0] ?? 'Y').toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <button className="absolute bottom-0 right-0 size-8 rounded-full bg-card border border-white/10 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors shadow-lg opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100">
+                <Camera size={14} />
+              </button>
+            </div>
 
             <div className="flex-1 text-center md:text-left space-y-5">
               <div>
-                <h2 className="font-display font-black text-4xl tracking-tighter text-foreground">{profile?.username ?? 'You'}</h2>
-                <p className="font-mono text-xs text-muted-foreground mt-1 uppercase tracking-wider">
+                <div className="flex items-center gap-3">
+                  <h2 className="font-display font-black text-4xl tracking-tighter text-foreground">{profile?.username ?? 'You'}</h2>
+                  <div className="flex items-center gap-2">
+                    {profile?.is_verified && (
+                      <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-md text-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.1)]">
+                        <ShieldCheck size={10} className="fill-blue-500/10" />
+                        <span className="font-mono text-[8px] font-black uppercase tracking-[0.1em]">Verified</span>
+                      </div>
+                    )}
+                    {profile?.is_pro && (
+                      <div className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 border border-primary/20 rounded-md text-primary shadow-[0_0_10px_rgba(200,241,53,0.1)]">
+                        <Award size={10} className="fill-primary/10" />
+                        <span className="font-mono text-[8px] font-black uppercase tracking-[0.1em]">Pro Member</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <p className="font-mono text-[10px] text-muted-foreground mt-2 uppercase tracking-[0.2em] opacity-60">
                   {profile ? `@${profile.username}` : '@yourusername'} · member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Jan 2025'}
                 </p>
-                <div className="flex items-center gap-2 mt-2.5">
+                <div className="flex items-center gap-2 mt-4">
                   <span className={cn(
-                    "px-2 py-0.5 rounded-full border text-[9px] font-bold tracking-wider uppercase",
-                    profile?.plan === 'host_plus' ? "text-[#EAB308] border-[#EAB308]/40 bg-[#EAB308]/10" :
-                      profile?.plan === 'pro' ? "text-primary border-primary/40 bg-primary/10" :
-                        "text-muted-foreground border-border bg-muted/20"
+                    "px-3 py-1 rounded-lg border text-[10px] font-black tracking-widest uppercase transition-all duration-500",
+                    profile?.plan === 'host_plus' ? "text-[#EAB308] border-[#EAB308]/40 bg-[#EAB308]/10 shadow-[0_0_15px_rgba(234,179,8,0.1)]" :
+                      profile?.plan === 'pro' ? "text-primary border-primary/40 bg-primary/10 shadow-[0_0_15px_rgba(200,241,53,0.1)]" :
+                        "text-muted-foreground border-border/60 bg-muted/20"
                   )}>
-                    {profile?.plan?.replace('_', ' ') ?? 'FREE'} PLAN
+                    {profile?.plan?.replace('_', ' ') ?? 'FREE'}
                   </span>
                   {profile?.plan === 'free' && (
                     <button
                       onClick={() => navigate('/plans')}
-                      className="text-[10px] font-mono text-primary hover:underline"
+                      className="group flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-primary/10 hover:border-primary/40 transition-all duration-300"
                     >
-                      Upgrade →
+                      <Zap size={10} className="text-primary group-hover:animate-pulse" />
+                      <span className="text-[10px] font-mono font-bold text-muted-foreground group-hover:text-primary tracking-tight">Upgrade Pipeline</span>
                     </button>
                   )}
                 </div>
@@ -198,7 +230,7 @@ export function Profile() {
               </div>
 
               <div className="flex flex-wrap justify-center md:justify-start gap-8 pt-2">
-                {stats.map((stat) => (
+                {profileStats.map((stat) => (
                   <div key={stat.label} className="space-y-1 relative">
                     <p className="font-display font-black text-2xl text-foreground">
                       {stat.value}
@@ -369,21 +401,28 @@ export function Profile() {
                     {referralUrl}
                   </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(referralUrl);
-                    toast.success("Referral link copied!");
-                    track('referral_link_copied', {});
-                  }}
-                >
-                  📋 Copy
-                </Button>
+                <div className="flex items-center gap-2">
+                    <div className="px-2 py-1 bg-secondary/50 rounded-lg border border-border/40 text-[10px] font-mono">
+                        {stats.count} REFS
+                    </div>
+                    <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={async () => {
+                        await navigator.clipboard.writeText(referralUrl);
+                        toast.success("Referral link copied!");
+                        track('referral_link_copied', {});
+                    }}
+                    >
+                    📋 Copy
+                    </Button>
+                </div>
               </div>
               <div className="self-start bg-primary/5 border border-primary/20 rounded px-2 py-1">
-                <span className="font-mono text-[10px] text-primary">Invite 3 friends → unlock Pro for 1 month</span>
+                <span className="font-mono text-[10px] text-primary">
+                    {stats.count >= 3 ? "Mission Complete: Pro Status Unlocked" : `Invite ${3 - (stats.count % 3)} more friends → unlock Pro for 1 month`}
+                </span>
               </div>
             </div>
           </div>

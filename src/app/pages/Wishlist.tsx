@@ -58,11 +58,11 @@ const urgencyClass = (urgency: string) => {
   return 'text-muted-foreground border-border/50 bg-secondary/20';
 };
 
-function categoryOf(platformId: string): 'Entertainment' | 'Work' | 'AI' | 'Other' {
+function categoryOf(platformId: string): 'OTT' | 'AI_IDE' | 'AI' | 'Other' {
   const platform = getPlatform(platformId);
-  const category = platform?.category?.toLowerCase() ?? '';
-  if (category === 'entertainment') return 'Entertainment';
-  if (category === 'work' || category === 'productivity') return 'Work';
+  const category = platform?.category ?? '';
+  if (category === 'OTT') return 'OTT';
+  if (category === 'AI_IDE' || category === 'productivity') return 'AI_IDE';
   if (category === 'ai') return 'AI';
   return 'Other';
 }
@@ -81,7 +81,7 @@ export function Wishlist() {
   } = useWishlist();
 
   const [showPostModal, setShowPostModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<'All' | 'Entertainment' | 'Work' | 'AI'>('All');
+  const [selectedCategory, setSelectedCategory] = useState<'All' | 'OTT' | 'AI_IDE' | 'AI'>('All');
   const [sortBy, setSortBy] = useState<'recent' | 'budget' | 'urgent'>('recent');
 
   const [selectedPlatformId, setSelectedPlatformId] = useState('');
@@ -269,7 +269,7 @@ export function Wishlist() {
 
       <section className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-wrap gap-2">
-          {(['All', 'Entertainment', 'Work', 'AI'] as const).map((category) => (
+          {(['All', 'OTT', 'AI_IDE', 'AI'] as const).map((category) => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}

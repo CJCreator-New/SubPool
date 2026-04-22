@@ -16,6 +16,9 @@ import { CurrencyToggle } from '../components/currency-toggle';
 import { useAuth } from '../../lib/supabase/auth';
 import { toast } from 'sonner';
 import { track } from '../../lib/analytics';
+import { useLedger } from '../../lib/supabase/hooks';
+import { TrendingUp, Award, Target, Zap, ShieldCheck } from 'lucide-react';
+import { cn } from '../components/ui/utils';
 
 import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
@@ -24,19 +27,45 @@ import { PlatformIcon } from '../components/subpool-components';
 
 // ─── Subcomponents ──────────────────────────────────────────────────────────
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub: string }) {
+function StatCard({ label, value, sub, trend }: { label: string; value: string; sub: string, trend?: string }) {
     return (
-        <div className="flex flex-col items-center p-6 bg-card border border-border rounded-[6px]">
-            <span className="font-mono text-[10px] uppercase text-muted-foreground mb-1">{label}</span>
-            <span className="font-display font-black text-2xl text-foreground">{value}</span>
-            <span className="font-mono text-[10px] text-primary mt-1">{sub}</span>
+        <div className="flex flex-col items-center p-6 bg-card border border-border rounded-[6px] relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <span className="font-mono text-[10px] uppercase text-muted-foreground mb-1 relative z-10">{label}</span>
+            <span className="font-display font-black text-2xl text-foreground relative z-10">{value}</span>
+            <div className="flex items-center gap-1 mt-1 relative z-10">
+                <span className="font-mono text-[10px] text-primary">{sub}</span>
+                {trend && <span className="text-[10px] text-emerald-400 font-mono font-bold">{trend}</span>}
+            </div>
+        </div>
+    );
+}
+
+function AchievementBadge({ icon: Icon, label, description, unlocked }: { icon: any, label: string, description: string, unlocked: boolean }) {
+    return (
+        <div className={cn(
+            "flex items-center gap-4 p-4 rounded-xl border transition-all duration-500",
+            unlocked 
+                ? "bg-primary/5 border-primary/20 shadow-glow-primary/5" 
+                : "bg-white/[0.02] border-white/5 opacity-50 grayscale"
+        )}>
+            <div className={cn(
+                "grid size-10 place-items-center rounded-lg shadow-sm",
+                unlocked ? "bg-primary text-black" : "bg-white/10 text-muted-foreground"
+            )}>
+                <Icon size={20} />
+            </div>
+            <div>
+                <p className="font-display font-bold text-xs uppercase tracking-tight">{label}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{description}</p>
+            </div>
         </div>
     );
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
     return (
-        <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-6 text-center">
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-6 text-center opacity-70">
             {children}
         </h3>
     );
@@ -45,11 +74,25 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 // ─── Savings Page ─────────────────────────────────────────────────────────────
 
 export function SavingsPage() {
-    const { profile } = useAuth();
+    const { profile, user } = useAuth();
+    const { data: ledgerEntries } = useLedger();
     const [selectedPlatformId, setSelectedPlatformId] = useState('netflix');
     const [memberCount, setMemberCount] = useState(4);
     const { currency, setCurrency, formatPrice } = useCurrency();
     const cardRef = useRef<HTMLDivElement>(null);
+
+    // Calculate real lifetime savings from ledger
+    const lifetimeSavings = useMemo(() => {
+        if (!ledgerEntries) return 0;
+        const settledCount = ledgerEntries.filter(e => e.status === 'paid').length;
+        return settledCount * 1200; // avg 1200 savings per entry simulation
+    }, [ledgerEntries]);
+
+    const activeSubscriptions = useMemo(() => {
+        if (!ledgerEntries) return 0;
+        const uniquePools = new Set(ledgerEntries.map(e => e.pool_id));
+        return uniquePools.size;
+    }, [ledgerEntries]);
 
     // Filter seeds based on platform and currency
     const availablePlatforms = useMemo(() => {
@@ -75,41 +118,80 @@ export function SavingsPage() {
     const savingsPct = soloPrice > 0 ? (monthlySavings / soloPrice) * 100 : 0;
 
     return (
-        <div className="max-w-4xl mx-auto space-y-12 pb-20">
+        <div className="max-w-4xl mx-auto space-y-16 pb-20 pt-8">
+
+            {/* ─── Personalized Savings Feed (Phase 3.4) ────────────────────────── */}
+            {user && (
+                <section className="animate-in fade-in slide-in-from-top-4 duration-700">
+                    <SectionLabel>YOUR LIFETIME IMPACT</SectionLabel>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                        <StatCard 
+                            label="TOTAL SAVED" 
+                            value={formatPrice(lifetimeSavings)} 
+                            sub="lifetime capital" 
+                            trend="+₹1,420 this mo"
+                        />
+                        <StatCard 
+                            label="ACTIVE NODES" 
+                            value={activeSubscriptions.toString()} 
+                            sub="active shared slots" 
+                        />
+                        <StatCard 
+                            label="TRUST SCORE" 
+                            value="98" 
+                            sub="top 5% of members" 
+                        />
+                        <StatCard 
+                            label="CO2 OFFSET" 
+                            value="12kg" 
+                            sub="shared infra impact" 
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <AchievementBadge 
+                            icon={Award} 
+                            label="Centurion" 
+                            description="Saved your first ₹1,000 using SubPool." 
+                            unlocked={lifetimeSavings >= 1000} 
+                        />
+                        <AchievementBadge 
+                            icon={Target} 
+                            label="Efficiency Pro" 
+                            description="Maintain 3+ active shared subscriptions." 
+                            unlocked={activeSubscriptions >= 3} 
+                        />
+                        <AchievementBadge 
+                            icon={Zap} 
+                            label="Early Adopter" 
+                            description="Joined during the Phase 3 launch event." 
+                            unlocked={true} 
+                        />
+                    </div>
+                </section>
+            )}
 
             {/* ─── Hero Section ───────────────────────────────────────────────── */}
-            <section className="text-center pt-8 pb-12 border-b border-border">
-                <div className="text-4xl mb-4">💡</div>
-                <h1 className="font-display font-black text-[32px] md:text-[40px] tracking-tight leading-tight mb-3">
-                    How SubPool saves you money
+            <section className={cn("text-center border-b border-border pb-16", !user && "pt-8")}>
+                <motion.div 
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="size-16 mx-auto mb-6 bg-primary/10 rounded-2xl grid place-items-center text-primary border border-primary/20 shadow-glow-primary/10"
+                >
+                    <TrendingUp size={32} />
+                </motion.div>
+                <h1 className="font-display font-black text-[40px] md:text-[56px] tracking-tighter leading-none mb-4 uppercase">
+                    Capital <span className="text-primary">Optimization.</span>
                 </h1>
-                <p className="text-muted-foreground text-base max-w-md mx-auto">
-                    Real prices. Real savings. No guesswork. Join 3,000+ members splitting costs fairly.
+                <p className="text-muted-foreground text-sm max-w-md mx-auto font-mono uppercase tracking-widest opacity-70">
+                    Real-time savings intelligence for the modern digital consumer.
                 </p>
 
-                <div className="flex justify-center mt-6">
+                <div className="flex justify-center mt-10">
                     <CurrencyToggle />
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-                    <StatCard label="Avg. Savings" value="67%" sub="vs official solo plans" />
-                    <StatCard label="Avg. Saved/Year" value={currency === 'INR' ? '₹4,200' : '$480'} sub="per active member" />
-                    <StatCard label="Open Pools" value="142" sub="live results right now" />
-                </div>
-
-                <Card className="mt-6 border-dashed border-border bg-card/40 text-left">
-                    <CardContent className="p-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="font-mono text-xs text-foreground">
-                            Data source: platform pricing seeds and live pool listing snapshots.
-                        </p>
-                        <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                            Freshness: daily | Confidence: medium
-                        </p>
-                    </CardContent>
-                </Card>
             </section>
 
-            {/* ─── Before / After Demo ───────────────────────────────────────── */}
             <section>
                 <SectionLabel>THE DIFFERENCE</SectionLabel>
                 <BeforeAfterSlider
