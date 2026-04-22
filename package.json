@@ -110,7 +110,9 @@
   },
   "pnpm": {
     "overrides": {
-      "vite": "6.4.2"
+      "vite": "6.4.2",
+      "react": "18.3.1",
+      "react-dom": "18.3.1"
     }
   }
 }

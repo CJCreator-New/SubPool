@@ -19,6 +19,7 @@ import {
     SidebarInset,
     SidebarTrigger,
 } from '../components/ui/sidebar';
+import { useActionSummary } from '../../lib/hooks/useActionSummary';
 import { Avatar, AvatarFallback } from '../components/ui/avatar';
 import { Button } from '../components/ui/button';
 import { cn } from '../components/ui/utils';
@@ -67,6 +68,7 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
     const activePath = location.pathname;
     const pageTitle = PAGE_TITLES[activePath] ?? 'SubPool';
     const { user, profile, signOut } = useAuth();
+    const { monthlySavingsCents } = useActionSummary();
     const { isDemo } = useDemo();
     const [isScrolled, setIsScrolled] = React.useState(false);
 
@@ -248,10 +250,18 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                     {/* Sidebar toggle */}
                     <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
 
-                    <div className="flex-1 flex items-center gap-2">
-                        <h1 className="font-display font-black text-[16px] text-foreground tracking-tight">
-                            {pageTitle}
-                        </h1>
+                    <div className="flex-1 flex items-center gap-3">
+                        <div className="hidden sm:flex items-center gap-2">
+                            <span className="font-mono text-[10px] text-muted-foreground/30 font-black tracking-widest uppercase mb-0.5">Subpool /</span>
+                            <h1 className="font-display font-black text-[14px] text-foreground tracking-tight uppercase">
+                                {pageTitle}
+                            </h1>
+                        </div>
+                        <div className="sm:hidden">
+                            <h1 className="font-display font-black text-[14px] text-foreground tracking-tight uppercase">
+                                {pageTitle}
+                            </h1>
+                        </div>
                         {!user && (
                             <span className="font-mono text-[9px] text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 uppercase tracking-widest font-bold">
                                 GUEST
@@ -265,9 +275,16 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                     </div>
 
                     {/* Right actions */}
-                    <div className="flex items-center gap-4">
-                        <CommandPalette />
-                        <NotificationBell />
+                    <div className="flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-2xl p-1 backdrop-blur-md">
+                        <div className="flex items-center gap-2 px-3 border-r border-white/5 hidden lg:flex">
+                            <div className="size-1.5 rounded-full bg-primary shadow-glow-primary animate-pulse" />
+                            <span className="font-mono text-[9px] text-primary/80 uppercase font-black tracking-widest">Network Live</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2">
+                            <CommandPalette />
+                            <NotificationBell />
+                        </div>
+                    </div>
 
                         {/* List a Pool — shown on browse */}
                         {(activePath === '/' || activePath === '/browse') && (
@@ -285,7 +302,6 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                                 List a Pool
                             </Button>
                         )}
-                    </div>
                 </header>
 
                 {/* Page Content */}
@@ -339,6 +355,28 @@ export function DashboardLayout({ guestFallbackMessage }: { guestFallbackMessage
                 </nav>
                 <div className="h-16 md:hidden" /> {/* Spacer for bottom tab bar */}
             </SidebarInset>
+
+            {/* ─── TECHNICAL HUD (Fixed Bottom Right) ────────────────────────── */}
+            <div className="fixed bottom-6 right-6 z-[60] hidden lg:block">
+                <div className="glass-premium border-l-2 border-l-primary px-4 py-2.5 rounded-l-md flex flex-col gap-1 min-w-[180px] shadow-2xl">
+                    <div className="flex items-center justify-between gap-8">
+                        <span className="font-mono text-[9px] text-muted-foreground uppercase tracking-widest">Savings / MO</span>
+                        <span className="font-display font-black text-primary text-sm">${(monthlySavingsCents / 100).toFixed(0)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-8">
+                        <span className="font-mono text-[9px] text-muted-foreground uppercase tracking-widest">Node Status</span>
+                        <div className="flex items-center gap-1.5">
+                            <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                            <span className="font-mono text-[8px] text-primary uppercase font-bold tracking-tighter">Optimized</span>
+                        </div>
+                    </div>
+                    <div className="h-px bg-white/5 my-1" />
+                    <div className="flex items-center justify-between">
+                        <span className="font-mono text-[8px] text-muted-foreground/40 uppercase">SP-CORE-0.0.1</span>
+                        <span className="font-mono text-[8px] text-muted-foreground/40 uppercase tracking-tighter">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                    </div>
+                </div>
+            </div>
 
             {/* ─── Demo Character Cards ────────────────────────────────────── */}
             {demoCharacter && (

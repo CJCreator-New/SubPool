@@ -34,10 +34,10 @@ export function ActionCenter() {
     }
 
     return (
-        <div className="relative max-w-7xl mx-auto p-6 space-y-12 noise-overlay min-h-screen">
+        <div className="relative max-w-7xl mx-auto p-6 space-y-12 bg-grid-technical min-h-screen scan-line">
             
             {/* Background Ambient Glows */}
-            <div className="absolute top-0 left-1/4 size-[500px] bg-primary/10 rounded-full blur-[120px] -z-10 animate-pulse" />
+            <div className="absolute top-0 left-1/4 size-[600px] bg-primary/5 rounded-full blur-[160px] -z-10" />
             <div className="absolute bottom-1/4 right-1/4 size-[400px] bg-blue-500/5 rounded-full blur-[100px] -z-10" />
 
             {/* Header: Greeting & Savings */}
@@ -86,8 +86,13 @@ export function ActionCenter() {
                                 className="space-y-6"
                             >
                                 <div className="flex items-center gap-3">
-                                    <Sparkles size={18} className="text-primary" />
-                                    <h2 className="font-display font-black text-2xl tracking-tight">Access Requests</h2>
+                                    <div className="px-3 py-1 bg-primary/10 border border-primary/20 rounded-md">
+                                        <Sparkles size={14} className="text-primary" />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <h2 className="font-display font-black text-xl tracking-tight uppercase">Inbound Protocols</h2>
+                                        <p className="font-mono text-[8px] text-muted-foreground/50 uppercase tracking-[0.2em]">Priority: Admin Check</p>
+                                    </div>
                                     <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
                                 </div>
                                 
@@ -139,8 +144,13 @@ export function ActionCenter() {
                                 className="space-y-6"
                             >
                                 <div className="flex items-center gap-3">
-                                    <CreditCard size={18} className="text-blue-500" />
-                                    <h2 className="font-display font-black text-2xl tracking-tight">Ledger Settlements</h2>
+                                    <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md">
+                                        <CreditCard size={14} className="text-blue-500" />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <h2 className="font-display font-black text-xl tracking-tight uppercase">Ledger Settlements</h2>
+                                        <p className="font-mono text-[8px] text-destructive/50 uppercase tracking-[0.2em]">Priority: High / Due Soon</p>
+                                    </div>
                                     <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
                                 </div>
 

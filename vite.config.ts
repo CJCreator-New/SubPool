@@ -13,16 +13,18 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      'react': path.resolve(__dirname, 'node_modules/react'),
-      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+      'react': path.resolve(__dirname, './node_modules/react'),
+      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
     },
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'motion/react', 'lucide-react', 'recharts', 'motion'],
   },
 
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor-motion': ['motion/react'],
           'vendor-lucide': ['lucide-react'],
           'vendor-charts': ['recharts'],
           'vendor-supabase': ['@supabase/supabase-js'],
