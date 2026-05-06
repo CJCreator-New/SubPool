@@ -38,11 +38,11 @@ CREATE POLICY "ratings_read_public" ON ratings FOR SELECT
 
 DROP POLICY IF EXISTS "ratings_insert_member" ON ratings;
 CREATE POLICY "ratings_insert_member" ON ratings FOR INSERT
-    WITH CHECK (auth.uid() = from_user_id);
+    WITH CHECK (auth.uid() = rater_id);
 
 DROP POLICY IF EXISTS "ratings_update_own" ON ratings;
 CREATE POLICY "ratings_update_own" ON ratings FOR UPDATE
-    USING (auth.uid() = from_user_id);
+    USING (auth.uid() = rater_id);
 
 
 -- 3. AUDIT LOGGING FOR FINANCIALS
