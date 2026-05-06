@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { Card } from '../components/ui/card';
-import { useActionSummaryQuery } from '../../lib/supabase/queries';
+import { useActionSummaryQuery, useUserSavingsQuery } from '../../lib/supabase/queries';
 import { useAuth } from '../../lib/supabase/auth';
 import { NumberTicker } from '../components/subpool-components';
 import { Button } from '../components/ui/button';
@@ -40,10 +40,12 @@ export function ActionCenter() {
     const { isDemo } = useDemo ? useDemo() : { isDemo: true };
     const { formatPrice } = useCurrency();
 
+    const { data: savingsData } = useUserSavingsQuery(user?.id);
+
     const pendingRequests = useMemo(() => summary?.pendingRequests || [], [summary]);
     const duePayments = useMemo(() => summary?.duePayments || [], [summary]);
     const unreadNotifications = useMemo(() => summary?.unreadNotifications || [], [summary]);
-    const monthlySavingsCents = summary?.monthlySavingsCents || 0;
+    const monthlySavingsCents = savingsData?.monthlySavings || 0;
 
     const [latency, setLatency] = React.useState(24);
     const [networkGrowth, setNetworkGrowth] = React.useState(12.4);

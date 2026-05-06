@@ -1,7 +1,40 @@
 // @ts-nocheck
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from './client';
-import type { Pool } from '../types';
+import type { Pool, Category, Platform, PayoutRequest, Profile, Notification } from '../types';
+
+/**
+ * Categories & Platforms
+ */
+export function useCategoriesQuery() {
+  return useQuery<Category[]>({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return data;
+    }
+  });
+}
+
+export function usePlatformsQuery(categoryId?: string) {
+  return useQuery<Platform[]>({
+    queryKey: ['platforms', categoryId],
+    queryFn: async () => {
+      let query = supabase.from('platforms').select('*, categories:category_id(*)');
+      if (categoryId) {
+        query = query.eq('category_id', categoryId);
+      }
+      const { data, error } = await query.order('name');
+      if (error) throw error;
+      return data;
+    }
+  });
+}
+
 
 // ─── Query Keys ──────────────────────────────────────────────────────────────
 
@@ -450,6 +483,69 @@ export function useSimulateBillingMutation() {
         },
     });
 }
+/**
+ * Analytics & Savings
+ */
+export function useUserSavingsQuery(userId?: string) {
+  return useQuery({
+    queryKey: ['user-savings', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      // Get active memberships with pool and platform details
+      const { data, error } = await supabase
+        .from('memberships')
+        .select(`
+          price_per_slot,
+          joined_at,
+          pools (
+            platform,
+            plan_name,
+            total_slots
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'active');
+
+      if (error) throw error;
+
+      // Map platforms to get retail prices
+      const platformsResponse = await supabase
+        .from('platforms')
+        .select('name, slug, retail_price_inr, retail_price_usd');
+      
+      const platformMap = Object.fromEntries(platformsResponse.data?.map(p => [p.slug, p]) || []);
+
+      let totalMonthlyRetail = 0;
+      let totalMonthlyPaid = 0;
+      const details = data?.map(m => {
+        const plat = platformMap[m.pools.platform];
+        const retailUnits = plat?.retail_price_inr || plat?.retail_price_usd || 0;
+        const retail = Math.round(retailUnits * 100); // Convert to cents
+        const paid = m.price_per_slot || 0;
+        
+        totalMonthlyRetail += retail;
+        totalMonthlyPaid += paid;
+
+        return {
+          platform: plat?.name || m.pools.platform,
+          paid,
+          retail,
+          savings: retail - paid,
+          savingsPct: retail > 0 ? ((retail - paid) / retail) * 100 : 0,
+          joinedAt: m.joined_at
+        };
+      }) || [];
+
+      return {
+        monthlySavings: totalMonthlyRetail - totalMonthlyPaid,
+        totalMonthlyRetail,
+        totalMonthlyPaid,
+        savingsPct: totalMonthlyRetail > 0 ? ((totalMonthlyRetail - totalMonthlyPaid) / totalMonthlyRetail) * 100 : 0,
+        details
+      };
+    }
+  });
+}
 
 export function useClaimRewardMutation() {
     const queryClient = useQueryClient();
@@ -483,3 +579,60 @@ export function useApprovePayoutMutation() {
 }
 
 export { useWatchedPlatforms } from './hooks';
+/**
+ * Credential Vault
+ */
+export function usePoolCredentialsQuery(poolId?: string) {
+  return useQuery({
+    queryKey: ['pool-credentials', poolId],
+    enabled: !!poolId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('credentials')
+        .select('encrypted_data, nonce')
+        .eq('pool_id', poolId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    }
+  });
+}
+/**
+ * Session Scheduler
+ */
+export function usePoolSessionsQuery(poolId?: string) {
+  return useQuery({
+    queryKey: ['pool-sessions', poolId],
+    enabled: !!poolId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pool_sessions')
+        .select('*, user:profiles(username, display_name)')
+        .eq('pool_id', poolId)
+        .order('start_at', { ascending: true });
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+}
+
+export function useBookSessionMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (session: { pool_id: string, user_id: string, start_at: string, end_at: string }) => {
+      const { data, error } = await supabase
+        .from('pool_sessions')
+        .insert(session)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pool-sessions', variables.pool_id] });
+    }
+  });
+}

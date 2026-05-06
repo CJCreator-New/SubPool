@@ -24,20 +24,22 @@ import { PLATFORMS } from '../../lib/constants';
 import { createPool } from '../../lib/supabase/mutations';
 import type { PoolCategory } from '../../lib/types';
 import { useAuth } from '../../lib/supabase/auth';
-import { useMyPoolsQuery } from '../../lib/supabase/queries';
+import { useMyPoolsQuery, useCategoriesQuery, usePlatformsQuery } from '../../lib/supabase/queries';
 import { checkPlanAccess, getUpgradeMessage } from '../../lib/gating';
 import { getPlatformSharingNote, analyzePricing, getSuggestion, getPricingData } from '../../lib/pricing-service';
 import { PLATFORM_PRICING_SEED } from '../../lib/pricing-seed';
-import type { PlatformPricing } from '../../lib/pricing-seed';
+import type { PlatformPricing, Category, Platform as PlatformType } from '../../lib/types';
 import { track } from '../../lib/analytics';
 import { useCurrency } from '../../lib/currency-context';
 import { CurrencyToggle } from '../components/currency-toggle';
 import { getUserFacingError } from '../../lib/error-feedback';
+import { Card, CardContent } from '../components/ui/card';
+import { ShieldCheck, Info, MapPin, Monitor } from 'lucide-react';
 
 function StepIndicator({ step }: { step: number }) {
   return (
     <div className="flex items-center gap-2 mb-10 max-w-sm mx-auto">
-      {[1, 2, 3, 4].map((n) => (
+      {[1, 2, 3, 4, 5].map((n) => (
         <React.Fragment key={n}>
           <div
             className={`
@@ -52,7 +54,7 @@ function StepIndicator({ step }: { step: number }) {
           >
             {step > n ? '✓' : n}
           </div>
-          {n < 4 && (
+          {n < 5 && (
             <div
               className={`flex-1 h-[2px] transition-all duration-500 rounded-full ${step > n ? 'bg-primary/40' : 'bg-white/5'
                 }`}
@@ -67,8 +69,9 @@ function StepIndicator({ step }: { step: number }) {
 export function ListAPool() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(null);
   const [form, setForm] = useState({
     planName: '',
     totalCost: '',
@@ -78,6 +81,8 @@ export function ListAPool() {
     autoApprove: false,
     rules: '',
     visibility: 'public' as 'public' | 'private',
+    locationRequired: false,
+    hardwareRequired: false,
   });
   const { currency, symbol: sym } = useCurrency();
   const [submitting, setSubmitting] = useState(false);
@@ -85,31 +90,35 @@ export function ListAPool() {
   const [showPaywall, setShowPaywall] = useState(false);
   
   const { data: myPools } = useMyPoolsQuery(user?.id);
+  const { data: categories = [] } = useCategoriesQuery();
+  const { data: platforms = [] } = usePlatformsQuery(selectedCategoryId || undefined);
+  
   const activePoolsCount = myPools?.length || 0;
 
   const updateForm = (key: string, value: any) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const platform = PLATFORMS.find((p) => p.id === selectedPlatform);
+  const platform = platforms.find((p) => p.id === selectedPlatformId);
+  const category = categories.find((c) => c.id === selectedCategoryId);
 
   const analysis = React.useMemo(() => {
-    if (!selectedPlatform || !form.planName || !form.slots || !form.totalCost) return null;
+    if (!selectedPlatformId || !form.planName || !form.slots || !form.totalCost) return null;
     const totalCostNum = parseFloat(form.totalCost);
     const slotsNum = parseInt(form.slots);
     if (isNaN(totalCostNum) || isNaN(slotsNum) || slotsNum <= 0) return null;
     
     return analyzePricing({
-      platformId: selectedPlatform,
+      platformId: selectedPlatformId,
       planName: form.planName,
       userSlotPrice: totalCostNum / slotsNum,
       totalSlots: slotsNum,
       currency: currency as 'USD' | 'INR',
       countryCode: currency === 'INR' ? 'IN' : 'US',
     });
-  }, [selectedPlatform, form.planName, form.totalCost, form.slots, currency]);
+  }, [selectedPlatformId, form.planName, form.totalCost, form.slots, currency]);
 
   const handlePublish = async () => {
-    if (!selectedPlatform || !platform || !user) return;
+    if (!selectedPlatformId || !platform || !user) return;
 
     const access = checkPlanAccess(profile, 'MAX_ACTIVE_POOLS', activePoolsCount);
     if (!access.allowed) {
@@ -122,9 +131,9 @@ export function ListAPool() {
     const slotPriceCents = Math.round(slotPrice * 100);
     try {
       const result = await createPool({
-        platform: selectedPlatform,
+        platform: platform.slug || platform.name,
         owner_id: user.id,
-        category: form.category,
+        category: category?.slug as PoolCategory || 'OTT',
         status: 'open',
         plan_name: form.planName,
         price_per_slot: slotPriceCents,
@@ -145,10 +154,49 @@ export function ListAPool() {
 
   const renderStep1 = () => (
     <div className="max-w-4xl mx-auto space-y-8">
+      <div className="text-center space-y-4 mb-12">
+        <h1 className="font-display font-black text-5xl tracking-tighter italic uppercase">Sector Initialization</h1>
+        <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-[0.3em]">Select the primary asset category for node allocation.</p>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => {
+              setSelectedCategoryId(cat.id);
+              setSelectedPlatformId(null); // Reset platform when category changes
+              setStep(2);
+            }}
+            style={{ 
+              backgroundColor: selectedCategoryId === cat.id ? `${cat.color}20` : undefined,
+              borderColor: selectedCategoryId === cat.id ? cat.color : undefined
+            }}
+            className={cn(
+              "flex flex-col items-center justify-center p-8 rounded-3xl border transition-all duration-500 group relative overflow-hidden h-40",
+              selectedCategoryId === cat.id 
+                ? "shadow-lg scale-[1.05]" 
+                : "border-white/5 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
+            )}
+          >
+            <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">{cat.icon}</div>
+            <span className="font-display font-black text-[11px] uppercase tracking-widest text-center" style={{ color: selectedCategoryId === cat.id ? cat.color : undefined }}>{cat.name}</span>
+            {selectedCategoryId === cat.id && (
+              <motion.div layoutId="category-active" className="absolute bottom-0 inset-x-0 h-1" style={{ backgroundColor: cat.color }} />
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-6 border-b border-white/5">
         <div>
-          <h1 className="font-display font-black text-5xl tracking-tighter italic uppercase">Asset Selection</h1>
-          <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mt-2">Initialize pool deployment by selecting a platform node.</p>
+          <button onClick={() => setStep(1)} className="font-mono text-[10px] text-primary uppercase tracking-widest mb-2 hover:underline">← Change Sector</button>
+          <h1 className="font-display font-black text-5xl tracking-tighter italic uppercase">Platform Uplink</h1>
+          <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mt-2">Initialize pool deployment by selecting a platform node in {category?.name}.</p>
         </div>
         <div className="relative w-full md:w-80 group">
           <Input
@@ -160,36 +208,42 @@ export function ListAPool() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-        {PLATFORMS.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map((p) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {platforms.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map((p) => (
           <button
             key={p.id}
-            onClick={() => setSelectedPlatform(p.id)}
+            onClick={() => {
+              setSelectedPlatformId(p.id);
+              updateForm('locationRequired', p.requires_same_location);
+              updateForm('hardwareRequired', p.hardware_required);
+              // Pre-fill retail price if available
+              if (p.retail_price_inr && currency === 'INR') updateForm('totalCost', p.retail_price_inr.toString());
+              else if (p.retail_price_usd && currency === 'USD') updateForm('totalCost', p.retail_price_usd.toString());
+              updateForm('slots', (p.max_pool_size || 4).toString());
+            }}
             className={cn(
-              "flex flex-col items-center justify-center p-6 rounded-2xl border transition-all duration-500 group relative overflow-hidden",
-              selectedPlatform === p.id 
+              "flex flex-col items-center justify-center p-6 rounded-2xl border transition-all duration-500 group relative overflow-hidden h-36",
+              selectedPlatformId === p.id 
                 ? "border-primary bg-primary/10 shadow-glow-primary scale-[1.02]" 
                 : "border-white/5 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
             )}
           >
-            <div className={cn(
-              "size-12 rounded-xl mb-4 flex items-center justify-center text-2xl transition-all duration-500",
-              selectedPlatform === p.id ? "bg-primary text-black" : "bg-white/5"
-            )}>
-              {p.icon}
+            <div className="text-2xl mb-3 flex items-center justify-center">
+              {p.icon || '📦'}
             </div>
-            <span className="font-mono text-[10px] font-black uppercase tracking-widest text-center">{p.name}</span>
-            {selectedPlatform === p.id && (
+            <span className="font-mono text-[10px] font-black uppercase tracking-widest text-center truncate w-full px-2">{p.name}</span>
+            {selectedPlatformId === p.id && (
               <motion.div layoutId="platform-active" className="absolute bottom-0 inset-x-0 h-1 bg-primary" />
             )}
           </button>
         ))}
       </div>
       
-      <div className="flex justify-end pt-8">
+      <div className="flex justify-between pt-8">
+        <Button variant="ghost" onClick={() => setStep(1)} className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">← BACK</Button>
         <Button 
-          disabled={!selectedPlatform} 
-          onClick={() => setStep(2)}
+          disabled={!selectedPlatformId} 
+          onClick={() => setStep(3)}
           className="h-14 px-10 font-display font-black uppercase tracking-widest rounded-2xl group shadow-glow-primary"
         >
           Proceed to Config <ArrowRight size={18} className="ml-2 transition-transform group-hover:translate-x-1" />
@@ -198,10 +252,11 @@ export function ListAPool() {
     </div>
   );
 
-  const renderStep2 = () => (
+  const renderStep3 = () => (
     <div className="max-w-6xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-6 border-b border-white/5">
         <div>
+          <button onClick={() => setStep(2)} className="font-mono text-[10px] text-primary uppercase tracking-widest mb-2 hover:underline">← Change Platform</button>
           <h1 className="font-display font-black text-5xl tracking-tighter italic uppercase">Configuration</h1>
           <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mt-2">Calibrate yield parameters and settlement cycles.</p>
         </div>
@@ -221,21 +276,18 @@ export function ListAPool() {
                 <Input 
                   value={form.planName} 
                   onChange={e => updateForm('planName', e.target.value)} 
-                  placeholder="e.g. Ultra HD Premium"
+                  placeholder="e.g. Premium Family Plan"
                   className="h-14 bg-white/5 border-white/10 rounded-2xl font-display font-bold" 
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground ml-1">Sector Classification</Label>
-                <Select value={form.category} onValueChange={v => updateForm('category', v)}>
-                  <SelectTrigger className="h-14 bg-white/5 border-white/10 rounded-2xl font-display font-bold"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-black/90 backdrop-blur-xl border-white/10">
-                    <SelectItem value="OTT">OTT / Media</SelectItem>
-                    <SelectItem value="AI_IDE">AI & Dev Tools</SelectItem>
-                    <SelectItem value="ai">AI Solutions</SelectItem>
-                    <SelectItem value="Productivity">Productivity Suite</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground ml-1">Sharing Protocol</Label>
+                <div className="h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center px-4 gap-3">
+                   <div className="size-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] text-primary">✓</div>
+                   <span className="font-display font-bold text-sm uppercase tracking-tight">
+                     {platform?.sharing_type?.replace('_', ' ') || 'Credential Share'}
+                   </span>
+                </div>
               </div>
             </div>
 
@@ -272,6 +324,35 @@ export function ListAPool() {
                 </Select>
               </div>
             </div>
+
+            {(platform?.requires_same_location || platform?.hardware_required) && (
+              <div className="pt-6 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {platform?.requires_same_location && (
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-primary/5 border border-primary/10">
+                    <div className="flex items-center gap-3">
+                      <MapPin size={16} className="text-primary" />
+                      <div className="space-y-0.5">
+                        <p className="font-display font-black text-[10px] uppercase">Location Restricted</p>
+                        <p className="font-mono text-[9px] text-muted-foreground uppercase">Members must be in same city</p>
+                      </div>
+                    </div>
+                    <Switch checked={form.locationRequired} onCheckedChange={v => updateForm('locationRequired', v)} />
+                  </div>
+                )}
+                {platform?.hardware_required && (
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-primary/5 border border-primary/10">
+                    <div className="flex items-center gap-3">
+                      <Monitor size={16} className="text-primary" />
+                      <div className="space-y-0.5">
+                        <p className="font-display font-black text-[10px] uppercase">Hardware Required</p>
+                        <p className="font-mono text-[9px] text-muted-foreground uppercase">e.g. Set-top box/Device</p>
+                      </div>
+                    </div>
+                    <Switch checked={form.hardwareRequired} onCheckedChange={v => updateForm('hardwareRequired', v)} />
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           {analysis && (
@@ -316,19 +397,21 @@ export function ListAPool() {
                 <span className="text-success font-black">-{analysis?.hostOffset.toFixed(0) || '0'}%</span>
               </div>
               <div className="flex justify-between font-mono text-[10px] uppercase tracking-widest">
-                <span className="text-muted-foreground">Market Status</span>
-                <span className="text-foreground font-black">LIQUID</span>
+                <span className="text-muted-foreground">Compliance</span>
+                <span className={cn("font-black", platform?.tos_risk_level === 'safe' ? 'text-success' : 'text-warning')}>
+                  {platform?.tos_risk_level?.toUpperCase() || 'GREY AREA'}
+                </span>
               </div>
             </div>
 
             <Button 
               className="w-full h-16 rounded-2xl font-display font-black uppercase tracking-widest group" 
-              onClick={() => setStep(3)}
+              onClick={() => setStep(4)}
               disabled={!form.planName || !form.totalCost}
             >
               Verify Protocol <ArrowRight size={18} className="ml-2 transition-transform group-hover:translate-x-1" />
             </Button>
-            <Button variant="ghost" className="w-full font-mono text-[10px] uppercase tracking-widest text-muted-foreground" onClick={() => setStep(1)}>
+            <Button variant="ghost" className="w-full font-mono text-[10px] uppercase tracking-widest text-muted-foreground" onClick={() => setStep(2)}>
               Reselect Asset
             </Button>
           </PremiumCard>
@@ -347,7 +430,7 @@ export function ListAPool() {
     </div>
   );
 
-  const renderStep3 = () => (
+  const renderStep4 = () => (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-6 border-b border-white/5">
         <div>
@@ -361,7 +444,13 @@ export function ListAPool() {
            <section className="p-10 rounded-[32px] bg-white/[0.02] border border-white/5 space-y-8">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground ml-1">Auto-Approval</Label>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground ml-1">Auto-Approval</Label>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono uppercase">
+                      <Info size={10} />
+                      {platform?.sharing_type === 'credential_share' ? 'Recommended for credentials' : 'Not recommended for family invites'}
+                    </div>
+                  </div>
                   <Switch checked={form.autoApprove} onCheckedChange={v => updateForm('autoApprove', v)} />
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -400,7 +489,7 @@ export function ListAPool() {
                 <Textarea 
                   value={form.rules}
                   onChange={e => updateForm('rules', e.target.value)}
-                  placeholder="e.g. Please use the profile 'Slot 1' only. No password changes allowed."
+                  placeholder={platform?.compliance_note || "e.g. Please use the profile 'Slot 1' only. No password changes allowed."}
                   className="bg-white/5 border-white/10 rounded-2xl min-h-[150px] font-display text-sm p-6"
                 />
               </div>
@@ -415,10 +504,10 @@ export function ListAPool() {
                   Ensure rules are clear to prevent disputes. High clarity leads to 80% higher retention.
                 </p>
               </div>
-              <Button className="w-full h-16 rounded-2xl font-display font-black uppercase tracking-widest" onClick={() => setStep(4)}>
+              <Button className="w-full h-16 rounded-2xl font-display font-black uppercase tracking-widest" onClick={() => setStep(5)}>
                 Review Deployment
               </Button>
-              <Button variant="ghost" className="w-full font-mono text-[10px] uppercase tracking-widest text-muted-foreground" onClick={() => setStep(2)}>
+              <Button variant="ghost" className="w-full font-mono text-[10px] uppercase tracking-widest text-muted-foreground" onClick={() => setStep(3)}>
                 Edit Config
               </Button>
            </PremiumCard>
@@ -427,7 +516,7 @@ export function ListAPool() {
     </div>
   );
 
-  const renderStep4 = () => (
+  const renderStep5 = () => (
     <div className="max-w-2xl mx-auto space-y-10 py-10">
       <div className="text-center space-y-4">
         <div className="size-20 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-6 shadow-glow-primary animate-pulse">
@@ -443,7 +532,7 @@ export function ListAPool() {
               <div className="space-y-1">
                  <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Asset Node</p>
                  <div className="flex items-center gap-3">
-                    <PlatformIcon platformId={selectedPlatform!} size="xs" />
+                    <div className="text-xl">{platform?.icon || '📦'}</div>
                     <span className="font-display font-black text-xl uppercase tracking-tighter">{platform?.name}</span>
                  </div>
               </div>
@@ -461,6 +550,21 @@ export function ListAPool() {
               </div>
            </div>
 
+           <div className="space-y-4 pt-6 border-t border-white/5">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+                 <div className={cn("size-2 rounded-full", platform?.tos_risk_level === 'safe' ? 'bg-success' : 'bg-warning')} />
+                 <span className="font-mono text-[10px] uppercase tracking-widest">
+                   {platform?.tos_risk_level?.toUpperCase() || 'GREY AREA'} RISK LEVEL
+                 </span>
+              </div>
+              {form.locationRequired && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/20">
+                   <MapPin size={12} className="text-primary" />
+                   <span className="font-mono text-[10px] uppercase tracking-widest">Location Matching Active</span>
+                </div>
+              )}
+           </div>
+
            <div className="pt-8 border-t border-white/5 flex flex-col gap-4">
               <Button 
                 className="h-16 w-full text-lg font-display font-black uppercase tracking-[0.2em] shadow-glow-primary rounded-2xl" 
@@ -472,7 +576,7 @@ export function ListAPool() {
               <Button 
                 variant="ghost" 
                 className="w-full font-mono text-[10px] uppercase tracking-widest text-muted-foreground" 
-                onClick={() => setStep(3)}
+                onClick={() => setStep(4)}
               >
                 Return to Protocol
               </Button>
@@ -481,7 +585,7 @@ export function ListAPool() {
       </Card>
       
       <p className="text-center font-mono text-[9px] text-muted-foreground uppercase tracking-widest opacity-40">
-        SubPool Deployment Protocol v2.5.0 · Encrypted Uplink Active
+        SubPool Deployment Protocol v2.6.0 · Encrypted Uplink Active
       </p>
     </div>
   );
@@ -502,6 +606,7 @@ export function ListAPool() {
             {step === 2 && renderStep2()}
             {step === 3 && renderStep3()}
             {step === 4 && renderStep4()}
+            {step === 5 && renderStep5()}
           </motion.div>
         </AnimatePresence>
 

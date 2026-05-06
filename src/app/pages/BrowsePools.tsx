@@ -24,7 +24,7 @@ import { useCountUp } from '../../hooks/useCountUp';
 import { useCurrency } from '../../lib/currency-context';
 import { CurrencyToggle } from '../components/currency-toggle';
 import { ActivationChecklist } from '../components/activation-checklist';
-import { useInfinitePoolsQuery, useWatchedPlatforms } from '../../lib/supabase/queries';
+import { useInfinitePoolsQuery, useWatchedPlatforms, useCategoriesQuery } from '../../lib/supabase/queries';
 import { useAuth } from '../../lib/supabase/auth';
 import { SEO } from '../components/seo';
 
@@ -32,14 +32,8 @@ import { SEO } from '../components/seo';
 
 const FILTER_VALUES: BrowseFilterKey[] = ['all', 'OTT', 'AI_IDE', 'ai', 'open', 'creative'];
 const SORT_VALUES: BrowseSortKey[] = ['recent', 'price-asc', 'price-desc'];
-const CATEGORY_CHIPS: { key: BrowseFilterKey; label: string }[] = [
-  { key: 'all', label: 'All Pools' },
-  { key: 'open', label: 'Open only' },
-  { key: 'OTT', label: 'OTT / Media' },
-  { key: 'AI_IDE', label: 'AI & Dev Tools' },
-  { key: 'ai', label: 'AI Tools' },
-  { key: 'creative', label: 'Creative' },
-];
+const SORT_VALUES: BrowseSortKey[] = ['recent', 'price-asc', 'price-desc'];
+
 
 const INITIAL_FILTERS: FilterState = {
   category: 'all',
@@ -210,14 +204,21 @@ export function BrowsePools() {
     minRating: Number(searchParams.get('min_rating') ?? 0)
   });
 
+  const { data: categories = [] } = useCategoriesQuery();
+
   const [sort, setSort] = useState<BrowseSortKey>(
     SORT_VALUES.includes(initialSort) ? initialSort : 'recent',
   );
   const [search, setSearch] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
-  const { data: watchedPlatforms, toggleWatch: togglePlatformWatch } = useWatchedPlatforms();
+  const { data: watchedPlatforms = [], toggleWatch: togglePlatformWatch } = useWatchedPlatforms();
   const { isDemo } = useDemo();
+  const { data: platformsList = [] } = usePlatformsQuery();
+  
+  const platformMap = useMemo(() => {
+    return Object.fromEntries(platformsList.map(p => [p.slug, p]));
+  }, [platformsList]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -393,35 +394,62 @@ export function BrowsePools() {
       <div className="sticky top-[64px] z-30 flex flex-col lg:flex-row gap-4 items-start lg:items-center bg-background/80 backdrop-blur-xl border border-border/40 py-3 px-4 rounded-2xl shadow-sm">
         <div className="w-full lg:flex-1 overflow-x-auto custom-scrollbar-hide pb-2 lg:pb-0">
           <div className="flex gap-2 items-center whitespace-nowrap min-w-max lg:min-w-0 lg:flex-wrap">
-            {CATEGORY_CHIPS.map((chip) => {
-              const isWatched = watchedPlatforms.includes(chip.key);
+            <div className="flex items-center gap-1">
+                <button
+                    onClick={() => setFilters(prev => ({ ...prev, category: 'all' }))}
+                    className={cn(
+                    'rounded-full border px-4 py-1.5 text-[11px] sm:text-xs font-display font-bold transition-all duration-300 shrink-0',
+                    filters.category === 'all'
+                        ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
+                        : 'border-border bg-card/40 text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                    )}
+                >
+                    All Pools
+                </button>
+            </div>
+            
+            <div className="flex items-center gap-1">
+                <button
+                    onClick={() => setFilters(prev => ({ ...prev, status: filters.status === 'open' ? 'all' : 'open' }))}
+                    className={cn(
+                    'rounded-full border px-4 py-1.5 text-[11px] sm:text-xs font-display font-bold transition-all duration-300 shrink-0',
+                    filters.status === 'open'
+                        ? 'bg-success text-success-foreground border-success/50 shadow-lg shadow-success/20'
+                        : 'border-border bg-card/40 text-muted-foreground hover:border-success/40 hover:text-success',
+                    )}
+                >
+                    Open only
+                </button>
+            </div>
+
+            {categories.map((cat) => {
+              const isWatched = watchedPlatforms.includes(cat.slug);
               return (
-                <div key={chip.key} className="flex items-center gap-1">
+                <div key={cat.id} className="flex items-center gap-1">
                     <button
-                        onClick={() => setFilters(prev => ({ ...prev, category: chip.key }))}
+                        onClick={() => setFilters(prev => ({ ...prev, category: cat.slug }))}
                         className={cn(
                         'rounded-full border px-4 py-1.5 text-[11px] sm:text-xs font-display font-bold transition-all duration-300 shrink-0',
-                        filters.category === chip.key
+                        filters.category === cat.slug
                             ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
                             : 'border-border bg-card/40 text-muted-foreground hover:border-primary/40 hover:text-foreground',
                         )}
                     >
-                        {chip.label}
+                        <span className="mr-1.5">{cat.icon}</span>
+                        {cat.name}
                     </button>
-                    {chip.key !== 'all' && chip.key !== 'open' && (
-                        <button 
-                            onClick={() => toggleWatch(chip.key)}
-                            className={cn(
-                                "size-8 rounded-full border flex items-center justify-center transition-all",
-                                isWatched ? "bg-primary/20 border-primary/50 text-primary" : "border-white/5 bg-white/5 text-muted-foreground hover:text-white"
-                            )}
-                        >
-                            <div className="relative">
-                                {isWatched ? <Eye size={14} className="animate-pulse" /> : <Eye size={14} />}
-                                {isWatched && <div className="absolute -top-1 -right-1 size-2 bg-primary rounded-full animate-ping" />}
-                            </div>
-                        </button>
-                    )}
+                    <button 
+                        onClick={() => toggleWatch(cat.slug)}
+                        className={cn(
+                            "size-8 rounded-full border flex items-center justify-center transition-all",
+                            isWatched ? "bg-primary/20 border-primary/50 text-primary" : "border-white/5 bg-white/5 text-muted-foreground hover:text-white"
+                        )}
+                    >
+                        <div className="relative">
+                            {isWatched ? <Eye size={14} className="animate-pulse" /> : <Eye size={14} />}
+                            {isWatched && <div className="absolute -top-1 -right-1 size-2 bg-primary rounded-full animate-ping" />}
+                        </div>
+                    </button>
                 </div>
               );
             })}
@@ -518,6 +546,7 @@ export function BrowsePools() {
                   >
                     <PoolCard
                       pool={pool}
+                      platformData={platformMap[pool.platform]}
                       index={start + idx}
                       onClick={(p) => {
                         track('pool_card_clicked', { poolId: p.id });

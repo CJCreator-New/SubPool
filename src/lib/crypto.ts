@@ -1,75 +1,57 @@
-import nacl from 'tweetnacl';
-import naclUtil from 'tweetnacl-util';
-
+// src/lib/crypto.ts
 /**
- * P2.1 Credential Vault Crypto Utilities
- * 
- * SECURITY: Keys are derived using PBKDF2 from a user-provided passphrase
- * combined with a server-side secret. The VITE_SUPABASE_ANON_KEY is a PUBLIC
- * value and must NEVER be used as an encryption key.
- * 
- * For production, implement per-user key derivation via a KMS or Supabase Vault.
+ * Utility for AES-256-GCM encryption/decryption using Web Crypto API.
+ * This is used for the Credential Vault to store sensitive data in Supabase.
+ * Note: In a production app, the 'master key' should be derived from the user's password 
+ * or a server-side secret. For this implementation, we use a simplified approach 
+ * with a derived key from the pool's secret or a global system key.
  */
 
-// Salt for PBKDF2 — in production, use a per-user salt stored in the database
-const VAULT_SALT = 'subpool-credential-vault-v1';
+const ALGORITHM = 'AES-256-GCM';
 
-/**
- * Derives a 32-byte encryption key from a user passphrase.
- * Falls back to a session-scoped random key for demo mode.
- */
-let _cachedDemoKey: Uint8Array | null = null;
-
-export function getMasterKey(passphrase?: string): Uint8Array {
-    if (passphrase) {
-        // Deterministic key from passphrase + salt (synchronous fallback using nacl)
-        const input = `${passphrase}:${VAULT_SALT}`;
-        const hash = nacl.hash(naclUtil.decodeUTF8(input));
-        return hash.slice(0, 32);
-    }
-    // Demo/fallback: generate a random key per session (credentials won't persist across sessions)
-    if (!_cachedDemoKey) {
-        _cachedDemoKey = nacl.randomBytes(32);
-        console.warn('[Vault] Using ephemeral demo key — credentials will not persist across sessions.');
-    }
-    return _cachedDemoKey;
+async function getMasterKey() {
+  // In a real app, this would be fetched from an environment variable or KMS
+  const secret = import.meta.env.VITE_ENCRYPTION_KEY || 'subpool-default-system-master-key-32chars';
+  const enc = new TextEncoder();
+  const keyData = enc.encode(secret);
+  return crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: ALGORITHM },
+    false,
+    ['encrypt', 'decrypt']
+  );
 }
 
-export function generateRandomPassword(): string {
-    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
-    let password = "";
-    const randomVals = nacl.randomBytes(16);
-    for (let i = 0; i < 16; i++) {
-        password += charset[randomVals[i] % charset.length];
-    }
-    return password;
+export async function encryptData(data: string): Promise<{ encrypted: string; nonce: string }> {
+  const key = await getMasterKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder();
+  const encodedData = enc.encode(data);
+
+  const encrypted = await crypto.subtle.encrypt(
+    { name: ALGORITHM, iv },
+    key,
+    encodedData
+  );
+
+  return {
+    encrypted: btoa(String.fromCharCode(...new Uint8Array(encrypted))),
+    nonce: btoa(String.fromCharCode(...iv))
+  };
 }
 
-export function encryptString(text: string): { cipherBase64: string; nonceBase64: string } {
-    const nonce = nacl.randomBytes(nacl.secretbox.nonceLength);
-    const messageUint8 = naclUtil.decodeUTF8(text);
-    const key = getMasterKey();
+export async function decryptData(encryptedB64: string, nonceB64: string): Promise<string> {
+  const key = await getMasterKey();
+  const iv = new Uint8Array(atob(nonceB64).split('').map(c => c.charCodeAt(0)));
+  const encrypted = new Uint8Array(atob(encryptedB64).split('').map(c => c.charCodeAt(0)));
 
-    const box = nacl.secretbox(messageUint8, nonce, key);
+  const decrypted = await crypto.subtle.decrypt(
+    { name: ALGORITHM, iv },
+    key,
+    encrypted
+  );
 
-    return {
-        cipherBase64: naclUtil.encodeBase64(box),
-        nonceBase64: naclUtil.encodeBase64(nonce),
-    };
-}
-
-export function decryptString(cipherBase64: string, nonceBase64: string): string | null {
-    try {
-        const key = getMasterKey();
-        const cipher = naclUtil.decodeBase64(cipherBase64);
-        const nonce = naclUtil.decodeBase64(nonceBase64);
-
-        const decrypted = nacl.secretbox.open(cipher, nonce, key);
-        if (!decrypted) return null;
-
-        return naclUtil.encodeUTF8(decrypted);
-    } catch (e) {
-        console.error('Decryption failed', e);
-        return null;
-    }
+  const dec = new TextDecoder();
+  return dec.decode(decrypted);
 }

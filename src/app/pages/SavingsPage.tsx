@@ -24,6 +24,7 @@ import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { BeforeAfterSlider } from '../components/before-after-slider';
 import { PlatformIcon } from '../components/subpool-components';
+import { SavingsIntelligence } from '../components/SavingsIntelligence';
 
 // ─── Subcomponents ──────────────────────────────────────────────────────────
 
@@ -120,35 +121,13 @@ export function SavingsPage() {
     return (
         <div className="max-w-4xl mx-auto space-y-16 pb-20 pt-8">
 
-            {/* ─── Personalized Savings Feed (Phase 3.4) ────────────────────────── */}
+            {/* ─── Personalized Savings Feed (Phase 3.4 & 4.3) ────────────────────────── */}
             {user && (
                 <section className="animate-in fade-in slide-in-from-top-4 duration-700">
-                    <SectionLabel>YOUR LIFETIME IMPACT</SectionLabel>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                        <StatCard 
-                            label="TOTAL SAVED" 
-                            value={formatPrice(lifetimeSavings)} 
-                            sub="lifetime capital" 
-                            trend="+₹1,420 this mo"
-                        />
-                        <StatCard 
-                            label="ACTIVE NODES" 
-                            value={activeSubscriptions.toString()} 
-                            sub="active shared slots" 
-                        />
-                        <StatCard 
-                            label="TRUST SCORE" 
-                            value="98" 
-                            sub="top 5% of members" 
-                        />
-                        <StatCard 
-                            label="CO2 OFFSET" 
-                            value="12kg" 
-                            sub="shared infra impact" 
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <SectionLabel>NETWORK YIELD ANALYSIS</SectionLabel>
+                    <SavingsIntelligence />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12">
                         <AchievementBadge 
                             icon={Award} 
                             label="Centurion" 

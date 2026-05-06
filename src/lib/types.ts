@@ -7,6 +7,39 @@
 export type PoolStatus = 'open' | 'active' | 'closed' | 'full';
 export type PoolCategory = 'OTT' | 'AI_IDE' | 'ai' | 'productivity';
 
+export type SharingType = 'family_invite' | 'credential_share' | 'seat_assignment' | 'multi_room_add_on' | 'household_share';
+export type RiskLevel = 'safe' | 'grey_area' | 'risky';
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
+  color: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface Platform {
+  id: string;
+  name: string;
+  slug: string | null;
+  category_id: string | null;
+  subcategory_id: string | null;
+  icon: string | null;
+  brand_color: string | null;
+  sharing_type: SharingType;
+  max_pool_size: number;
+  retail_price_inr: number | null;
+  retail_price_usd: number | null;
+  tos_risk_level: RiskLevel;
+  requires_same_location: boolean;
+  hardware_required: boolean;
+  access_method: string | null;
+  compliance_note: string | null;
+  categories?: Category; // Joined
+}
+
 export interface PlatformPricing {
   platform_id: string;
   platform_name: string;

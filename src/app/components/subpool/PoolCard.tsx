@@ -10,6 +10,8 @@ import { C } from '../../tokens';
 import type { Pool } from '../../../lib/types';
 import { getPlatform } from '../../../lib/constants';
 import { useCurrency } from '../../../lib/currency-context';
+import { ShieldAlert, ShieldCheck, ShieldEllipsis, MapPin, Monitor } from 'lucide-react';
+import type { Platform as PlatformType } from '../../../lib/types';
 
 interface PoolCardProps {
   id?: string;
@@ -31,6 +33,7 @@ interface PoolCardProps {
   onReport?: () => void;
   onClick?: (pool: Pool) => void;
   index?: number;
+  platformData?: PlatformType;
 }
 
 export function PoolCard({
@@ -52,16 +55,17 @@ export function PoolCard({
   onReport,
   onClick,
   index = 0,
+  platformData,
 }: PoolCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   // Derive from pool object or use manual props
-  const platform = pool ? getPlatform(pool.platform) : null;
+  const platform = platformData || (pool ? getPlatform(pool.platform) : null);
   const status = manualStatus ?? pool?.status ?? 'open';
   const platformEmoji = manualEmoji ?? platform?.icon ?? '📦';
   const platformName = manualName ?? platform?.name ?? pool?.platform ?? 'Subscription';
   const planName = manualPlan ?? pool?.plan_name ?? 'Standard Plan';
-  const platformColor = manualColor ?? platform?.bg ?? 'rgba(200,241,53,0.15)';
+  const platformColor = manualColor ?? (platform as any)?.bg ?? 'rgba(200,241,53,0.15)';
   const slotsTotal = manualTotal ?? pool?.total_slots ?? 4;
   const slotsFilled = manualFilled ?? pool?.filled_slots ?? 2;
   const { formatPrice: currencyFormat } = useCurrency();
@@ -153,6 +157,22 @@ export function PoolCard({
             </motion.div>
           )}
         </AnimatePresence>
+        
+        {/* Risk Badge */}
+        {platform?.tos_risk_level && (
+           <div className={cn(
+             "px-2 py-0.5 rounded-full flex items-center gap-1 font-mono text-[8px] font-black uppercase tracking-widest border",
+             platform.tos_risk_level === 'safe' ? "bg-success/10 border-success/20 text-success" :
+             (platform.tos_risk_level === 'grey' || platform.tos_risk_level === 'grey_area') ? "bg-warning/10 border-warning/20 text-warning" :
+             "bg-destructive/10 border-destructive/20 text-destructive"
+           )}>
+              {platform.tos_risk_level === 'safe' ? <ShieldCheck size={10} /> : 
+               (platform.tos_risk_level === 'grey' || platform.tos_risk_level === 'grey_area') ? <ShieldEllipsis size={10} /> : 
+               <ShieldAlert size={10} />}
+              <span className="hidden sm:inline">{(platform.tos_risk_level === 'grey' || platform.tos_risk_level === 'grey_area') ? 'Caution' : platform.tos_risk_level}</span>
+           </div>
+        )}
+
         <StatusPill variant={status} />
       </div>
 
@@ -173,6 +193,25 @@ export function PoolCard({
             <span className="font-mono text-[11px] font-medium text-muted-foreground">
               {planName}
             </span>
+            <div className="flex items-center gap-2 mt-1">
+               {platform?.sharing_type && (
+                 <span className="font-mono text-[8px] uppercase tracking-tighter text-muted-foreground/60 border border-white/5 px-1.5 py-0.5 rounded-md">
+                   {platform.sharing_type.replace('_', ' ')}
+                 </span>
+               )}
+               {platform?.requires_same_location && (
+                 <div className="flex items-center gap-0.5 text-primary">
+                   <MapPin size={10} />
+                   <span className="font-mono text-[8px] uppercase font-bold">Location Bound</span>
+                 </div>
+               )}
+               {platform?.hardware_required && (
+                 <div className="flex items-center gap-0.5 text-blue-400">
+                   <Monitor size={10} />
+                   <span className="font-mono text-[8px] uppercase font-bold">Hardware Req</span>
+                 </div>
+               )}
+            </div>
           </div>
         </div>
 

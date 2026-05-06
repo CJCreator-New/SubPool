@@ -21,6 +21,10 @@ import { SEO } from '../components/seo';
 import { PaywallModal } from '../components/paywall-modal';
 import { useMembershipsQuery } from '../../lib/supabase/queries';
 import { checkPlanAccess, getUpgradeMessage } from '../../lib/gating';
+import { CredentialVault } from '../components/CredentialVault';
+import { SessionScheduler } from '../components/SessionScheduler';
+import { ComplianceDisclaimer } from '../components/ComplianceDisclaimer';
+import { usePlatformsQuery } from '../../lib/supabase/queries';
 
 export function PoolDetail() {
     const { id } = useParams();
@@ -33,9 +37,19 @@ export function PoolDetail() {
     const [requestState, setRequestState] = useState<'idle' | 'loading' | 'success'>('idle');
     const [waitlistState, setWaitlistState] = useState<'idle' | 'loading' | 'success'>('idle');
     const [showPaywall, setShowPaywall] = useState(false);
+    const [showCompliance, setShowCompliance] = useState(false);
 
     const { data: memberships } = useMembershipsQuery(user?.id);
+    const { data: platformsList } = usePlatformsQuery();
     const activeMembershipsCount = memberships?.length || 0;
+    
+    const poolPlatform = useMemo(() => {
+        return platformsList?.find(p => p.slug === pool?.platform);
+    }, [platformsList, pool]);
+
+    const isMember = useMemo(() => {
+        return memberships?.some(m => m.pool_id === id && m.status === 'active') || pool?.owner_id === user?.id;
+    }, [memberships, id, user, pool]);
     const { profile } = useAuth();
 
     useEffect(() => {
@@ -98,6 +112,11 @@ export function PoolDetail() {
             return;
         }
 
+        setShowCompliance(true);
+    };
+
+    const confirmJoin = async () => {
+        setShowCompliance(false);
         setRequestState('loading');
         try {
             // Simplified join logic for now
@@ -261,9 +280,33 @@ export function PoolDetail() {
                                         <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Uptime Guarantee</p>
                                         <p className="font-display font-bold text-sm">99.9% Operational Continuity</p>
                                     </div>
-                                </div>
-                            </div>
                         </div>
+
+                        {/* Credential Vault Section (Phase 2.2) */}
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-md">
+                                    <Shield size={14} className="text-muted-foreground" />
+                                </div>
+                                <h3 className="font-display font-black text-2xl uppercase italic tracking-tight">Access Terminal</h3>
+                                <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+                            </div>
+                            <CredentialVault poolId={id!} isMember={isMember} />
+                        </section>
+
+                        {/* Session Scheduler Section (Phase 2.3) */}
+                        {(poolPlatform?.sharing_type !== 'credential_share' && poolPlatform?.sharing_type !== 'family_invite') && (
+                            <section className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-md">
+                                        <Clock size={14} className="text-muted-foreground" />
+                                    </div>
+                                    <h3 className="font-display font-black text-2xl uppercase italic tracking-tight">Resource Management</h3>
+                                    <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+                                </div>
+                                <SessionScheduler poolId={id!} userId={user?.id || ''} isMember={isMember} />
+                            </section>
+                        )}
                     </div>
 
                     {/* Right Column: Actions & Trust */}
@@ -344,6 +387,15 @@ export function PoolDetail() {
                 feature="MAX_JOINED_POOLS"
                 title="Membership Limit Reached"
                 description={getUpgradeMessage('MAX_JOINED_POOLS')}
+            />
+
+            <ComplianceDisclaimer 
+                isOpen={showCompliance}
+                onClose={() => setShowCompliance(false)}
+                onConfirm={confirmJoin}
+                platformName={platform?.name || 'Platform'}
+                riskLevel={poolPlatform?.tos_risk_level || 'grey_area'}
+                complianceNote={poolPlatform?.compliance_note}
             />
         </div>
     );

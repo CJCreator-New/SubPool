@@ -8,22 +8,26 @@ let PRICING_CACHE: any[] | null = null;
 let isFetching = false;
 
 /**
- * Fetches pricing data from Supabase. Falls back to hardcoded seed if DB fails.
+ * Fetches pricing data from Supabase platforms table.
  */
 export async function getPricingData() {
     if (PRICING_CACHE) return PRICING_CACHE;
-    if (isFetching) {
-        // Wait for it? Or just return seed for now to keep things moving
-        return PLATFORM_PRICING_SEED;
-    }
-
+    
     if (isSupabaseConnected && supabase) {
         isFetching = true;
         try {
-            const { data, error } = await supabase.from('platform_pricing').select('*');
+            const { data, error } = await supabase.from('platforms').select('*');
             if (!error && data && data.length > 0) {
-                PRICING_CACHE = data;
-                return data;
+                // Map platforms table structure to pricing structure
+                const mapped = data.map(p => ({
+                    platform_id: p.slug || p.id,
+                    plan_name: 'Standard', // Default if not specified
+                    official_price: p.retail_price_inr || p.retail_price_usd || 0,
+                    currency: p.retail_price_inr ? 'INR' : 'USD',
+                    sharing_policy: p.tos_risk_level === 'safe' ? 'allowed' : p.tos_risk_level === 'risky' ? 'not_recommended' : 'grey_area'
+                }));
+                PRICING_CACHE = mapped;
+                return mapped;
             }
         } finally {
             isFetching = false;
