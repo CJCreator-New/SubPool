@@ -2,8 +2,7 @@
 // All dashboard children are lazy-loaded with Suspense fallback.
 // DashboardLayout wraps all authenticated pages with sidebar + topbar.
 
-import * as React from 'react';
-import { lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router';
 import { DashboardLayout, ProtectedRoute } from './layouts/DashboardLayout';
 import { AuthProvider, useAuth } from '../lib/supabase/auth';
@@ -52,6 +51,9 @@ const WaitlistPage = lazy(() => import('./pages/WaitlistPage').then(m => ({ defa
 const ReferralPage = lazy(() => import('./pages/ReferralPage').then(m => ({ default: m.ReferralPage })));
 const ActionCenterPage = lazy(() => import('./pages/ActionCenter').then(m => ({ default: m.ActionCenter })));
 const EnterpriseHubPage = lazy(() => import('./pages/EnterpriseHub').then(m => ({ default: m.EnterpriseHub })));
+const PoolDetailPage = lazy(() => import('./pages/PoolDetail').then(m => ({ default: m.PoolDetail })));
+const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
 
 // Payment pages
 const PaymentMethodPage = lazy(() => import('./pages/payment/PaymentMethodSetup').then(m => ({ default: m.PaymentMethodSetup })));
@@ -121,13 +123,18 @@ export const router = createBrowserRouter([
                     { path: '/market', element: <Lazy><MarketPage /></Lazy> },
                     { path: '/my-pools', element: <Lazy><MyPoolsPage /></Lazy> },
                     { path: '/list', element: <Lazy><CreatePoolPage /></Lazy> },
+                    { path: '/list-pool', element: <Lazy><CreatePoolPage /></Lazy> },
                     { path: '/create', element: <Lazy><CreatePoolPage /></Lazy> },
                     { path: '/savings', element: <Lazy><SavingsPage /></Lazy> },
+                    { path: '/savings-hub', element: <Lazy><SavingsPage /></Lazy> },
                     { path: '/wishlist', element: <Lazy><WishlistPage /></Lazy> },
                     { path: '/plans', element: <Lazy><PlansPage /></Lazy> },
                     { path: '/waitlist', element: <Lazy><WaitlistPage /></Lazy> },
                     { path: '/referrals', element: <Lazy><ReferralPage /></Lazy> },
                     { path: '/enterprise', element: <Lazy><EnterpriseHubPage /></Lazy> },
+                    { path: '/pool/:id', element: <Lazy><PoolDetailPage /></Lazy> },
+                    { path: '/terms', element: <Lazy><TermsPage /></Lazy> },
+                    { path: '/privacy', element: <Lazy><PrivacyPage /></Lazy> },
                     { path: '/design-system', element: <Lazy><DesignSystemPage /></Lazy> },
                     { path: '/empty-states', element: <Lazy><EmptyStatesPage /></Lazy> },
                     { path: '*', element: <Lazy><NotFoundPage /></Lazy> },

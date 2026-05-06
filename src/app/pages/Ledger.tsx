@@ -18,18 +18,24 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { formatDate } from '../../lib/constants';
-import { useLedgerQuery, useMarkLedgerPaidMutation } from '../../lib/supabase/queries';
+import { useLedgerQuery, useMarkLedgerPaidMutation, useProcessRefundMutation, useSimulateBillingMutation } from '../../lib/supabase/queries';
 import type { LedgerEntry } from '../../lib/types';
+import { DisputeModal } from '../components/dispute-modal';
+import { PayoutModal } from '../components/payout-modal';
 import { Insight, useDemo } from '../components/demo-mode';
 import { useMagneticButton } from '../../hooks/useMagneticButton';
 import { celebrate } from '../../lib/confetti';
-import { Wallet, Globe, ArrowDownRight, ArrowUpRight, Filter, Download, PieChart, Info, HelpCircle } from 'lucide-react';
+import { Wallet, Globe, ArrowDownRight, ArrowUpRight, Filter, Download, PieChart, Info, HelpCircle, ShieldAlert, AlertTriangle, CheckCircle, Zap, TrendingUp } from 'lucide-react';
 import { cn } from '../components/ui/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useCurrency } from '../../lib/currency-context';
 import { useAuth } from '../../lib/supabase/auth';
 import { calculateFeeBreakdown, UserPlan } from '../../lib/monetization';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
+
+// ─── Constants ──────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 5;
 
 // ─── Filter type ──────────────────────────────────────────────────────────────
 
@@ -42,8 +48,16 @@ export function Ledger() {
   const [iOwePage, setIOwePage] = useState(1);
   const [owedPage, setOwedPage] = useState(1);
   const [activeWallet, setActiveWallet] = useState<'all' | 'usd' | 'inr'>('all');
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+  const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
+  const [selectedDisputeEntry, setSelectedDisputeEntry] = useState<LedgerEntry | null>(null);
+  const [payoutConfig, setPayoutConfig] = useState<{ balance: number, currency: string }>({ balance: 0, currency: 'USD' });
+  
+  const { user } = useAuth();
   const { data: entriesData, isLoading: loading } = useLedgerQuery();
   const markPaidMutation = useMarkLedgerPaidMutation();
+  const refundMutation = useProcessRefundMutation();
+  const simulateBillingMutation = useSimulateBillingMutation();
   const entries = entriesData || [];
   const { isDemo } = useDemo();
   const { formatPrice } = useCurrency();
@@ -57,6 +71,16 @@ export function Ledger() {
     } catch (e) {
       console.error(e);
       toast.error('Failed to settle transaction');
+    }
+  };
+
+  const handleRefund = async (id: string) => {
+    try {
+      await refundMutation.mutateAsync(id);
+      toast.success('Refund processed successfully.');
+    } catch (e) {
+      console.error(e);
+      toast.error('Refund operation failed.');
     }
   };
 
@@ -249,16 +273,50 @@ export function Ledger() {
                     <CheckCircle className="size-3" /> Settled
                 </div>
             ) : section === 'owedToMe' ? (
-                <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => toast.info('Reminder sent')}
-                className="h-8 px-3 font-mono text-[10px] uppercase border border-white/5 hover:bg-white/5"
-                >
-                Remind <ArrowUpRight size={12} className="ml-1" />
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => toast.info('Reminder sent')}
+                        className="h-8 px-3 font-mono text-[10px] uppercase border border-white/5 hover:bg-white/5"
+                    >
+                        Remind <ArrowUpRight size={12} className="ml-1" />
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleRefund(entry.id)}
+                        className="h-8 px-3 font-mono text-[10px] uppercase border border-white/5 text-rose-400 hover:bg-rose-400/5"
+                    >
+                        Refund
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                            setSelectedDisputeEntry(entry);
+                            setIsDisputeModalOpen(true);
+                        }}
+                        className="h-8 px-2 font-mono text-[10px] uppercase border border-white/5 text-rose-400/60 hover:text-rose-400 hover:bg-rose-400/5"
+                    >
+                        Dispute
+                    </Button>
+                </div>
             ) : (
-                <MagneticPayButton entry={entry} onClick={() => handleMarkPaid(entry.id)} isDemo={isDemo} />
+                <div className="flex gap-2">
+                    <MagneticPayButton entry={entry} onClick={() => handleMarkPaid(entry.id)} isDemo={isDemo} />
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                            setSelectedDisputeEntry(entry);
+                            setIsDisputeModalOpen(true);
+                        }}
+                        className="h-8 px-2 font-mono text-[10px] uppercase border border-white/5 text-rose-400/60 hover:text-rose-400 hover:bg-rose-400/5"
+                    >
+                        Dispute
+                    </Button>
+                </div>
             )}
           </div>
         </TableCell>
@@ -270,6 +328,58 @@ export function Ledger() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="font-display font-black text-4xl uppercase italic tracking-tighter">Financial Ledger</h1>
+          <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Global Settlement & Payout Node</p>
+        </div>
+
+        <div className="flex items-center gap-3">
+            <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => simulateBillingMutation.mutate(user?.id || '')}
+                disabled={simulateBillingMutation.isPending}
+                className="h-10 px-4 rounded-xl border-primary/20 bg-primary/5 font-mono text-[10px] uppercase tracking-widest text-primary hover:bg-primary/10"
+            >
+                {simulateBillingMutation.isPending ? 'Processing...' : (
+                    <span className="flex items-center gap-2">
+                        <Zap size={14} /> Simulate Cycle
+                    </span>
+                )}
+            </Button>
+            <div className="flex bg-[#111] p-1 rounded-xl border border-white/5">
+                <button 
+                    onClick={() => setActiveWallet('all')}
+                    className={cn(
+                        "px-4 py-2 rounded-lg font-mono text-[10px] uppercase tracking-widest transition-all",
+                        activeWallet === 'all' ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"
+                    )}
+                >
+                    Global
+                </button>
+                <button 
+                    onClick={() => setActiveWallet('usd')}
+                    className={cn(
+                        "px-4 py-2 rounded-lg font-mono text-[10px] uppercase tracking-widest transition-all",
+                        activeWallet === 'usd' ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"
+                    )}
+                >
+                    USD
+                </button>
+                <button 
+                    onClick={() => setActiveWallet('inr')}
+                    className={cn(
+                        "px-4 py-2 rounded-lg font-mono text-[10px] uppercase tracking-widest transition-all",
+                        activeWallet === 'inr' ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"
+                    )}
+                >
+                    INR
+                </button>
+            </div>
+        </div>
+      </div>
 
       {/* ─── Wallet & Summary Header ─── */}
       <div className="flex flex-col md:flex-row gap-6">
@@ -308,13 +418,39 @@ export function Ledger() {
                 </div>
             </div>
             <div className="space-y-3 relative z-10">
-                <div className="flex justify-between items-center">
-                    <span className="font-mono text-[11px] text-muted-foreground">USD Node Balance</span>
-                    <span className="font-mono text-[11px] font-bold text-foreground">$124.50</span>
+                <div className="flex justify-between items-center group/item">
+                    <div className="space-y-0.5">
+                        <span className="font-mono text-[11px] text-muted-foreground">USD Node Balance</span>
+                        <p className="font-mono text-[11px] font-bold text-foreground">$124.50</p>
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                            setPayoutConfig({ balance: 124.50, currency: 'USD' });
+                            setIsPayoutModalOpen(true);
+                        }}
+                        className="h-7 px-2 rounded-lg bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-500 font-mono text-[9px] uppercase tracking-wider opacity-0 group-hover/item:opacity-100 transition-opacity"
+                    >
+                        Withdraw
+                    </Button>
                 </div>
-                <div className="flex justify-between items-center">
-                    <span className="font-mono text-[11px] text-muted-foreground">INR Node Balance</span>
-                    <span className="font-mono text-[11px] font-bold text-foreground">₹8,420.00</span>
+                <div className="flex justify-between items-center group/item">
+                    <div className="space-y-0.5">
+                        <span className="font-mono text-[11px] text-muted-foreground">INR Node Balance</span>
+                        <p className="font-mono text-[11px] font-bold text-foreground">₹8,420.00</p>
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                            setPayoutConfig({ balance: 8420, currency: 'INR' });
+                            setIsPayoutModalOpen(true);
+                        }}
+                        className="h-7 px-2 rounded-lg bg-blue-500/5 hover:bg-blue-500/10 text-blue-500 font-mono text-[9px] uppercase tracking-wider opacity-0 group-hover/item:opacity-100 transition-opacity"
+                    >
+                        Withdraw
+                    </Button>
                 </div>
                 <div className="pt-3 border-t border-white/5 flex justify-between items-center">
                     <span className="font-display font-black text-xs uppercase italic">Net Liquidity</span>
@@ -323,6 +459,34 @@ export function Ledger() {
                     </span>
                 </div>
             </div>
+        </div>
+
+        {/* ─── Fraud Detection / Risk Analysis ─── */}
+        <div className="w-full md:w-64 bg-rose-500/5 border border-rose-500/10 rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none">
+                <ShieldAlert size={80} />
+            </div>
+            <div className="space-y-4 relative z-10">
+                <div className="flex items-center gap-2">
+                    <AlertTriangle className="size-4 text-rose-400" />
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-rose-400 font-bold">Fraud Detection</span>
+                </div>
+                <div className="space-y-1">
+                    <p className="font-mono text-[9px] text-muted-foreground uppercase">Anomaly Index</p>
+                    <div className="flex items-center gap-2">
+                        <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-full bg-rose-500 w-[12%]" />
+                        </div>
+                        <span className="font-mono text-[10px] text-rose-400 font-bold">LOW</span>
+                    </div>
+                </div>
+                <p className="font-mono text-[9px] text-muted-foreground leading-relaxed uppercase">
+                    3 nodes flagged for payment latency. 0 critical reversals detected in last 30 cycles.
+                </p>
+            </div>
+            <Button variant="ghost" className="mt-4 h-8 w-full rounded-lg border border-rose-500/20 text-rose-400 font-mono text-[9px] uppercase tracking-wider hover:bg-rose-500/10">
+                Audit Logs
+            </Button>
         </div>
       </div>
 
@@ -470,8 +634,23 @@ export function Ledger() {
             )}
         </div>
       </div>
+
+      <DisputeModal 
+        open={isDisputeModalOpen}
+        onClose={() => {
+            setIsDisputeModalOpen(false);
+            setSelectedDisputeEntry(null);
+        }}
+        poolId={selectedDisputeEntry?.pool_id || ''}
+        transactionId={selectedDisputeEntry?.id}
+      />
+
+      <PayoutModal 
+        open={isPayoutModalOpen}
+        onClose={() => setIsPayoutModalOpen(false)}
+        availableBalance={payoutConfig.balance}
+        currency={payoutConfig.currency}
+      />
     </div>
   );
 }
-
-import { CheckCircle } from 'lucide-react';

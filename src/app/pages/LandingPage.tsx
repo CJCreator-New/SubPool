@@ -7,6 +7,7 @@ import type { Pool } from '../../lib/types';
 import { cn } from '../components/ui/utils';
 import { useAuth } from '../../lib/supabase/auth';
 import { motion, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence } from 'motion/react';
+import { SEO } from '../components/seo';
 
 export function LandingPage() {
     const navigate = useNavigate();
@@ -128,6 +129,10 @@ export function LandingPage() {
             onMouseMove={handleMouseMove}
             className="relative min-h-screen bg-[#090909] text-foreground overflow-x-hidden selection:bg-primary selection:text-primary-foreground noise-overlay"
         >
+            <SEO 
+                title="Split Subscriptions, Share Costs Securely" 
+                description="The #1 platform to share slots for Netflix, ChatGPT, Figma, and more. Save up to 75% on your monthly subscriptions with verified community pools."
+            />
 
             {/* ━━━ BACKGROUND ATMOSPHERE ━━━ */}
             <div className="fixed inset-0 bg-background -z-20 aria-hidden pointer-events-none" />
@@ -432,6 +437,10 @@ export function LandingPage() {
                     <p className="text-muted-foreground text-base md:text-lg mb-8 max-w-sm mx-auto font-display">
                         Join 3,200+ members. Free forever.
                     </p>
+                    <div className="mb-8 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-primary/10 border border-primary/20">
+                        <span className="font-display font-bold text-xs text-primary">Viral Perk:</span>
+                        <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Invite 3 friends, get 1 month PRO free</span>
+                    </div>
                     <Button
                         size="lg"
                         className="h-13 px-8 text-base font-display font-bold bg-primary text-primary-foreground shadow-[0_8px_32px_rgba(200,241,53,0.25)] hover:shadow-[0_12px_40px_rgba(200,241,53,0.35)] hover:-translate-y-0.5 transition-all"
@@ -457,7 +466,7 @@ export function LandingPage() {
                         {['Browse', 'Sign In', 'Terms', 'Privacy'].map((item) => (
                             <Link
                                 key={item}
-                                to={item === 'Browse' ? '/browse' : item === 'Sign In' ? '/login' : '#'}
+                                to={item === 'Browse' ? '/browse' : item === 'Sign In' ? '/login' : item === 'Terms' ? '/terms' : '/privacy'}
                                 className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors uppercase tracking-widest"
                             >
                                 {item}

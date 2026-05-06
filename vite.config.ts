@@ -54,9 +54,10 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
-    // Let Vite auto-discover dependencies to avoid version mismatch issues
+    include: ['react', 'react-dom'],
   },
 
   build: {

@@ -1,5 +1,5 @@
-// @ts-nocheck
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
+import { Card } from '../components/ui/card';
 import { useActionSummaryQuery } from '../../lib/supabase/queries';
 import { useAuth } from '../../lib/supabase/auth';
 import { NumberTicker } from '../components/subpool-components';
@@ -218,7 +218,7 @@ export function ActionCenter() {
                                                     <div className="flex items-center gap-3">
                                                         <Avatar className="size-11 border border-primary/20 p-0.5">
                                                             <AvatarFallback className="bg-primary/5 text-primary font-black text-sm">
-                                                                {req.requester?.username?.[0].toUpperCase()}
+                                                                {(req.requester?.username?.[0] ?? 'U').toUpperCase()}
                                                             </AvatarFallback>
                                                         </Avatar>
                                                         <div>
@@ -473,7 +473,7 @@ export function ActionCenter() {
     );
 }
 
-import { Card } from '../components/ui/card';
+
 
 // Helper (normally imported)
 function timeAgo(iso: string): string {

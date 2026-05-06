@@ -12,6 +12,7 @@ import { Button } from '../components/ui/button';
 import { PoolCardSkeleton, StatCardSkeleton } from '../components/skeletons';
 import { PlatformIcon } from '../components/subpool-components';
 import { getMarketMetrics, analyzePricing } from '../../lib/pricing-service';
+import { Eye, Bell, Search, Filter as FilterIcon, ChevronDown, Check, Zap } from 'lucide-react';
 import { EmptyState } from '../components/empty-state';
 import { PaywallModal } from '../components/paywall-modal';
 import { cn } from '../components/ui/utils';
@@ -23,8 +24,9 @@ import { useCountUp } from '../../hooks/useCountUp';
 import { useCurrency } from '../../lib/currency-context';
 import { CurrencyToggle } from '../components/currency-toggle';
 import { ActivationChecklist } from '../components/activation-checklist';
-import { AdvancedFilterPanel, type FilterState, type BrowseFilterKey, type BrowseSortKey } from '../components/advanced-filter-panel';
-import { useInfinitePoolsQuery } from '../../lib/supabase/queries';
+import { useInfinitePoolsQuery, useWatchedPlatforms } from '../../lib/supabase/queries';
+import { useAuth } from '../../lib/supabase/auth';
+import { SEO } from '../components/seo';
 
 // ─── Filter constants ─────────────────────────────────────────────────────────
 
@@ -133,7 +135,7 @@ function MarketIntelligenceRow() {
         }}
         className="text-xs font-mono mb-3 group"
       >
-        📊 See market rates {expanded ? '▲' : '▼'}
+        <span className="mr-2">📊</span> See market rates {expanded ? '▲' : '▼'}
         {isFree && <span className="ml-2 text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">PRO</span>}
       </Button>
 
@@ -214,6 +216,7 @@ export function BrowsePools() {
   const [search, setSearch] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
+  const { data: watchedPlatforms, toggleWatch: togglePlatformWatch } = useWatchedPlatforms();
   const { isDemo } = useDemo();
 
   useEffect(() => {
@@ -278,6 +281,11 @@ export function BrowsePools() {
 
   const filtered = React.useMemo(() => {
     return [...pagedPoolsItems].sort((a, b) => {
+      // 1. Featured pools always first
+      if (a.is_featured && !b.is_featured) return -1;
+      if (!a.is_featured && b.is_featured) return 1;
+
+      // 2. Secondary sorting
       if (sort === 'price-asc') return a.price_per_slot - b.price_per_slot;
       if (sort === 'price-desc') return b.price_per_slot - a.price_per_slot;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -318,6 +326,23 @@ export function BrowsePools() {
     showToast('Request sent. Waiting for approval.');
   };
 
+  const toggleWatch = async (platformId: string) => {
+    if (!user) {
+        showToast('Login to watch nodes.');
+        return;
+    }
+    const isWatched = watchedPlatforms.includes(platformId);
+    await togglePlatformWatch(platformId);
+    
+    if (isWatched) {
+        toast.success(`Ceased monitoring ${platformId} nodes.`);
+    } else {
+        toast.success(`Monitoring established for ${platformId}.`, {
+            description: 'We will alert your terminal when a matching node initializes.'
+        });
+    }
+  };
+
   const clearFilters = () => {
     setFilters(INITIAL_FILTERS);
     setSort('recent');
@@ -333,6 +358,10 @@ export function BrowsePools() {
 
   return (
     <div className="space-y-8 pb-10 overflow-x-hidden">
+      <SEO 
+        title="Browse Available Subscription Pools" 
+        description="Discover and join high-utility subscription pools for premium software and media. Start saving today."
+      />
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <h1 className="font-display font-black text-4xl sm:text-5xl tracking-tight text-foreground drop-shadow-sm">
           Browse Pools
@@ -362,21 +391,41 @@ export function BrowsePools() {
 
       {/* Filter Row */}
       <div className="sticky top-[64px] z-30 flex flex-col lg:flex-row gap-4 items-start lg:items-center bg-background/80 backdrop-blur-xl border border-border/40 py-3 px-4 rounded-2xl shadow-sm">
-        <div className="flex flex-wrap gap-2 items-center flex-1">
-          {CATEGORY_CHIPS.map((chip) => (
-            <button
-              key={chip.key}
-              onClick={() => setFilters(prev => ({ ...prev, category: chip.key }))}
-              className={cn(
-                'rounded-full border px-4 py-1.5 text-xs font-display font-bold transition-all duration-300',
-                filters.category === chip.key
-                  ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
-                  : 'border-border bg-card/40 text-muted-foreground hover:border-primary/40 hover:text-foreground',
-              )}
-            >
-              {chip.label}
-            </button>
-          ))}
+        <div className="w-full lg:flex-1 overflow-x-auto custom-scrollbar-hide pb-2 lg:pb-0">
+          <div className="flex gap-2 items-center whitespace-nowrap min-w-max lg:min-w-0 lg:flex-wrap">
+            {CATEGORY_CHIPS.map((chip) => {
+              const isWatched = watchedPlatforms.includes(chip.key);
+              return (
+                <div key={chip.key} className="flex items-center gap-1">
+                    <button
+                        onClick={() => setFilters(prev => ({ ...prev, category: chip.key }))}
+                        className={cn(
+                        'rounded-full border px-4 py-1.5 text-[11px] sm:text-xs font-display font-bold transition-all duration-300 shrink-0',
+                        filters.category === chip.key
+                            ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
+                            : 'border-border bg-card/40 text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                        )}
+                    >
+                        {chip.label}
+                    </button>
+                    {chip.key !== 'all' && chip.key !== 'open' && (
+                        <button 
+                            onClick={() => toggleWatch(chip.key)}
+                            className={cn(
+                                "size-8 rounded-full border flex items-center justify-center transition-all",
+                                isWatched ? "bg-primary/20 border-primary/50 text-primary" : "border-white/5 bg-white/5 text-muted-foreground hover:text-white"
+                            )}
+                        >
+                            <div className="relative">
+                                {isWatched ? <Eye size={14} className="animate-pulse" /> : <Eye size={14} />}
+                                {isWatched && <div className="absolute -top-1 -right-1 size-2 bg-primary rounded-full animate-ping" />}
+                            </div>
+                        </button>
+                    )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex w-full lg:w-auto items-center gap-3">
@@ -403,7 +452,7 @@ export function BrowsePools() {
             </select>
 
             <div className="flex items-center gap-2 bg-card/50 border border-border rounded-xl px-4 py-2 flex-1 lg:w-64">
-                <span className="text-muted-foreground text-sm opacity-50">🔍</span>
+                <span className="text-muted-foreground text-sm opacity-50">🔎</span>
                 <input
                     type="text"
                     placeholder="Search systems..."

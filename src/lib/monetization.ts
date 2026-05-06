@@ -49,6 +49,7 @@ export function calculateFeeBreakdown(amountCents: number, plan: UserPlan = 'fre
 export interface TierBenefits {
     label: string;
     maxActivePools: number;
+    maxJoinedPools: number;
     platformFeeBps: number;
     hasAnalytics: boolean;
     hasArbitrageSignals: boolean;
@@ -65,6 +66,7 @@ export function getTierBenefits(plan: UserPlan): TierBenefits {
             return {
                 label: 'Host Plus',
                 maxActivePools: 50,
+                maxJoinedPools: 999,
                 platformFeeBps: 200,
                 hasAnalytics: true,
                 hasArbitrageSignals: true,
@@ -75,6 +77,7 @@ export function getTierBenefits(plan: UserPlan): TierBenefits {
             return {
                 label: 'Pro Member',
                 maxActivePools: 10,
+                maxJoinedPools: 999,
                 platformFeeBps: 350,
                 hasAnalytics: true,
                 hasArbitrageSignals: false,
@@ -85,6 +88,7 @@ export function getTierBenefits(plan: UserPlan): TierBenefits {
             return {
                 label: 'Enterprise',
                 maxActivePools: 999,
+                maxJoinedPools: 999,
                 platformFeeBps: 100,
                 hasAnalytics: true,
                 hasArbitrageSignals: true,
@@ -95,6 +99,7 @@ export function getTierBenefits(plan: UserPlan): TierBenefits {
             return {
                 label: 'Free Tier',
                 maxActivePools: 3,
+                maxJoinedPools: 3,
                 platformFeeBps: 500,
                 hasAnalytics: false,
                 hasArbitrageSignals: false,

@@ -120,6 +120,39 @@ export function MarketIntelligence() {
         </motion.div>
       )}
 
+      {!isPremium && (
+        <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-background/60 backdrop-blur-xl p-8 text-center">
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="max-w-md w-full glass border-primary/20 bg-surface-gradient shadow-glow-primary rounded-[32px] p-10"
+            >
+                <div className="size-20 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-6">
+                    <Lock size={32} className="text-primary" />
+                </div>
+                <h1 className="font-display font-black text-3xl mb-3 tracking-tighter uppercase italic">Protocol Locked</h1>
+                <p className="font-mono text-[11px] text-muted-foreground uppercase tracking-widest leading-relaxed mb-10">
+                    Market Intelligence and Arbitrage Signals are reserved for <b>Pro</b> and <b>Host Plus</b> operators.
+                </p>
+                <div className="space-y-4">
+                    <Button 
+                        className="w-full bg-primary text-black font-display font-black uppercase text-xs h-14 rounded-2xl shadow-glow-primary border-none"
+                        onClick={() => navigate('/plans')}
+                    >
+                        Upgrade Pipeline
+                    </Button>
+                    <Button 
+                        variant="ghost" 
+                        className="w-full font-mono text-[10px] uppercase tracking-widest text-muted-foreground"
+                        onClick={() => navigate('/dashboard')}
+                    >
+                        Return to Public Node
+                    </Button>
+                </div>
+            </motion.div>
+        </div>
+      )}
+
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 pb-4 border-b border-white/5">
         <div>
           <h1 className="font-display font-black text-5xl tracking-tighter text-foreground italic uppercase">Market Alpha</h1>

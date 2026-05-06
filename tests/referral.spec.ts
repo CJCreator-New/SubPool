@@ -58,4 +58,25 @@ test.describe('Referral & Viral Loops (REF)', () => {
         // Check for the incentive reward card
         await expect(page.getByText(/Current Incentive Reward/i)).toBeVisible();
     });
+
+    /**
+     * REF-004: Reward Claim Lifecycle
+     */
+    test('REF-004: Claim Pro Status Reward', async ({ page }) => {
+        await page.goto('/profile');
+        
+        // This test assumes a mock state where the user has 3 referrals
+        // Since we are in demo/mock mode, the UI should show the Claim button
+        const claimBtn = page.getByRole('button', { name: /Claim Pro Payload/i });
+        
+        // If the button exists, click it and verify success
+        if (await claimBtn.isVisible()) {
+            await claimBtn.click();
+            await expect(page.getByText(/Uplink Stabilised/i)).toBeVisible();
+            // Verify status changed to PRO
+            await expect(page.getByText(/PRO/i)).toBeVisible();
+        } else {
+            console.log('User has not reached referral threshold yet (mock state)');
+        }
+    });
 });

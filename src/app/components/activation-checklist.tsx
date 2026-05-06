@@ -29,11 +29,11 @@ export function ActivationChecklist() {
 
   const steps = useMemo(() => (Object.keys(STEP_LABELS) as ChecklistStepId[]), []);
   const completed = useMemo<Record<ChecklistStepId, boolean>>(() => ({
-    profile_completed: Boolean(profile?.display_name?.trim() || profile?.bio?.trim()),
+    profile_completed: Boolean(profile?.display_name?.trim() || profile?.bio?.trim() || (profile?.username && profile.username !== 'yourusername')),
     first_join_request: memberships.some((membership) => membership.status === 'pending' || membership.status === 'active'),
     notification_interaction: notifications.some((notification) => notification.read),
     invite_friends: referralStats.count > 0,
-  }), [memberships, notifications, profile?.bio, profile?.display_name, referralStats.count]);
+  }), [memberships, notifications, profile?.bio, profile?.display_name, profile?.username, referralStats.count]);
 
   const previousCompleted = useRef<Record<ChecklistStepId, boolean> | null>(null);
   useEffect(() => {

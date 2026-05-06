@@ -14,6 +14,9 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
 import { cn } from '../components/ui/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../lib/supabase/auth';
@@ -59,7 +62,13 @@ export function Onboarding() {
   const [step, setStep] = useState(0);
   const [role, setRole] = useState<OnboardingRole>('joiner');
   const [interests, setInterests] = useState<string[]>([]);
+  const [profileData, setProfileData] = useState({
+    displayName: profile?.display_name || '',
+    bio: profile?.bio || '',
+    username: profile?.username || ''
+  });
   const [isSaving, setIsSaving] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const platforms = useMemo(() => PLATFORMS.slice(0, 8), []);
 
@@ -73,7 +82,7 @@ export function Onboarding() {
   };
 
   const handleContinue = async () => {
-    if (step < 3) {
+    if (step < 4) {
       setStep((current) => current + 1);
       return;
     }
@@ -84,7 +93,10 @@ export function Onboarding() {
         await updateProfile(user.id, {
           onboarding_role: role,
           onboarding_completed: true,
-          onboarding_step: 3
+          onboarding_step: 4,
+          display_name: profileData.displayName,
+          bio: profileData.bio,
+          username: profileData.username || user.email?.split('@')[0]
         });
         await refreshProfile();
       } catch (e) {
@@ -126,7 +138,7 @@ export function Onboarding() {
                 </div>
 
                 <div className="mb-10 flex gap-2">
-                  {[0, 1, 2, 3].map((index) => (
+                  {[0, 1, 2, 3, 4].map((index) => (
                     <div
                       key={index}
                       className={cn(
@@ -242,6 +254,40 @@ export function Onboarding() {
 
                     {step === 2 && (
                       <div className="space-y-8">
+                        <div className="space-y-3">
+                          <h1 className="font-display text-5xl font-black tracking-tighter leading-none">
+                            IDENTITY <span className="text-primary">SYNC.</span>
+                          </h1>
+                          <p className="max-w-xl text-sm text-muted-foreground font-mono uppercase tracking-wider opacity-70">
+                            Establish your credentials within the decentralized grid.
+                          </p>
+                        </div>
+                        
+                        <div className="grid gap-6">
+                          <div className="space-y-2">
+                            <Label className="text-[10px] uppercase font-mono text-muted-foreground">Display Name</Label>
+                            <Input 
+                              value={profileData.displayName} 
+                              onChange={e => setProfileData(p => ({ ...p, displayName: e.target.value }))}
+                              placeholder="e.g. Commander Sarah"
+                              className="h-12 bg-white/5 border-white/10 rounded-xl font-display font-bold"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[10px] uppercase font-mono text-muted-foreground">Bio / Objective</Label>
+                            <Textarea 
+                              value={profileData.bio} 
+                              onChange={e => setProfileData(p => ({ ...p, bio: e.target.value }))}
+                              placeholder="Optimize my overhead by 40%..."
+                              className="bg-white/5 border-white/10 rounded-xl font-display text-sm min-h-[100px]"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {step === 3 && (
+                      <div className="space-y-8">
                         <div className="grid size-16 place-items-center rounded-2xl bg-primary shadow-glow-primary text-black">
                           <ActiveIcon size={32} />
                         </div>
@@ -268,7 +314,7 @@ export function Onboarding() {
                       </div>
                     )}
 
-                    {step === 3 && (
+                    {step === 4 && (
                       <div className="space-y-8">
                         <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 font-mono text-[9px] uppercase tracking-[0.3em] text-primary">
                           SYSTEM READY
@@ -311,6 +357,19 @@ export function Onboarding() {
                             </div>
                           </div>
                         </div>
+
+                        <div className="mt-6 flex items-start gap-4 p-4 rounded-xl border border-primary/10 bg-primary/5">
+                          <input 
+                            type="checkbox" 
+                            id="terms"
+                            checked={agreedToTerms}
+                            onChange={(e) => setAgreedToTerms(e.target.checked)}
+                            className="mt-1 size-4 rounded border-primary bg-background text-primary focus:ring-primary/40 cursor-pointer"
+                          />
+                          <label htmlFor="terms" className="text-[11px] text-muted-foreground leading-relaxed cursor-pointer select-none">
+                            I accept the <a href="/terms" target="_blank" className="text-primary hover:underline font-bold">Terms of Service</a> and <a href="/privacy" target="_blank" className="text-primary hover:underline font-bold">Privacy Protocol</a>. I understand that SubPool is a peer-to-peer facilitation node.
+                          </label>
+                        </div>
                       </div>
                     )}
                   </motion.div>
@@ -348,7 +407,7 @@ export function Onboarding() {
               <div className="space-y-3 relative">
                 <Button 
                   onClick={handleContinue} 
-                  disabled={isSaving}
+                  disabled={isSaving || (step === 4 && !agreedToTerms)}
                   className="h-14 w-full justify-between font-display font-black uppercase tracking-widest group shadow-glow-primary transition-all duration-500 hover:scale-[1.02]"
                 >
                   <span className="flex items-center gap-2">

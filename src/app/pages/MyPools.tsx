@@ -8,6 +8,9 @@ import { Button } from '../components/ui/button';
 import { EmptyState } from '../components/empty-state';
 import { PoolCardSkeleton, StatCardSkeleton, TableRowSkeleton } from '../components/skeletons';
 import { MembershipRequestCard } from '../components/membership-request-card';
+import { PoolSettingsModal } from '../components/pool-settings-modal';
+import { RatingModal } from '../components/rating-modal';
+import { IdentityVerificationModal } from '../components/kyc-modal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,16 +44,22 @@ import { MOCK_EARNINGS_DATA, MOCK_PAYMENT_TIMELINE } from '../../lib/mock-data';
 import { EarningsBarChart, MemberPaymentTimeline, PoolHealthGauge } from '../components/pool-analytics-charts';
 import { getUserFacingError } from '../../lib/error-feedback';
 import { toast as sonnerToast } from 'sonner';
+import { Zap, ShieldCheck, Fingerprint, ArrowRight, AlertTriangle, ShieldCheck as ShieldIcon } from 'lucide-react';
 
 export function MyPools() {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [membershipToCancel, setMembershipToCancel] = useState<Membership | null>(null);
+  const [selectedPoolForEdit, setSelectedPoolForEdit] = useState<Pool | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedPoolForRating, setSelectedPoolForRating] = useState<Pool | null>(null);
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [isKYCModalOpen, setIsKYCModalOpen] = useState(false);
   const { user, profile } = useAuth();
 
-  const { data: myPoolsData, isLoading: poolsLoading } = useMyPoolsQuery(user?.id);
-  const { data: membershipsData, isLoading: membershipsLoading } = useMembershipsQuery(user?.id);
+  const { data: myPoolsData, isLoading: poolsLoading, refetch: ownedRefetch } = useMyPoolsQuery(user?.id);
+  const { data: membershipsData, isLoading: membershipsLoading, refetch: membershipsRefetch } = useMembershipsQuery(user?.id);
   const {
     data: joinRequestsData,
     isLoading: requestsLoading,
@@ -133,11 +142,39 @@ export function MyPools() {
 
   return (
     <div className="space-y-8 pr-1">
+      {/* ─── KYC / Identity Banner ─────────────────────────────────── */}
+      {!profile?.is_verified && (
+        <div className="bg-primary/5 border border-primary/20 rounded-[20px] p-6 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative group">
+          <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none">
+            <Fingerprint size={120} />
+          </div>
+          <div className="flex items-center gap-5 relative z-10">
+            <div className="size-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-glow-primary/5">
+              <ShieldCheck size={28} className="text-primary" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-display font-black text-lg uppercase italic tracking-tight">Identity Sync Required</h3>
+              <p className="font-mono text-[10px] text-muted-foreground max-w-md leading-relaxed uppercase tracking-wider">
+                Unverified nodes are restricted from premium clusters. Sync your government identity to unlock 0% fees and elite host status.
+              </p>
+            </div>
+          </div>
+          <Button 
+            onClick={() => setIsKYCModalOpen(true)} 
+            className="h-12 px-8 rounded-2xl font-display font-black text-xs uppercase tracking-widest shadow-glow-primary shrink-0 relative z-10"
+          >
+            Initialize Verification
+          </Button>
+        </div>
+      )}
+
       {/* ─── Stats Row ───────────────────────────────────────────── */}
       {profile?.plan === 'free' && (
         <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-3">
-            <span className="text-xl" role="img" aria-label="icon">🚀</span>
+            <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+              <Zap size={20} className="text-primary animate-pulse" />
+            </div>
             <div>
               <p className="font-display font-bold text-sm">Level up your hosting</p>
               <p className="font-mono text-[10px] text-muted-foreground">Host Plus members get automated approval, higher slot limits, and 0% platform fees.</p>
@@ -257,9 +294,22 @@ export function MyPools() {
               const healthScore = Math.round((fillRate * 0.6) + (payRate * 0.4));
 
               return (
-                <div key={pool.id} className="bg-card border border-border rounded-[6px] p-4 flex flex-col lg:flex-row gap-6 items-center">
+                <div key={pool.id} className="bg-card border border-border rounded-[6px] p-4 flex flex-col lg:flex-row gap-6 items-center relative group">
                   <div className="flex-1 w-full max-w-sm lg:max-w-none">
                     <PoolCard pool={pool} />
+                  </div>
+                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      className="h-7 px-2 rounded-md font-mono text-[10px] uppercase tracking-widest border border-border"
+                      onClick={() => {
+                        setSelectedPoolForEdit(pool);
+                        setIsEditModalOpen(true);
+                      }}
+                    >
+                      Configure
+                    </Button>
                   </div>
                   <div className="shrink-0 flex flex-col items-center justify-center p-6 bg-secondary/10 rounded-lg w-full lg:w-auto min-w-[200px] border border-border/30">
                     <p className="font-mono text-[10px] uppercase tracking-widest text-[#6B6860] mb-4">Sys Health</p>
@@ -271,7 +321,7 @@ export function MyPools() {
           </div>
         ) : (
           <EmptyState
-            icon="🏊"
+            icon={<ArrowRight className="size-8 text-muted-foreground" />}
             title="No pools yet"
             description="Share your subscriptions and earn by listing your first pool."
             action={() => navigate('/list')}
@@ -304,7 +354,7 @@ export function MyPools() {
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pt-8">
             <div className="bg-background/90 backdrop-blur-lg p-7 rounded-xl border border-primary/20 text-center max-w-sm shadow-2xl">
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl border border-primary/20">
-                🔒
+                <ShieldCheck size={24} className="text-primary" />
               </div>
               <h3 className="font-display font-bold text-lg mb-2 text-foreground">Unlock Analytics</h3>
               <p className="font-mono text-[11px] text-muted-foreground mb-6 leading-relaxed">
@@ -312,6 +362,65 @@ export function MyPools() {
               </p>
               <Button onClick={() => navigate('/plans')} className="w-full font-display shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform">
                 Upgrade to Pro
+              </Button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ─── Market Intelligence (Host Plus) ────────────────────────── */}
+      <section className="relative">
+        <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground mb-3">
+          MARKET INTELLIGENCE (HOST PLUS)
+        </p>
+
+        <div className={cn(
+          "grid grid-cols-1 md:grid-cols-3 gap-4 transition-all duration-500",
+          profile?.plan !== 'host_plus' && profile?.plan !== 'enterprise' ? "blur-md pointer-events-none opacity-40 select-none pb-12" : ""
+        )}>
+          <div className="bg-card border border-border rounded-[6px] p-5 shadow-sm">
+            <h3 className="font-display font-bold text-sm mb-4 text-foreground">Demand Heatmap</h3>
+            <div className="h-32 bg-secondary/20 rounded-lg flex items-center justify-center border border-border/50">
+              <span className="font-mono text-[10px] text-muted-foreground uppercase">High demand for Netflix Premium</span>
+            </div>
+          </div>
+          <div className="bg-card border border-border rounded-[6px] p-5 shadow-sm">
+            <h3 className="font-display font-bold text-sm mb-4 text-foreground">Yield Optimization</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="font-mono text-[10px] text-muted-foreground">Suggested Price</span>
+                <span className="font-mono font-bold text-primary">₹149/mo</span>
+              </div>
+              <div className="h-2 bg-secondary/30 rounded-full overflow-hidden">
+                <div className="h-full bg-primary w-[75%]" />
+              </div>
+              <p className="font-mono text-[9px] text-muted-foreground">Current pricing is 15% below market peak.</p>
+            </div>
+          </div>
+          <div className="bg-card border border-border rounded-[6px] p-5 shadow-sm">
+            <h3 className="font-display font-bold text-sm mb-4 text-foreground">Competitor Density</h3>
+            <div className="flex items-center gap-4">
+              <div className="size-16 rounded-full border-4 border-primary/20 border-t-primary animate-[spin_3s_linear_infinite]" />
+              <div>
+                <p className="font-display font-bold text-lg">Low Density</p>
+                <p className="font-mono text-[10px] text-muted-foreground uppercase">Prime time to list new slots</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {profile?.plan !== 'host_plus' && profile?.plan !== 'enterprise' && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pt-8">
+            <div className="bg-background/90 backdrop-blur-lg p-7 rounded-xl border border-primary/20 text-center max-w-sm shadow-2xl">
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl border border-primary/20">
+                <Zap size={24} className="text-primary" />
+              </div>
+              <h3 className="font-display font-bold text-lg mb-2 text-foreground">Host Plus Intelligence</h3>
+              <p className="font-mono text-[11px] text-muted-foreground mb-6 leading-relaxed">
+                Unlock real-time market data, yield optimization suggestions, and competitor insights to maximize your hosting revenue.
+              </p>
+              <Button onClick={() => navigate('/plans')} className="w-full font-display shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform">
+                Upgrade to Host Plus
               </Button>
             </div>
           </div>
@@ -447,6 +556,17 @@ export function MyPools() {
                                 Pay {formatPrice(m.pool.price_per_slot)}
                               </Button>
                               <Button
+                                variant="outline"
+                                size="sm"
+                                className="font-mono text-[10px] h-8"
+                                onClick={() => {
+                                  setSelectedPoolForRating(m.pool);
+                                  setIsRatingModalOpen(true);
+                                }}
+                              >
+                                Rate
+                              </Button>
+                              <Button
                                 variant="ghost"
                                 size="sm"
                                 className="font-mono text-[10px] text-muted-foreground hover:text-destructive"
@@ -468,7 +588,7 @@ export function MyPools() {
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
                       <EmptyState
-                        icon="🚫"
+                        icon={<AlertTriangle className="size-8 text-muted-foreground" />}
                         title="No memberships"
                         description="You haven't joined any pools yet."
                         action={() => navigate('/browse')}
@@ -526,6 +646,17 @@ export function MyPools() {
                     <Button size="sm" className="h-8 text-xs px-3" onClick={() => sonnerToast.success('Payment sent')}>
                       Pay
                     </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        setSelectedPoolForRating(m.pool);
+                        setIsRatingModalOpen(true);
+                      }}
+                    >
+                      Rate
+                    </Button>
                     <Button variant="ghost" size="sm" className="h-8 text-xs px-2" onClick={() => requestCancelMembership(m)}>
                       ✕
                     </Button>
@@ -561,8 +692,33 @@ export function MyPools() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <PoolSettingsModal 
+        pool={selectedPoolForEdit}
+        open={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedPoolForEdit(null);
+        }}
+        onUpdate={() => {
+          ownedRefetch();
+          membershipsRefetch();
+        }}
+      />
+
+      <RatingModal 
+        pool={selectedPoolForRating}
+        raterId={user?.id || ''}
+        open={isRatingModalOpen}
+        onClose={() => {
+          setIsRatingModalOpen(false);
+          setSelectedPoolForRating(null);
+        }}
+      />
+
+      <IdentityVerificationModal 
+        open={isKYCModalOpen}
+        onClose={() => setIsKYCModalOpen(false)}
+      />
     </div>
   );
 }
-
-

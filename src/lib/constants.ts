@@ -79,12 +79,12 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
     { icon: '🏠', label: 'Overview', path: '/dashboard', section: 'DISCOVER', requiresAuth: true },
-    { icon: '🌐', label: 'Browse', path: '/', section: 'DISCOVER' },
+    { icon: '🌐', label: 'Browse', path: '/browse', section: 'DISCOVER' },
     { icon: '📈', label: 'Market', path: '/market', section: 'DISCOVER' },
-    { icon: '💡', label: 'Savings Hub', path: '/savings', section: 'DISCOVER' },
+    { icon: '💡', label: 'Savings Hub', path: '/savings-hub', section: 'DISCOVER' },
     { icon: '🎯', label: 'Wishlist', path: '/wishlist', section: 'DISCOVER' },
     { icon: '🗂️', label: 'My Pools', path: '/my-pools', section: 'DISCOVER', requiresAuth: true },
-    { icon: '➕', label: 'List a Pool', path: '/list', section: 'DISCOVER', requiresAuth: true },
+    { icon: '➕', label: 'List a Pool', path: '/list-pool', section: 'DISCOVER', requiresAuth: true },
     { icon: '💰', label: 'Ledger', path: '/ledger', section: 'MANAGE', requiresAuth: true },
     { icon: '💵', label: 'Payouts', path: '/payouts', section: 'MANAGE', requiresAuth: true },
     { icon: '🧾', label: 'Billing', path: '/billing', section: 'MANAGE', requiresAuth: true },
@@ -100,9 +100,9 @@ export const NAV_ITEMS: NavItem[] = [
 export const NAV_SECTIONS = ['DISCOVER', 'MANAGE', 'ACCOUNT'] as const;
 
 export const BOTTOM_TABS: Pick<NavItem, 'icon' | 'label' | 'path'>[] = [
-    { icon: '🌐', label: 'Browse', path: '/' },
+    { icon: '🌐', label: 'Browse', path: '/browse' },
     { icon: '🗂️', label: 'My Pools', path: '/my-pools' },
-    { icon: '➕', label: 'List', path: '/list' },
+    { icon: '➕', label: 'List', path: '/list-pool' },
     { icon: '💰', label: 'Ledger', path: '/ledger' },
     { icon: '👤', label: 'Profile', path: '/profile' },
 ];
@@ -119,6 +119,7 @@ export const PAGE_TITLES: Record<string, string> = {
     '/wishlist': 'Wishlist',
     '/my-pools': 'My Pools',
     '/list': 'List a Pool',
+    '/list-pool': 'List a Pool',
     '/create': 'Create a Pool',
     '/ledger': 'Ledger',
     '/payouts': 'Payouts',
@@ -128,6 +129,7 @@ export const PAGE_TITLES: Record<string, string> = {
     '/notifications': 'Notifications',
     '/profile': 'Profile',
     '/savings': 'Savings Hub',
+    '/savings-hub': 'Savings Hub',
     '/plans': 'Plans & Upgrades',
     '/admin': 'Admin Panel',
     '/payment/method': 'Payment Method',

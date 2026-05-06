@@ -6,12 +6,20 @@ import type { Variants } from 'motion/react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { EmptyState } from '../components/empty-state';
-import { useHostEarnings } from '../../lib/supabase/hooks';
+import { useHostEarnings, useAuth } from '../../lib/supabase/hooks';
+import { useRequestPayoutMutation } from '../../lib/supabase/queries';
 import { formatPrice, getPlatform } from '../../lib/constants';
 import { cn } from '../components/ui/utils';
+import { Input } from '../components/ui/input';
+import { toast } from 'sonner';
 
 export function PayoutDashboard() {
-  const { summary, monthly, loading } = useHostEarnings();
+  const { user } = useAuth();
+  const { summary, monthly, loading, refetch } = useHostEarnings();
+  const requestPayout = useRequestPayoutMutation();
+
+  const [isWithdrawOpen, setIsWithdrawOpen] = React.useState(false);
+  const [withdrawAmount, setWithdrawAmount] = React.useState('');
 
   const totalEarned = summary.reduce((sum, pool) => sum + pool.total_earned, 0) * 100;
   const pendingPayouts = summary.reduce((sum, pool) => sum + pool.total_pending, 0) * 100;
@@ -85,6 +93,13 @@ export function PayoutDashboard() {
             </Badge>
             <div className="size-2 rounded-full bg-primary animate-pulse shadow-[0_0_12px_rgba(200,241,53,0.5)]" />
         </div>
+        <Button 
+            onClick={() => setIsWithdrawOpen(true)}
+            disabled={totalEarned <= 0}
+            className="h-14 px-8 rounded-2xl font-display font-black uppercase tracking-widest bg-primary text-primary-foreground shadow-glow-primary hover:scale-[1.02] active:scale-95 transition-all"
+        >
+            <Banknote className="mr-3 size-5" /> Withdraw Earnings
+        </Button>
       </motion.div>
 
       <motion.div variants={containerVariants} className="grid gap-4 md:grid-cols-3">
@@ -312,6 +327,107 @@ export function PayoutDashboard() {
           </div>
         )}
       </motion.div>
+      <motion.div variants={itemVariants}>
+        {/* Existing Content */}
+      </motion.div>
+
+      {/* Withdraw Modal */}
+      <AnimatePresence>
+        {isWithdrawOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <motion.div 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0 }}
+                    onClick={() => setIsWithdrawOpen(false)}
+                    className="absolute inset-0 bg-black/80 backdrop-blur-md" 
+                />
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    className="relative w-full max-w-md glass border-border/40 bg-surface-gradient shadow-3xl rounded-[32px] p-8 overflow-hidden"
+                >
+                    <div className="absolute top-0 right-0 p-32 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+                    
+                    <div className="relative z-10 space-y-8">
+                        <div className="flex items-center gap-4">
+                            <div className="size-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                                <WalletCards size={24} />
+                            </div>
+                            <div>
+                                <h3 className="font-display font-bold text-xl">Withdrawal Protocol</h3>
+                                <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Initialise Settlement Request</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="p-6 rounded-2xl bg-black/40 border border-border/40 shadow-inner">
+                                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Available for Payout</p>
+                                <p className="font-display text-3xl font-black text-foreground">{formatPrice(totalEarned)}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Transfer Amount (USD)</label>
+                                <div className="relative">
+                                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                                    <Input
+                                        type="number"
+                                        placeholder="0.00"
+                                        value={withdrawAmount}
+                                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                                        className="h-14 pl-10 rounded-2xl bg-background/50 border-border/60 font-mono text-lg focus:ring-primary/40"
+                                    />
+                                </div>
+                                <p className="font-mono text-[9px] text-muted-foreground px-1">Min: $10.00 · Processing Time: 3-5 Nodes</p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <Button
+                                onClick={async () => {
+                                    const amount = parseFloat(withdrawAmount);
+                                    if (isNaN(amount) || amount < 10) {
+                                        toast.error("Withdrawal under minimum threshold ($10)");
+                                        return;
+                                    }
+                                    if (amount > totalEarned / 100) {
+                                        toast.error("Insufficient liquidity in node wallet");
+                                        return;
+                                    }
+                                    
+                                    try {
+                                        await requestPayout.mutateAsync({
+                                            userId: user?.id,
+                                            amountCents: amount * 100,
+                                            currency: 'USD'
+                                        });
+                                        toast.success("Settlement Initialised: Payout in queue");
+                                        setIsWithdrawOpen(false);
+                                        setWithdrawAmount('');
+                                        refetch();
+                                    } catch (e: any) {
+                                        toast.error(e.message);
+                                    }
+                                }}
+                                disabled={requestPayout.isPending}
+                                className="h-14 rounded-2xl font-display font-black uppercase tracking-widest shadow-xl shadow-primary/10"
+                            >
+                                {requestPayout.isPending ? "Syncing..." : "Confirm Withdrawal"}
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                onClick={() => setIsWithdrawOpen(false)}
+                                className="h-12 rounded-2xl font-mono text-[10px] uppercase tracking-widest text-muted-foreground"
+                            >
+                                Abort Mission
+                            </Button>
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

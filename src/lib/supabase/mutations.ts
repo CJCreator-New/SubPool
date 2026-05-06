@@ -303,6 +303,40 @@ export function markLedgerPaid(ledgerId: string): Promise<MutationResult> {
     });
 }
 
+/** Process a refund for a ledger entry. */
+export function processRefund(
+    ledgerId: string,
+    options?: { allowDemoFallback?: boolean },
+): Promise<MutationResult> {
+    return withRateLimit(`processRefund:${ledgerId}`, async () => {
+        if (isDemoMode(options?.allowDemoFallback ?? false)) { await delay(500); return ok(undefined); }
+        try {
+            const db = requireSupabase();
+            const { data, error } = await db
+                .from('ledger')
+                .update({ status: 'refunded', paid_at: null })
+                .eq('id', ledgerId)
+                .select('*, membership:memberships(*, pool:pools(*))')
+                .single();
+
+            if (error) return fail(error.message);
+
+            const enrichedLedger = data as any;
+            if (enrichedLedger?.membership?.user_id) {
+                await db.from('notifications').insert({
+                    user_id: enrichedLedger.membership.user_id,
+                    type: 'refund_processed',
+                    title: 'Refund Received ↩️',
+                    body: `The host has refunded your payment for ${enrichedLedger.membership.pool.platform}.`,
+                    action_url: '/ledger'
+                });
+            }
+
+            return ok(undefined);
+        } catch (e) { return fail((e as Error).message); }
+    });
+}
+
 // ─── Rating mutations ─────────────────────────────────────────────────────────
 
 export function submitRating(
@@ -325,6 +359,173 @@ export function submitRating(
                 .select('id').single();
             if (error) return fail(error.message);
             return ok({ ratingId: (data as { id: string }).id });
+        } catch (e) { return fail((e as Error).message); }
+    });
+}
+// ─── Payment mutations ────────────────────────────────────────────────────────
+
+/** Record a successful payment for a pool slot. */
+export function recordPoolPayment(
+    poolId: string,
+    userId: string,
+    amountCents: number,
+    options?: { allowDemoFallback?: boolean }
+): Promise<MutationResult> {
+    return withRateLimit(`recordPayment:${userId}:${poolId}`, async () => {
+        const isMock = isDemoMode(options?.allowDemoFallback ?? false);
+
+        if (isMock) {
+            await delay(800);
+            return ok(undefined);
+        }
+
+        try {
+            const db = requireSupabase();
+
+            // 1. Get membership
+            const { data: membership, error: memErr } = await db
+                .from('memberships')
+                .select('id, pool_id')
+                .eq('pool_id', poolId)
+                .eq('user_id', userId)
+                .single();
+
+            if (memErr || !membership) return fail('Membership not found. Join the pool first.');
+
+            // 2. Create ledger entry
+            const { error: ledErr } = await db
+                .from('ledger')
+                .insert({
+                    membership_id: membership.id,
+                    amount: amountCents / 100,
+                    status: 'paid',
+                    paid_at: new Date().toISOString(),
+                    due_date: new Date().toISOString()
+                });
+
+            if (ledErr) return fail(ledErr.message);
+
+            // 3. Get pool info for notification
+            const { data: poolData } = await db
+                .from('pools')
+                .select('owner_id, platform')
+                .eq('id', poolId)
+                .single();
+
+            if (poolData) {
+                const { data: { user } } = await db.auth.getUser();
+                const username = user?.user_metadata?.name || 'Someone';
+
+                await db.from('notifications').insert({
+                    user_id: poolData.owner_id,
+                    type: 'payment_received',
+                    title: 'Payment Confirmed 💸',
+                    body: `${username} paid for their slot in ${poolData.platform}.`,
+                    action_url: '/ledger'
+                });
+            }
+
+            return ok(undefined);
+        } catch (e) { return fail((e as Error).message); }
+    });
+}
+
+/** Initiate a payout request for a host. */
+export function requestPayout(
+    userId: string,
+    amountCents: number,
+    currency: string,
+    options?: { allowDemoFallback?: boolean },
+): Promise<MutationResult> {
+    return withRateLimit(`requestPayout:${userId}`, async () => {
+        if (isDemoMode(options?.allowDemoFallback ?? false)) { await delay(1000); return ok(undefined); }
+        try {
+            const db = requireSupabase();
+            const { data, error } = await db
+                .from('payout_requests')
+                .insert({
+                    user_id: userId,
+                    amount: amountCents / 100,
+                    currency,
+                    status: 'pending'
+                })
+                .select('id').single();
+
+            if (error) return fail(error.message);
+
+            // Notify admin (simulated)
+            await db.from('notifications').insert({
+                user_id: userId, // In a real app, this would be an admin ID
+                type: 'payout_requested',
+                title: 'Payout Requested 🏦',
+                body: `Your request for ${currency} ${amountCents / 100} is being processed.`,
+                action_url: '/ledger'
+            });
+
+            return ok(undefined);
+        } catch (e) { return fail((e as Error).message); }
+    });
+}
+
+/** Simulate a billing cycle (for dev/demo). Generates new ledger entries for active memberships. */
+export function simulateBillingCycle(
+    userId: string,
+    options?: { allowDemoFallback?: boolean },
+): Promise<MutationResult> {
+    return withRateLimit(`simulateBilling:${userId}`, async () => {
+        if (isDemoMode(options?.allowDemoFallback ?? true)) { 
+            await delay(1200); 
+            return ok(undefined); 
+        }
+        try {
+            const db = requireSupabase();
+            // Call a Postgres function or Edge Function to process billing
+            const { error } = await db.functions.invoke('process-billing-cycle', {
+                body: { userId }
+            });
+            if (error) return fail(error.message);
+            return ok(undefined);
+        } catch (e) { return fail((e as Error).message); }
+    });
+}
+/** Claim a referral reward (unlock Pro for 1 month). */
+export function claimReferralReward(
+    userId: string,
+    options?: { allowDemoFallback?: boolean },
+): Promise<MutationResult> {
+    return withRateLimit(`claimReward:${userId}`, async () => {
+        if (isDemoMode(options?.allowDemoFallback ?? false)) { 
+            await delay(1500); 
+            return ok(undefined); 
+        }
+        try {
+            const db = requireSupabase();
+            const { data, error } = await db.functions.invoke('process-referral-reward', {
+                body: { userId }
+            });
+            if (error) return fail(error.message);
+            if (data?.error) return fail(data.error);
+            return ok(undefined);
+        } catch (e) { return fail((e as Error).message); }
+    });
+}
+/** Approve a host payout request. */
+export function approvePayout(
+    payoutId: string,
+    options?: { allowDemoFallback?: boolean },
+): Promise<MutationResult> {
+    return withRateLimit(`approvePayout:${payoutId}`, async () => {
+        if (isDemoMode(options?.allowDemoFallback ?? false)) { 
+            await delay(800); 
+            return ok(undefined); 
+        }
+        try {
+            const db = requireSupabase();
+            const { error } = await db
+                .from('payout_requests')
+                .update({ status: 'completed', paid_at: new Date().toISOString() })
+                .eq('id', payoutId);
+            return error ? fail(error.message) : ok(undefined);
         } catch (e) { return fail((e as Error).message); }
     });
 }

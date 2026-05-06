@@ -10,7 +10,9 @@ import { useNavigate } from 'react-router';
 import { 
     useAdminUsersQuery, 
     useAdminPoolsQuery, 
-    useAdminAnalyticsQuery 
+    useAdminAnalyticsQuery,
+    useAdminPayoutsQuery,
+    useApprovePayoutMutation
 } from '../../lib/supabase/queries';
 import { 
     Shield, Zap, TrendingUp, Users as UsersIcon, RefreshCcw, Database, Lock, AlertTriangle, 
@@ -37,7 +39,7 @@ import {
 } from '../components/ui/card';
 import { Avatar, AvatarFallback } from '../components/ui/avatar';
 
-type AdminTab = 'metrics' | 'users' | 'pools' | 'sync';
+type AdminTab = 'metrics' | 'users' | 'pools' | 'sync' | 'payouts';
 
 export function AdminPage() {
     const { profile, loading: authLoading } = useAuth();
@@ -46,7 +48,10 @@ export function AdminPage() {
     
     const { data: usersData, isLoading: usersLoading } = useAdminUsersQuery();
     const { data: poolsData, isLoading: poolsLoading } = useAdminPoolsQuery();
+    const { data: payoutsData, isLoading: payoutsLoading } = useAdminPayoutsQuery();
     const { data: analytics, isLoading: analyticsLoading } = useAdminAnalyticsQuery();
+    
+    const approvePayout = useApprovePayoutMutation();
 
     const users = usersData?.data || [];
     const pools = poolsData?.data || [];
@@ -109,16 +114,25 @@ export function AdminPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     className="max-w-md w-full glass border-border/40 bg-surface-gradient shadow-2xl rounded-3xl p-10 text-center"
                 >
+                    <div className="flex items-center justify-center gap-1 mb-8">
+                        <span className="font-display font-black text-xl text-foreground">Sub</span>
+                        <span className="font-display font-black text-xl text-primary">Pool</span>
+                    </div>
                     <div className="size-20 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto mb-6">
                         <Lock size={32} className="text-destructive" />
                     </div>
-                    <h1 className="font-display font-black text-2xl mb-2 tracking-tight text-foreground">Access Denied</h1>
-                    <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest leading-relaxed mb-8 opacity-70">
-                        Insufficient clearance level for Administrative Uplink. Contact System Architect.
+                    <h1 className="font-display font-bold text-2xl mb-2 tracking-tight text-foreground">Access Restricted</h1>
+                    <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest leading-relaxed mb-10 opacity-70">
+                        This node requires Administrative clearance level. Your current uplink does not have sufficient permissions.
                     </p>
-                    <Button variant="outline" className="w-full rounded-2xl border-border/60" onClick={() => window.location.href = '/'}>
-                        Return to Public Node
-                    </Button>
+                    <div className="space-y-3">
+                        <Button variant="default" className="w-full rounded-xl h-12 font-display font-bold" onClick={() => navigate('/dashboard')}>
+                            Return to Dashboard
+                        </Button>
+                        <Button variant="ghost" className="w-full rounded-xl h-12 font-mono text-[10px] uppercase tracking-widest text-muted-foreground" onClick={() => navigate(-1)}>
+                            Go Back
+                        </Button>
+                    </div>
                 </motion.div>
             </div>
         );
@@ -187,6 +201,7 @@ export function AdminPage() {
                         { id: 'metrics', label: 'Metrics', icon: TrendingUp },
                         { id: 'users', label: 'Users', icon: UsersIcon },
                         { id: 'pools', label: 'Pools', icon: Database },
+                        { id: 'payouts', label: 'Payouts', icon: Banknote },
                         { id: 'sync', label: 'Pricing Sync', icon: RefreshCcw }
                     ].map((tab) => (
                         <button
@@ -447,6 +462,70 @@ export function AdminPage() {
                                                         </tr>
                                                     );
                                                 })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </Card>
+                            </motion.div>
+                        )}
+
+                        {activeTab === 'payouts' && (
+                            <motion.div
+                                key="payouts"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                className="space-y-6"
+                            >
+                                <Card className="glass border-border/40 bg-card/40 overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-white/5 border-b border-border/40">
+                                                <tr>
+                                                    <th className="px-6 py-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">User / Uplink</th>
+                                                    <th className="px-6 py-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Amount</th>
+                                                    <th className="px-6 py-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Status</th>
+                                                    <th className="px-6 py-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Timestamp</th>
+                                                    <th className="px-6 py-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground text-right">Settlement</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-border/20">
+                                                {(payoutsData || []).map((payout) => (
+                                                    <tr key={payout.id} className="group hover:bg-white/5 transition-all">
+                                                        <td className="px-6 py-5">
+                                                            <div>
+                                                                <p className="font-display font-bold text-sm">{payout.user?.username || 'Host'}</p>
+                                                                <p className="font-mono text-[10px] text-muted-foreground lowercase opacity-60">{payout.user?.email}</p>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-5">
+                                                            <p className="font-mono text-sm font-black text-emerald-400">${payout.amount.toFixed(2)}</p>
+                                                        </td>
+                                                        <td className="px-6 py-5">
+                                                            <span className={cn(
+                                                                "px-2 py-0.5 rounded-full border text-[9px] font-bold tracking-widest uppercase",
+                                                                payout.status === 'completed' ? "text-emerald-500 border-emerald-500/40 bg-emerald-500/10" : "text-amber-500 border-amber-500/40 bg-amber-500/10"
+                                                            )}>
+                                                                {payout.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-5">
+                                                            <p className="font-mono text-[10px] text-muted-foreground uppercase">{new Date(payout.created_at).toLocaleDateString()}</p>
+                                                        </td>
+                                                        <td className="px-6 py-5 text-right">
+                                                            {payout.status === 'pending' && (
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    className="h-8 rounded-lg font-mono text-[9px] uppercase tracking-widest shadow-glow-primary"
+                                                                    onClick={() => approvePayout.mutate(payout.id)}
+                                                                    disabled={approvePayout.isPending}
+                                                                >
+                                                                    {approvePayout.isPending ? 'Syncing...' : 'Approve'}
+                                                                </Button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                ))}
                                             </tbody>
                                         </table>
                                     </div>

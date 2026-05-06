@@ -969,6 +969,7 @@ export function useReferralStats() {
             setLoading(false);
         }
     }, [user?.id]);
+    useEffect(() => { fetchData(); }, [fetchData]);
 
     return { stats, loading, error, refetch: fetchData };
 }
@@ -1028,3 +1029,77 @@ export function useAdminPools() {
 }
 
 export { useJoinRequests } from './useJoinRequests';
+// â”€â”€â”€ useWatchedPlatforms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+export function useWatchedPlatforms(options?: DataHookOptions) {
+    const [data, setData] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchData = useCallback(async () => {
+        setLoading(true);
+        const mode = resolveDataMode({ allowDemoFallback: options?.allowDemoFallback ?? false });
+        
+        if (mode === 'demo') {
+            const saved = localStorage.getItem('subpool_watched_platforms');
+            setData(saved ? JSON.parse(saved) : []);
+            setLoading(false);
+            return;
+        }
+
+        if (!isSupabaseConnected || !supabase) {
+            setData([]);
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data: rows, error: err } = await supabase
+                .from('user_watched_platforms')
+                .select('platform_id')
+                .eq('user_id', user.id);
+
+            if (err) throw err;
+            setData((rows ?? []).map((r: any) => r.platform_id));
+        } catch (e) {
+            setError((e as Error).message);
+        } finally {
+            setLoading(false);
+        }
+    }, [options?.allowDemoFallback]);
+
+    const toggleWatch = async (platformId: string) => {
+        const mode = resolveDataMode({ allowDemoFallback: options?.allowDemoFallback ?? false });
+        const isWatched = data.includes(platformId);
+
+        if (mode === 'demo') {
+            const next = isWatched ? data.filter(id => id !== platformId) : [...data, platformId];
+            setData(next);
+            localStorage.setItem('subpool_watched_platforms', JSON.stringify(next));
+            return;
+        }
+
+        if (!isSupabaseConnected || !supabase) return;
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            if (isWatched) {
+                await supabase.from('user_watched_platforms').delete().eq('user_id', user.id).eq('platform_id', platformId);
+            } else {
+                await supabase.from('user_watched_platforms').insert({ user_id: user.id, platform_id: platformId });
+            }
+            fetchData();
+        } catch (e) {
+            console.error('Failed to toggle watch:', e);
+        }
+    };
+
+    useEffect(() => { fetchData(); }, [fetchData]);
+
+    return { data, loading, error, toggleWatch, refetch: fetchData };
+}

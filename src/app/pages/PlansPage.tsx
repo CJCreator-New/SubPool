@@ -14,6 +14,7 @@ import { useCurrency } from '../../lib/currency-context';
 import { CurrencyToggle } from '../components/currency-toggle';
 import { supabase } from '../../lib/supabase/client';
 import { redirectToCheckout, isStripeEnabled } from '../../lib/stripe';
+import { SEO } from '../components/seo';
 
 // ─── Plans Data ─────────────────────────────────────────────────────────────
 
@@ -123,7 +124,10 @@ export function PlansPage() {
 
     return (
         <div className="max-w-6xl mx-auto px-4 py-12">
-
+            <SEO 
+                title="Premium Plans & Pricing" 
+                description="Unlock advanced subscription pooling tools. Pro and Host Plus plans available for power users and resellers. Save more, earn more."
+            />
             {/* ─── Header & Toggle ────────────────────────────────────────── */}
             <div className="text-center mb-16">
                 <h1 className="font-display font-black text-[32px] md:text-[44px] tracking-tight mb-4">

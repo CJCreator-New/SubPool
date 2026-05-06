@@ -29,6 +29,7 @@ import {
 } from '../../lib/supabase/reminder-preferences';
 import { Setup2FA } from '../components/security/setup-2fa';
 import { useReferralStats } from '../../lib/supabase/hooks';
+import { useClaimRewardMutation } from '../../lib/supabase/queries';
 
 type ReminderPreferences = {
   allNotifs: boolean;
@@ -67,6 +68,7 @@ export function Profile() {
     bio: '',
   });
   const [saving, setSaving] = useState(false);
+  const claimReward = useClaimRewardMutation();
 
   useEffect(() => {
     if (profile) {
@@ -408,21 +410,33 @@ export function Profile() {
                     <Button
                     variant="ghost"
                     size="sm"
-                    className="shrink-0"
+                    className="shrink-0 flex items-center gap-2"
                     onClick={async () => {
                         await navigator.clipboard.writeText(referralUrl);
                         toast.success("Referral link copied!");
                         track('referral_link_copied', {});
                     }}
                     >
-                    📋 Copy
+                    <ArrowRight size={14} className="rotate-[-45deg]" /> Copy
                     </Button>
                 </div>
               </div>
-              <div className="self-start bg-primary/5 border border-primary/20 rounded px-2 py-1">
-                <span className="font-mono text-[10px] text-primary">
-                    {stats.count >= 3 ? "Mission Complete: Pro Status Unlocked" : `Invite ${3 - (stats.count % 3)} more friends → unlock Pro for 1 month`}
-                </span>
+              <div className="self-start flex flex-col gap-2">
+                <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1">
+                  <span className="font-mono text-[10px] text-primary">
+                      {stats.count >= 3 ? "Mission Complete: Pro Status Unlocked" : `Invite ${3 - (stats.count % 3)} more friends → unlock Pro for 1 month`}
+                  </span>
+                </div>
+                {stats.count >= 3 && profile?.plan === 'free' && (
+                    <Button 
+                        size="sm" 
+                        className="h-8 rounded-xl font-display font-black uppercase tracking-widest shadow-glow-primary animate-bounce"
+                        onClick={() => claimReward.mutate(user?.id)}
+                        disabled={claimReward.isPending}
+                    >
+                        {claimReward.isPending ? "Initialising..." : "Claim Pro Payload"}
+                    </Button>
+                )}
               </div>
             </div>
           </div>

@@ -381,6 +381,7 @@ export function PoolCard({ pool, variant = 'full', className, onClick, animate =
                             'hover:border-primary/40',
                             'hover:shadow-[0_20px_40px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.05)]',
                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                            pool.is_featured && 'shadow-glow-primary/20 border-primary/30 ring-1 ring-primary/20',
                             className
                         )}
                         style={animate ? {
@@ -406,7 +407,12 @@ export function PoolCard({ pool, variant = 'full', className, onClick, animate =
                             )}
                             <CardContent className="p-5">
                                 {/* Status pill — absolute top right */}
-                                <div className="absolute top-3 right-3">
+                                <div className="absolute top-3 right-3 flex items-center gap-2">
+                                    {pool.is_featured && (
+                                        <Badge className="bg-primary text-black font-mono text-[9px] font-black uppercase tracking-widest border-none px-2 shadow-glow-primary">
+                                            FEATURED
+                                        </Badge>
+                                    )}
                                     <StatusPill status={pool.status} />
                                 </div>
 

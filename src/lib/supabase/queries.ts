@@ -24,7 +24,6 @@ export const adminKeys = {
 
 /**
  * Hook for fetching pools with filters and search.
- * Replaces the manual state management in the old usePools hook.
  */
 export function usePoolsQuery(search?: string, category?: string) {
     return useQuery({
@@ -42,7 +41,6 @@ export function usePoolsQuery(search?: string, category?: string) {
             }
 
             if (search) {
-                // Assuming search_vector is now available as per Phase 2
                 query = query.textSearch('search_vector', search);
             }
 
@@ -50,7 +48,7 @@ export function usePoolsQuery(search?: string, category?: string) {
             if (error) throw error;
             return data as any as Pool[];
         },
-        staleTime: 1000 * 60 * 2, // 2 minutes for pool listings
+        staleTime: 1000 * 60 * 2,
     });
 }
 
@@ -149,9 +147,6 @@ export function usePoolDetailQuery(poolId: string) {
 
 // ─── Admin Queries ────────────────────────────────────────────────────────────
 
-/**
- * Paginated admin user list.
- */
 export function useAdminUsersQuery(page = 0, limit = 20) {
     return useQuery({
         queryKey: adminKeys.users(page, limit),
@@ -172,9 +167,6 @@ export function useAdminUsersQuery(page = 0, limit = 20) {
     });
 }
 
-/**
- * Paginated admin pool list.
- */
 export function useAdminPoolsQuery(page = 0, limit = 20) {
     return useQuery({
         queryKey: adminKeys.pools(page, limit),
@@ -195,11 +187,23 @@ export function useAdminPoolsQuery(page = 0, limit = 20) {
     });
 }
 
+export function useAdminPayoutsQuery() {
+    return useQuery({
+        queryKey: [...adminKeys.all, 'payouts'],
+        queryFn: async () => {
+            if (!supabase) throw new Error('Supabase not connected');
+            const { data, error } = await supabase
+                .from('payout_requests')
+                .select('*, user:profiles(username, email)')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data as any[];
+        },
+    });
+}
+
 // ─── User Queries ─────────────────────────────────────────────────────────────
 
-/**
- * Hook for fetching the authenticated user's profile.
- */
 export function useProfileQuery(userId?: string) {
     return useQuery({
         queryKey: ['profile', userId],
@@ -218,133 +222,65 @@ export function useProfileQuery(userId?: string) {
     });
 }
 
-/**
- * Hook for fetching dashboard action summary (requests, payments, notifications).
- */
 export function useActionSummaryQuery(userId?: string) {
     return useQuery({
         queryKey: ['action-summary', userId],
         queryFn: async () => {
             if (!supabase || !userId) throw new Error('Initialization error');
-
-            // 1. Fetch Incoming Join Requests (Host)
-            const { data: hostPools } = await supabase
-                .from('pools')
-                .select('id')
-                .eq('owner_id', userId);
-
+            const { data: hostPools } = await supabase.from('pools').select('id').eq('owner_id', userId);
             const poolIds = hostPools?.map(p => p.id) || [];
-            
-            let pendingRequests: any[] = [];
+            let pendingRequests = [];
             if (poolIds.length > 0) {
-                const { data } = await supabase
-                    .from('join_requests')
-                    .select('*, requester:profiles(*), pool:pools(*)')
-                    .in('pool_id', poolIds)
-                    .eq('status', 'pending');
+                const { data } = await supabase.from('join_requests').select('*, requester:profiles(*), pool:pools(*)').in('pool_id', poolIds).eq('status', 'pending');
                 pendingRequests = data || [];
             }
-
-            // 2. Fetch Pending Payments (Member)
-            const { data: ledgerRows } = await supabase
-                .from('ledger')
-                .select('*, memberships!inner(*, pool:pools(*))')
-                .eq('memberships.user_id', userId)
-                .eq('status', 'owed');
-
+            const { data: ledgerRows } = await supabase.from('ledger').select('*, memberships!inner(*, pool:pools(*))').eq('memberships.user_id', userId).eq('status', 'owed');
             const duePayments = (ledgerRows || []).map((row: any) => ({
                 id: row.id,
                 membership_id: row.membership_id,
                 pool_id: row.memberships.pool_id,
                 pool_name: row.memberships.pool.plan_name,
                 platform: row.memberships.pool.platform,
-                amount_cents: row.amount, // Standardized in Phase 2
+                amount_cents: row.amount,
                 due_at: row.due_date,
             }));
-
-            // 3. Unread Notifications
-            const { data: notifications } = await supabase
-                .from('notifications')
-                .select('*')
-                .eq('user_id', userId)
-                .eq('read', false)
-                .order('created_at', { ascending: false });
-
-            // 4. Savings Logic
-            const { data: memberships } = await supabase
-                .from('memberships')
-                .select('*, pool:pools(*)')
-                .eq('user_id', userId)
-                .eq('status', 'active');
-
+            const { data: notifications } = await supabase.from('notifications').select('*').eq('user_id', userId).eq('read', false).order('created_at', { ascending: false });
+            const { data: memberships } = await supabase.from('memberships').select('*, pool:pools(*)').eq('user_id', userId).eq('status', 'active');
             let monthlySpend = 0;
             let monthlyRetail = 0;
-
             memberships?.forEach((m: any) => {
                 monthlySpend += (m.price_per_slot || 0);
                 monthlyRetail += (m.pool?.total_cost || m.price_per_slot * (m.pool?.total_slots || 1));
             });
-
-            return {
-                pendingRequests,
-                duePayments,
-                unreadNotifications: notifications || [],
-                monthlySavingsCents: (monthlyRetail - monthlySpend),
-            };
+            return { pendingRequests, duePayments, unreadNotifications: notifications || [], monthlySavingsCents: (monthlyRetail - monthlySpend) };
         },
         enabled: !!userId,
-        staleTime: 1000 * 60, // 1 minute refresh
+        staleTime: 1000 * 60,
     });
 }
 
-/**
- * Hook for fetching referral statistics.
- */
 export function useReferralStatsQuery(userId?: string) {
     return useQuery({
         queryKey: ['referral-stats', userId],
         queryFn: async () => {
             const { resolveDataMode } = await import('../data-mode');
             const mode = resolveDataMode({ allowDemoFallback: true });
-            
-            if (mode === 'demo') {
-                return { count: 12, rewardsGranted: 3 };
-            }
-
+            if (mode === 'demo') return { count: 12, rewardsGranted: 3 };
             if (!supabase || !userId) throw new Error('Initialization error');
-
-            const { count: total, error: err1 } = await supabase
-                .from('referrals')
-                .select('*', { count: 'exact', head: true })
-                .eq('referrer_id', userId);
-            if (err1) throw err1;
-
-            const { count: rewarded, error: err2 } = await supabase
-                .from('referrals')
-                .select('*', { count: 'exact', head: true })
-                .eq('referrer_id', userId)
-                .eq('reward_granted', true);
-            if (err2) throw err2;
-
+            const { count: total } = await supabase.from('referrals').select('*', { count: 'exact', head: true }).eq('referrer_id', userId);
+            const { count: rewarded } = await supabase.from('referrals').select('*', { count: 'exact', head: true }).eq('referrer_id', userId).eq('reward_granted', true);
             return { count: total || 0, rewardsGranted: rewarded || 0 };
         },
         enabled: !!userId,
     });
 }
 
-/**
- * Hook for fetching pools owned by the current user.
- */
 export function useMyPoolsQuery(userId?: string) {
     return useQuery({
         queryKey: poolKeys.mine(userId || ''),
         queryFn: async () => {
             if (!supabase || !userId) throw new Error('Initialization error');
-            const { data, error } = await supabase
-                .from('pools')
-                .select('*, memberships(count)')
-                .eq('owner_id', userId)
-                .order('created_at', { ascending: false });
+            const { data, error } = await supabase.from('pools').select('*, memberships(count)').eq('owner_id', userId).order('created_at', { ascending: false });
             if (error) throw error;
             return data as any[];
         },
@@ -352,53 +288,18 @@ export function useMyPoolsQuery(userId?: string) {
     });
 }
 
-/**
- * Hook for fetching global admin analytics.
- */
-export function useAdminAnalyticsQuery() {
-    return useQuery({
-        queryKey: ['admin-analytics'],
-        queryFn: async () => {
-            if (!supabase) throw new Error('Supabase not connected');
-
-            // Fetch various analytics in parallel
-            const [
-                { data: earnings },
-                { data: userStats }
-            ] = await Promise.all([
-                supabase.from('host_earnings_summary').select('*'),
-                supabase.from('profiles').select('id, plan, created_at')
-            ]);
-
-            return {
-                earnings: earnings || [],
-                userStats: userStats || []
-            };
-        },
-    });
-}
-
-/**
- * Hook for fetching current user's memberships.
- */
 export function useMembershipsQuery(userId?: string) {
     return useQuery({
         queryKey: ['memberships', userId],
         queryFn: async () => {
             const { resolveDataMode } = await import('../data-mode');
             const mode = resolveDataMode({ allowDemoFallback: true });
-
             if (mode === 'demo') {
                 const { MOCK_MEMBERSHIPS } = await import('../mock-data');
                 return MOCK_MEMBERSHIPS;
             }
-
             if (!supabase || !userId) throw new Error('Initialization error');
-            const { data, error } = await supabase
-                .from('memberships')
-                .select('*, pool:pools(*, owner:profiles(*))')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false });
+            const { data, error } = await supabase.from('memberships').select('*, pool:pools(*, owner:profiles(*))').eq('user_id', userId).order('created_at', { ascending: false });
             if (error) throw error;
             return data as any[];
         },
@@ -406,38 +307,18 @@ export function useMembershipsQuery(userId?: string) {
     });
 }
 
-/**
- * Hook for fetching join requests for pools owned by the user.
- */
 export function useJoinRequestsQuery(userId?: string) {
     return useQuery({
         queryKey: ['join-requests', userId],
         queryFn: async () => {
             const { resolveDataMode } = await import('../data-mode');
             const mode = resolveDataMode({ allowDemoFallback: true });
-
-            if (mode === 'demo') {
-                return [];
-            }
-
+            if (mode === 'demo') return [];
             if (!supabase || !userId) throw new Error('Initialization error');
-            
-            // Get pools owned by user first
-            const { data: pools } = await supabase
-                .from('pools')
-                .select('id')
-                .eq('owner_id', userId);
-            
+            const { data: pools } = await supabase.from('pools').select('id').eq('owner_id', userId);
             if (!pools || pools.length === 0) return [];
-
-            const poolIds = (pools as any[]).map(p => p.id);
-
-            const { data, error } = await supabase
-                .from('join_requests')
-                .select('*, pool:pools(*), profiles(*)')
-                .in('pool_id', poolIds)
-                .order('created_at', { ascending: false });
-            
+            const poolIds = pools.map(p => p.id);
+            const { data, error } = await supabase.from('join_requests').select('*, pool:pools(*), profiles(*)').in('pool_id', poolIds).order('created_at', { ascending: false });
             if (error) throw error;
             return data as any[];
         },
@@ -445,28 +326,18 @@ export function useJoinRequestsQuery(userId?: string) {
     });
 }
 
-/**
- * Hook for fetching the platform ledger (transactions).
- */
 export function useLedgerQuery(options?: { allowDemoFallback?: boolean }) {
     return useQuery({
         queryKey: ['ledger', options?.allowDemoFallback],
         queryFn: async () => {
             const { resolveDataMode } = await import('../data-mode');
             const mode = resolveDataMode({ allowDemoFallback: options?.allowDemoFallback ?? true });
-
             if (mode === 'demo') {
                 const { MOCK_LEDGER } = await import('../mock-data');
                 return MOCK_LEDGER;
             }
-
             if (!supabase) throw new Error('Supabase not connected');
-            
-            const { data, error } = await supabase
-                .from('ledger')
-                .select('*')
-                .order('created_at', { ascending: false });
-            
+            const { data, error } = await supabase.from('ledger').select('*').order('created_at', { ascending: false });
             if (error) throw error;
             return data as any[];
         }
@@ -475,9 +346,6 @@ export function useLedgerQuery(options?: { allowDemoFallback?: boolean }) {
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
-/**
- * Mutation for joining a pool.
- */
 export function useJoinPoolMutation() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -493,9 +361,6 @@ export function useJoinPoolMutation() {
     });
 }
 
-/**
- * Mutation for approving a membership request.
- */
 export function useApproveRequestMutation() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -511,9 +376,21 @@ export function useApproveRequestMutation() {
     });
 }
 
-/**
- * Mutation for marking a ledger entry as paid.
- */
+export function useRejectRequestMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (requestId: string) => {
+            const { rejectRequest } = await import('./mutations');
+            const result = await rejectRequest(requestId);
+            if (!result.success) throw new Error(result.error || 'Failed to reject request');
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: poolKeys.lists() });
+        },
+    });
+}
+
 export function useMarkLedgerPaidMutation() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -529,20 +406,80 @@ export function useMarkLedgerPaidMutation() {
     });
 }
 
-/**
- * Mutation for rejecting a membership request.
- */
-export function useRejectRequestMutation() {
+export function useProcessRefundMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (requestId: string) => {
-            const { rejectRequest } = await import('./mutations');
-            const result = await rejectRequest(requestId);
-            if (!result.success) throw new Error(result.error || 'Failed to reject request');
+        mutationFn: async (ledgerId: string) => {
+            const { processRefund } = await import('./mutations');
+            const result = await processRefund(ledgerId);
+            if (!result.success) throw new Error(result.error || 'Failed to process refund');
             return result.data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: poolKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: ['ledger'] });
         },
     });
 }
+
+export function useRequestPayoutMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ userId, amountCents, currency }: { userId: string, amountCents: number, currency: string }) => {
+            const { requestPayout } = await import('./mutations');
+            const result = await requestPayout(userId, amountCents, currency);
+            if (!result.success) throw new Error(result.error || 'Failed to request payout');
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['ledger'] });
+        },
+    });
+}
+
+export function useSimulateBillingMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (userId: string) => {
+            const { simulateBillingCycle } = await import('./mutations');
+            const result = await simulateBillingCycle(userId);
+            if (!result.success) throw new Error(result.error || 'Failed to simulate billing');
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['ledger'] });
+        },
+    });
+}
+
+export function useClaimRewardMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (userId: string) => {
+            const { claimReferralReward } = await import('./mutations');
+            const result = await claimReferralReward(userId);
+            if (!result.success) throw new Error(result.error || 'Failed to claim reward');
+            return result.data;
+        },
+        onSuccess: (_, userId) => {
+            queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+            queryClient.invalidateQueries({ queryKey: ['referral-stats', userId] });
+        },
+    });
+}
+
+export function useApprovePayoutMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (payoutId: string) => {
+            const { approvePayout } = await import('./mutations');
+            const result = await approvePayout(payoutId);
+            if (!result.success) throw new Error(result.error || 'Failed to approve payout');
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [...adminKeys.all, 'payouts'] });
+        },
+    });
+}
+
+export { useWatchedPlatforms } from './hooks';

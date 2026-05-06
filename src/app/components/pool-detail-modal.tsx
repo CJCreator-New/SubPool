@@ -136,6 +136,14 @@ export function PoolDetailModal({
                                 <div className="flex items-center gap-2 mt-2">
                                     <StatusPill status={pool.status} />
                                     <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">{pool.plan_name}</span>
+                                    <span className="mx-1 opacity-20">•</span>
+                                    <a 
+                                        href={`/pool/${pool.id}`} 
+                                        onClick={(e) => { e.preventDefault(); window.location.href = `/pool/${pool.id}`; }}
+                                        className="font-mono text-[10px] text-primary hover:underline uppercase tracking-widest"
+                                    >
+                                        Full Spec ↗
+                                    </a>
                                 </div>
                             </div>
                         </div>

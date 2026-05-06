@@ -1,19 +1,12 @@
 import { createRoot } from 'react-dom/client';
 import App from './app/App.tsx';
 import './styles/index.css';
+// Rebuild trigger: sync remote schema and fix auth
 
-// Initialise Sentry only when a DSN is provided (i.e. production) via dynamic import.
-const sentryDsn = import.meta.env.VITE_SENTRY_DSN as string | undefined;
-if (sentryDsn) {
-  import('@sentry/react').then((Sentry) => {
-    Sentry.init({
-      dsn: sentryDsn,
-      environment: import.meta.env.MODE,
-      tracesSampleRate: 0.1,
-      integrations: [Sentry.browserTracingIntegration()],
-    });
-  }).catch(err => console.warn('[Sentry] Payload loading failed:', err));
-}
+import { initSentry } from './lib/sentry';
+
+// Initialize Global Monitoring
+initSentry();
 
 const root = document.getElementById('root')!;
 const splash = document.getElementById('splash');
