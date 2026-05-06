@@ -26,6 +26,19 @@ BEFORE INSERT OR UPDATE OF referral_code ON public.profiles
 FOR EACH ROW
 EXECUTE FUNCTION public.assign_profile_referral_code();
 
-UPDATE public.profiles
-SET referral_code = upper(substr(replace(id::text, '-', ''), 1, 8))
-WHERE referral_code IS NULL OR referral_code = '';
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN SELECT id FROM public.profiles WHERE referral_code IS NULL OR referral_code = '' LOOP
+        BEGIN
+            UPDATE public.profiles 
+            SET referral_code = upper(substr(replace(r.id::text, '-', ''), 1, 8))
+            WHERE id = r.id;
+        EXCEPTION WHEN unique_violation THEN
+            UPDATE public.profiles 
+            SET referral_code = upper(substr(replace(r.id::text, '-', ''), 1, 6)) || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 4))
+            WHERE id = r.id;
+        END;
+    END LOOP;
+END $$;

@@ -71,6 +71,8 @@ CREATE TABLE IF NOT EXISTS message_reactions (
 ALTER TABLE message_reactions ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "reactions_read" ON message_reactions;
+DROP POLICY IF EXISTS "reactions_read" ON message_reactions;
+DROP POLICY IF EXISTS "reactions_read" ON message_reactions;
 CREATE POLICY "reactions_read" ON message_reactions FOR SELECT
     USING (
         -- User is part of the pool this message belongs to
@@ -86,9 +88,13 @@ CREATE POLICY "reactions_read" ON message_reactions FOR SELECT
     );
 
 DROP POLICY IF EXISTS "reactions_insert" ON message_reactions;
+DROP POLICY IF EXISTS "reactions_insert" ON message_reactions;
+DROP POLICY IF EXISTS "reactions_insert" ON message_reactions;
 CREATE POLICY "reactions_insert" ON message_reactions FOR INSERT
     WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "reactions_delete" ON message_reactions;
+DROP POLICY IF EXISTS "reactions_delete" ON message_reactions;
 DROP POLICY IF EXISTS "reactions_delete" ON message_reactions;
 CREATE POLICY "reactions_delete" ON message_reactions FOR DELETE
     USING (auth.uid() = user_id);
@@ -184,6 +190,8 @@ CREATE TABLE IF NOT EXISTS referrals (
 
 ALTER TABLE referrals ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "referrals_read_own" ON referrals;
+DROP POLICY IF EXISTS "referrals_read_own" ON referrals;
 DROP POLICY IF EXISTS "referrals_read_own" ON referrals;
 CREATE POLICY "referrals_read_own" ON referrals FOR SELECT
     USING (auth.uid() = referrer_id OR auth.uid() = referred_id);

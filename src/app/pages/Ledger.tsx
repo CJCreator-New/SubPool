@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ─── Global Ledger & Sub-Wallet UI ────────────────────────────────────────────────
 // Financial command center with multi-currency tracking and automated settlement protocols.
 

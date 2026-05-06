@@ -8,6 +8,8 @@
 DROP POLICY IF EXISTS "notifs_insert_service" ON notifications;
 
 -- Allow authenticated users to insert notifications only for themselves
+DROP POLICY IF EXISTS "notifs_insert_own" ON notifications;
+DROP POLICY IF EXISTS "notifs_insert_own" ON notifications;
 CREATE POLICY "notifs_insert_own" ON notifications FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
@@ -20,10 +22,13 @@ CREATE POLICY "notifs_insert_own" ON notifications FOR INSERT
 -- This prevents client-side admin impersonation.
 
 -- 3. Add delete policy for notifications (users can delete their own)
-CREATE POLICY IF NOT EXISTS "notifs_own_delete" ON notifications FOR DELETE
+DROP POLICY IF EXISTS "notifs_own_delete" ON notifications;
+CREATE POLICY "notifs_own_delete" ON notifications FOR DELETE
   USING (auth.uid() = user_id);
 
 -- 4. Restrict analytics_events read to admin users only
+DROP POLICY IF EXISTS "analytics_read_admin" ON analytics_events;
+DROP POLICY IF EXISTS "analytics_read_admin" ON analytics_events;
 DROP POLICY IF EXISTS "analytics_read_admin" ON analytics_events;
 CREATE POLICY "analytics_read_admin" ON analytics_events FOR SELECT
   USING (

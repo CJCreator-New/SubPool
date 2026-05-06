@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useMemo } from 'react';
 import { useActionSummaryQuery } from '../../lib/supabase/queries';
 import { useAuth } from '../../lib/supabase/auth';

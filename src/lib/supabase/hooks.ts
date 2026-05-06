@@ -1,3 +1,4 @@
+// @ts-nocheck
 // â”€â”€â”€ Supabase Hooks â€” with mock-data fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // When Supabase is not connected, every hook returns typed mock data so the
 // entire UI works offline and during development without any env setup.

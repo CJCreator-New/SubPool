@@ -32,6 +32,6 @@ export async function fetchReminderPreferences(userId: string): Promise<Reminder
 
 export async function upsertReminderPreferences(input: ReminderPreferencesRecord): Promise<void> {
   if (!supabase) return;
-  const { error } = await supabase.from('notification_preferences').upsert(input, { onConflict: 'user_id' });
+  const { error } = await supabase.from('notification_preferences').upsert(input as any, { onConflict: 'user_id' });
   if (error) throw error;
 }

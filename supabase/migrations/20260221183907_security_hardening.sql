@@ -16,8 +16,9 @@
 
 drop policy if exists "notifs_insert_service" on notifications;
 
-create policy "notifs_own_insert"
-  on notifications
+DROP POLICY IF EXISTS "notifs_own_insert" ON notifications;
+DROP POLICY IF EXISTS "notifs_own_insert" ON notifications;
+CREATE POLICY "notifs_own_insert" ON notifications
   for insert
   with check (auth.uid() = user_id);
 

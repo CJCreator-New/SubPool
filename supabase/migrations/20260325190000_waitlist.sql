@@ -17,6 +17,8 @@ ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
 
 -- Read: pool owners can see their waitlist; users can see their own entries
 DROP POLICY IF EXISTS "waitlist_read" ON waitlist;
+DROP POLICY IF EXISTS "waitlist_read" ON waitlist;
+DROP POLICY IF EXISTS "waitlist_read" ON waitlist;
 CREATE POLICY "waitlist_read" ON waitlist FOR SELECT
     USING (
         auth.uid() = user_id
@@ -24,6 +26,8 @@ CREATE POLICY "waitlist_read" ON waitlist FOR SELECT
     );
 
 -- Insert: any authenticated user can join the waitlist for a pool they don't own
+DROP POLICY IF EXISTS "waitlist_insert" ON waitlist;
+DROP POLICY IF EXISTS "waitlist_insert" ON waitlist;
 DROP POLICY IF EXISTS "waitlist_insert" ON waitlist;
 CREATE POLICY "waitlist_insert" ON waitlist FOR INSERT
     WITH CHECK (
@@ -33,6 +37,8 @@ CREATE POLICY "waitlist_insert" ON waitlist FOR INSERT
 
 -- Update: only the pool owner can change waitlist status (e.g., promote)
 DROP POLICY IF EXISTS "waitlist_owner_update" ON waitlist;
+DROP POLICY IF EXISTS "waitlist_owner_update" ON waitlist;
+DROP POLICY IF EXISTS "waitlist_owner_update" ON waitlist;
 CREATE POLICY "waitlist_owner_update" ON waitlist FOR UPDATE
     USING (
         auth.uid() = (SELECT owner_id FROM pools WHERE id = pool_id)
@@ -40,6 +46,8 @@ CREATE POLICY "waitlist_owner_update" ON waitlist FOR UPDATE
     );
 
 -- Delete: user can remove themselves; owner can remove anyone
+DROP POLICY IF EXISTS "waitlist_delete" ON waitlist;
+DROP POLICY IF EXISTS "waitlist_delete" ON waitlist;
 DROP POLICY IF EXISTS "waitlist_delete" ON waitlist;
 CREATE POLICY "waitlist_delete" ON waitlist FOR DELETE
     USING (

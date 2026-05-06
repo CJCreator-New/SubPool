@@ -12,21 +12,27 @@ CREATE TABLE IF NOT EXISTS platforms (
 INSERT INTO platforms (id, name, icon, category)
 VALUES 
    ('netflix', 'Netflix', '🍿', 'Entertainment'),
+   ('prime', 'Prime Video', '🎬', 'Entertainment'),
+   ('disneyplus', 'Disney+', '✨', 'Entertainment'),
+   ('youtube', 'YouTube Premium', '▶️', 'Entertainment'),
+   ('appletv', 'Apple TV+', '🍎', 'Entertainment'),
    ('spotify', 'Spotify', '🎧', 'Entertainment'),
-   ('youtube_premium', 'YouTube Premium', '▶️', 'Entertainment'),
-   ('disney_plus', 'Disney+', '✨', 'Entertainment'),
-   ('chatgpt', 'ChatGPT Plus', '🤖', 'AI'),
-   ('midjourney', 'Midjourney', '🎨', 'AI'),
-   ('claude', 'Claude Pro', '🧠', 'AI'),
-   ('perplexity', 'Perplexity', '🔍', 'AI'),
-   ('notion', 'Notion', '📝', 'Work'),
+   ('max', 'Max', ' HBO', 'Entertainment'),
+   ('chatgpt', 'ChatGPT', '🤖', 'AI'),
+   ('claude', 'Claude', '🧠', 'AI'),
+   ('cursor', 'Cursor', '💻', 'AI'),
+   ('github_copilot', 'GitHub Copilot', '🤖', 'AI'),
+   ('replit', 'Replit', '🌀', 'AI'),
+   ('jetbrains', 'JetBrains', '💎', 'AI'),
    ('figma', 'Figma', '🎨', 'Work'),
-   ('adobe', 'Adobe Creative Cloud', '🖌️', 'Work'),
-   ('canva', 'Canva', '🖼️', 'Work'),
-   ('nintendo', 'Nintendo Switch Online', '🎮', 'Entertainment'),
-   ('ps_plus', 'PlayStation Plus', '🎮', 'Entertainment'),
-   ('xbox', 'Xbox Game Pass', '🎮', 'Entertainment')
-ON CONFLICT (id) DO NOTHING;
+   ('notion', 'Notion', '📝', 'Work'),
+   ('slack', 'Slack', '💬', 'Work'),
+   ('linear', 'Linear', '📈', 'Work'),
+   ('github_teams', 'GitHub Teams', '🐙', 'Work')
+ON CONFLICT (id) DO UPDATE SET 
+    name = EXCLUDED.name,
+    icon = EXCLUDED.icon,
+    category = EXCLUDED.category;
 
 -- Create ledger table
 CREATE TABLE IF NOT EXISTS ledger (
@@ -38,6 +44,18 @@ CREATE TABLE IF NOT EXISTS ledger (
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'refunded')),
     created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Handle schema drift
+ALTER TABLE ledger ADD COLUMN IF NOT EXISTS pool_id UUID REFERENCES pools(id);
+ALTER TABLE ledger ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id);
+ALTER TABLE ledger ADD COLUMN IF NOT EXISTS amount_cents INTEGER;
+ALTER TABLE ledger ADD COLUMN IF NOT EXISTS type TEXT;
+ALTER TABLE ledger ADD COLUMN IF NOT EXISTS status TEXT;
+
+-- Policies
+DROP POLICY IF EXISTS "Users can view their own ledger entries" ON ledger;
+DROP POLICY IF EXISTS "Pool owners can view pool ledger entries" ON ledger;
+
 
 -- RLS for ledger
 ALTER TABLE ledger ENABLE ROW LEVEL SECURITY;
@@ -55,22 +73,22 @@ CREATE TABLE IF NOT EXISTS rate_limits (
     request_count INTEGER DEFAULT 1,
     window_start TIMESTAMPTZ DEFAULT now()
 );
+
+-- Handle schema drift
+ALTER TABLE rate_limits ADD COLUMN IF NOT EXISTS ip_address INET;
+ALTER TABLE rate_limits ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id);
+ALTER TABLE rate_limits ADD COLUMN IF NOT EXISTS endpoint TEXT;
+ALTER TABLE rate_limits ADD COLUMN IF NOT EXISTS request_count INTEGER;
+ALTER TABLE rate_limits ADD COLUMN IF NOT EXISTS window_start TIMESTAMPTZ;
+
 CREATE INDEX IF NOT EXISTS idx_rate_limits_window ON rate_limits (window_start);
 CREATE INDEX IF NOT EXISTS idx_rate_limits_user ON rate_limits (user_id);
 CREATE INDEX IF NOT EXISTS idx_rate_limits_ip ON rate_limits (ip_address);
 
--- Create pool_market_metrics materialized view
-DROP MATERIALIZED VIEW IF EXISTS pool_market_metrics;
-CREATE MATERIALIZED VIEW pool_market_metrics AS
-SELECT
-    platform_id,
-    COUNT(id) AS active_pools,
-    ROUND(AVG(price_cents)) AS avg_price_cents
-FROM pools
-WHERE status = 'open'
-GROUP BY platform_id;
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_pool_market_metrics_platform ON pool_market_metrics(platform_id);
+-- Create pool_market_metrics materialized view (SKIPPED: using table implementation from 20260305)
+-- DROP MATERIALIZED VIEW IF EXISTS pool_market_metrics;
+-- CREATE MATERIALIZED VIEW pool_market_metrics AS ...
+-- CREATE UNIQUE INDEX IF NOT EXISTS idx_pool_market_metrics_platform ON pool_market_metrics(platform_id);
 
 -- Alter platform_pricing to FK reference platforms.id if not already done
 -- Since platform_pricing was created previously without constraint, let's try to add it

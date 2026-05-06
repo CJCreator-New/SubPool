@@ -13,11 +13,15 @@ CREATE TABLE IF NOT EXISTS credentials (
 ALTER TABLE credentials ENABLE ROW LEVEL SECURITY;
 
 -- Owner can manage
+DROP POLICY IF EXISTS "owner_can_manage_credentials" ON credentials;
+DROP POLICY IF EXISTS "owner_can_manage_credentials" ON credentials;
 CREATE POLICY "owner_can_manage_credentials" ON credentials
 FOR ALL
 USING (EXISTS (SELECT 1 FROM pools WHERE id = pool_id AND owner_id = auth.uid()));
 
 -- Active members can view
+DROP POLICY IF EXISTS "members_can_view_credentials" ON credentials;
+DROP POLICY IF EXISTS "members_can_view_credentials" ON credentials;
 CREATE POLICY "members_can_view_credentials" ON credentials
 FOR SELECT
 USING (EXISTS (SELECT 1 FROM memberships WHERE pool_id = credentials.pool_id AND user_id = auth.uid() AND status = 'active'));

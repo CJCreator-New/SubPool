@@ -30,6 +30,8 @@ ALTER TABLE notifications ADD COLUMN IF NOT EXISTS source_type TEXT; -- 'message
 
 -- 4. RLS Policy for Bulk Updating Notifications (Mark all as read)
 DROP POLICY IF EXISTS "notifs_bulk_update" ON notifications;
+DROP POLICY IF EXISTS "notifs_bulk_update" ON notifications;
+DROP POLICY IF EXISTS "notifs_bulk_update" ON notifications;
 CREATE POLICY "notifs_bulk_update" ON notifications
     FOR UPDATE USING (auth.uid() = user_id);
 

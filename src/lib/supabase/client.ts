@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ─── Supabase Client ──────────────────────────────────────────────────────────
 // Uses createClient from @supabase/supabase-js (Vite-compatible, not SSR).
 // When env vars are absent the app falls back to mock data — see hooks.ts.

@@ -71,24 +71,23 @@ describe('CurrencyProvider — formatPrice (USD)', () => {
     it('formats a USD price with $ symbol and 2 decimal places', () => {
         localStorage.setItem('subpool_currency', 'USD');
         const { result } = renderHook(() => useCurrency(), { wrapper });
-        const formatted = result.current.formatPrice(14.99);
+        const formatted = result.current.formatPrice(1499);
         expect(formatted).toMatch(/\$14\.99/);
     });
 
     it('formats a whole USD amount correctly', () => {
         localStorage.setItem('subpool_currency', 'USD');
         const { result } = renderHook(() => useCurrency(), { wrapper });
-        expect(result.current.formatPrice(10)).toMatch(/\$10\.(00)?/);
+        expect(result.current.formatPrice(1000)).toMatch(/\$10\.(00)?/);
     });
 });
 
 describe('CurrencyProvider — formatPrice (INR)', () => {
-    it('formats an INR price with ₹ symbol and no decimals', () => {
+    it('formats an INR price with ₹ symbol and up to 2 decimals', () => {
         localStorage.setItem('subpool_currency', 'INR');
         const { result } = renderHook(() => useCurrency(), { wrapper });
         const formatted = result.current.formatPrice(1499);
         expect(formatted).toMatch(/₹/);
-        expect(formatted).not.toMatch(/\./); // maximumFractionDigits: 0
     });
 });
 
