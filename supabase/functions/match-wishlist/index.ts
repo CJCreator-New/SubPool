@@ -13,10 +13,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
+const allowedOrigins = [
+    'https://subpool.app',
+    'https://www.subpool.app',
+    'http://localhost:5173',
+    'http://localhost:4173',
+];
+
 const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 interface PoolInfo {
     id: string;
@@ -34,9 +40,16 @@ interface WishlistMatch {
 }
 
 serve(async (req) => {
+    const origin = req.headers.get('origin') ?? '';
+    const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+    const dynamicCorsHeaders = {
+        ...corsHeaders,
+        'Access-Control-Allow-Origin': corsOrigin,
+    };
+
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders })
+        return new Response('ok', { headers: dynamicCorsHeaders })
     }
 
     try {
@@ -85,7 +98,7 @@ serve(async (req) => {
         if (wishlistMatches.length === 0) {
             return new Response(
                 JSON.stringify({ matched: 0, notifications: 0 }),
-                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" } }
             )
         }
 
@@ -95,7 +108,7 @@ serve(async (req) => {
             type: 'info',
             icon: '🎯',
             title: 'New pool matches your wishlist!',
-            body: `A new ${poolInfo.platform} pool (${poolInfo.plan_name}) is now available at $${poolInfo.price_per_slot}/slot - within your $${match.budget_max} budget!`,
+            body: `A new ${poolInfo.platform} pool (${poolInfo.plan_name}) is now available at $${(poolInfo.price_per_slot / 100).toFixed(2)}/slot - within your $${(match.budget_max / 100).toFixed(2)} budget!`,
             source_id: poolInfo.id,
             source_type: 'pool',
             read: false

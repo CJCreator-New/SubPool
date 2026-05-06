@@ -17,8 +17,7 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { formatDate } from '../../lib/constants';
-import { useLedger } from '../../lib/supabase/hooks';
-import { markLedgerPaid } from '../../lib/supabase/mutations';
+import { useLedgerQuery, useMarkLedgerPaidMutation } from '../../lib/supabase/queries';
 import type { LedgerEntry } from '../../lib/types';
 import { Insight, useDemo } from '../components/demo-mode';
 import { useMagneticButton } from '../../hooks/useMagneticButton';
@@ -42,8 +41,9 @@ export function Ledger() {
   const [iOwePage, setIOwePage] = useState(1);
   const [owedPage, setOwedPage] = useState(1);
   const [activeWallet, setActiveWallet] = useState<'all' | 'usd' | 'inr'>('all');
-  const PAGE_SIZE = 10;
-  const { data: entries, loading, refetch } = useLedger();
+  const { data: entriesData, isLoading: loading } = useLedgerQuery();
+  const markPaidMutation = useMarkLedgerPaidMutation();
+  const entries = entriesData || [];
   const { isDemo } = useDemo();
   const { formatPrice } = useCurrency();
   const { profile } = useAuth();
@@ -51,11 +51,11 @@ export function Ledger() {
 
   const handleMarkPaid = async (id: string) => {
     try {
-      await markLedgerPaid(id);
-      refetch();
+      await markPaidMutation.mutateAsync(id);
       celebrate('full', isDemo);
     } catch (e) {
       console.error(e);
+      toast.error('Failed to settle transaction');
     }
   };
 

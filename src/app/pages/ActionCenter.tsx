@@ -1,5 +1,6 @@
-import React from 'react';
-import { useActionSummary } from '../../lib/hooks/useActionSummary';
+import React, { useMemo } from 'react';
+import { useActionSummaryQuery } from '../../lib/supabase/queries';
+import { useAuth } from '../../lib/supabase/auth';
 import { NumberTicker } from '../components/subpool-components';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarFallback } from '../components/ui/avatar';
@@ -29,15 +30,19 @@ import { useCurrency } from '../../lib/currency-context';
 
 export function ActionCenter() {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const { 
-        pendingRequests, 
-        duePayments, 
-        unreadNotifications, 
-        monthlySavingsCents,
-        loading 
-    } = useActionSummary();
+        data: summary,
+        isLoading: loading 
+    } = useActionSummaryQuery(user?.id);
+    
     const { isDemo } = useDemo ? useDemo() : { isDemo: true };
     const { formatPrice } = useCurrency();
+
+    const pendingRequests = useMemo(() => summary?.pendingRequests || [], [summary]);
+    const duePayments = useMemo(() => summary?.duePayments || [], [summary]);
+    const unreadNotifications = useMemo(() => summary?.unreadNotifications || [], [summary]);
+    const monthlySavingsCents = summary?.monthlySavingsCents || 0;
 
     const [latency, setLatency] = React.useState(24);
     const [networkGrowth, setNetworkGrowth] = React.useState(12.4);

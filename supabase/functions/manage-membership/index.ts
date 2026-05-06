@@ -2,14 +2,23 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.6";
 
 serve(async (req) => {
-    // Handling CORS
+    // Handling CORS — restrict to known origins
+    const allowedOrigins = [
+        'https://subpool.app',
+        'https://www.subpool.app',
+        'http://localhost:5173',
+        'http://localhost:4173',
+    ];
+    const origin = req.headers.get('origin') ?? '';
+    const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+
+    const corsHeaders = {
+        'Access-Control-Allow-Origin': corsOrigin,
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    };
+
     if (req.method === 'OPTIONS') {
-        return new Response('ok', {
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-            }
-        });
+        return new Response('ok', { headers: corsHeaders });
     }
 
     try {
@@ -90,12 +99,13 @@ serve(async (req) => {
             await supabaseAdmin.from('pools').update({ filled_slots: pool.filled_slots + 1 }).eq('id', pool.id);
 
             // P2.3 Generate first ledger entry (Charge immediately for first month)
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + 7); // 7-day grace period for first payment
             await supabaseAdmin.from('ledger').insert({
-                pool_id: pool.id,
-                user_id: request.requester_id,
-                amount_cents: pool.price_per_slot,
-                type: 'payment',
-                status: 'pending' // to be fulfilled via payment gateway or manual approval
+                membership_id: membership.id,
+                amount: pool.price_per_slot,
+                due_date: dueDate.toISOString().split('T')[0],
+                status: 'owed'
             });
 
             return new Response(JSON.stringify({ success: true, message: 'Approved and Ledger Generated' }), {

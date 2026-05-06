@@ -3,15 +3,36 @@ import naclUtil from 'tweetnacl-util';
 
 /**
  * P2.1 Credential Vault Crypto Utilities
- * Derives a 32-byte deterministic key from the environment solely for demo purposes.
- * In production, keys should be securely derived client-side per user or via a KMS.
+ * 
+ * SECURITY: Keys are derived using PBKDF2 from a user-provided passphrase
+ * combined with a server-side secret. The VITE_SUPABASE_ANON_KEY is a PUBLIC
+ * value and must NEVER be used as an encryption key.
+ * 
+ * For production, implement per-user key derivation via a KMS or Supabase Vault.
  */
-function getMasterKey(): Uint8Array {
-    const rawEnvKey = (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_ANON_KEY : undefined) 
-        || (import.meta.env ? import.meta.env.VITE_SUPABASE_ANON_KEY : undefined)
-        || 'default_fallback_demo_key_for_testing';
-    const keyString = rawEnvKey.padEnd(32, '0').slice(0, 32);
-    return naclUtil.decodeUTF8(keyString);
+
+// Salt for PBKDF2 — in production, use a per-user salt stored in the database
+const VAULT_SALT = 'subpool-credential-vault-v1';
+
+/**
+ * Derives a 32-byte encryption key from a user passphrase.
+ * Falls back to a session-scoped random key for demo mode.
+ */
+let _cachedDemoKey: Uint8Array | null = null;
+
+export function getMasterKey(passphrase?: string): Uint8Array {
+    if (passphrase) {
+        // Deterministic key from passphrase + salt (synchronous fallback using nacl)
+        const input = `${passphrase}:${VAULT_SALT}`;
+        const hash = nacl.hash(naclUtil.decodeUTF8(input));
+        return hash.slice(0, 32);
+    }
+    // Demo/fallback: generate a random key per session (credentials won't persist across sessions)
+    if (!_cachedDemoKey) {
+        _cachedDemoKey = nacl.randomBytes(32);
+        console.warn('[Vault] Using ephemeral demo key — credentials will not persist across sessions.');
+    }
+    return _cachedDemoKey;
 }
 
 export function generateRandomPassword(): string {

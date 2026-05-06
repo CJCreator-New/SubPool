@@ -16,11 +16,6 @@ import { PaywallModal } from '../components/paywall-modal';
 import { cn } from '../components/ui/utils';
 import { track } from '../../lib/analytics';
 import type { Pool } from '../../lib/types';
-import { useCursorPagination } from '../../lib/hooks/useCursorPagination';
-import { resolveDataMode } from '../../lib/data-mode';
-import { MOCK_POOLS } from '../../lib/mock-data';
-import { getPlatform } from '../../lib/constants';
-import { useAuth } from '../../lib/supabase/auth';
 import { useNavigate, useSearchParams } from 'react-router';
 import { Insight, useDemo } from '../components/demo-mode';
 import { useCountUp } from '../../hooks/useCountUp';
@@ -28,6 +23,7 @@ import { useCurrency } from '../../lib/currency-context';
 import { CurrencyToggle } from '../components/currency-toggle';
 import { ActivationChecklist } from '../components/activation-checklist';
 import { AdvancedFilterPanel, type FilterState, type BrowseFilterKey, type BrowseSortKey } from '../components/advanced-filter-panel';
+import { useInfinitePoolsQuery } from '../../lib/supabase/queries';
 
 // ─── Filter constants ─────────────────────────────────────────────────────────
 
@@ -239,82 +235,29 @@ export function BrowsePools() {
     }
   }, [debouncedSearch, filters, sort, setSearchParams]);
 
-  const buildDemoPage = useCallback((cursorParam: string | undefined, limit: number) => {
-    const start = cursorParam ? Number(cursorParam) : 0;
-    const base = MOCK_POOLS;
-    const filteredResult = base.filter((pool) => {
-      const category = filters.category === 'all' || filters.category === 'open' ? undefined : filters.category;
-      const status = filters.status === 'open' ? 'open only' : undefined;
-      
-      if (category && pool.category !== category) return false;
-      if (status === 'open only' && pool.status !== 'open') return false;
-      
-      // Price Range Check (cents to dollars)
-      const priceUSD = pool.price_per_slot / 100;
-      if (priceUSD < filters.priceRange[0] || priceUSD > filters.priceRange[1]) return false;
-      
-      // Rating Check
-      if (filters.minRating > 0 && (pool.owner?.rating ?? 0) < filters.minRating) return false;
-
-      if (debouncedSearch) {
-        const q = debouncedSearch.toLowerCase();
-        const plat = getPlatform(pool.platform);
-        const owner = (pool.owner?.display_name ?? pool.owner?.username ?? '').toLowerCase();
-        if (!plat?.name.toLowerCase().includes(q) && !pool.plan_name.toLowerCase().includes(q) && !owner.includes(q)) {
-          return false;
-        }
-      }
-      return true;
-    });
-    const page = filteredResult.slice(start, start + limit);
-    const nextCursor = start + limit < filteredResult.length ? String(start + limit) : undefined;
-    return { items: page, nextCursor };
-  }, [debouncedSearch, filters]);
-
-  const fetchPage = useCallback(async (cursorParam: string | undefined, limit: number) => {
-    const mode = resolveDataMode({ allowDemoFallback: true });
-    if (mode !== 'production') return buildDemoPage(cursorParam, limit);
-
-    const { supabase: supabaseClient } = await import('../../lib/supabase/client');
-    if (!supabaseClient) throw new Error('Supabase not available');
-    
-    let query = supabaseClient.from('pools').select('*, owner:profiles(*)').order('created_at', { ascending: false });
-    
-    // Apply Filters
-    if (filters.category !== 'all') query = query.eq('category', filters.category);
-    if (filters.status === 'open') query = query.eq('status', 'open');
-    
-    // Price Range (dollars to cents for DB)
-    query = query.gte('price_per_slot', filters.priceRange[0] * 100);
-    query = query.lte('price_per_slot', filters.priceRange[1] * 100);
-
-    // Host Rating
-    if (filters.minRating > 0) {
-      query = query.gte('profiles.rating', filters.minRating);
-    }
-
-    if (debouncedSearch) {
-      query = query.textSearch('search_vector', debouncedSearch, { type: 'websearch', config: 'english' });
-    }
-
-    const start = cursorParam ? Number(cursorParam) : 0;
-    const end = start + limit - 1;
-    const { data: rows, error } = await query.range(start, end);
-
-    if (error) {
-      console.warn('BrowsePools: fallback to demo data.', error);
-      return buildDemoPage(cursorParam, limit);
-    }
-
-    const items = (rows ?? []) as Pool[];
-    const nextCursor = items.length === limit ? String(start + limit) : undefined;
-    return { items, nextCursor };
-  }, [buildDemoPage, debouncedSearch, filters]);
-
-  const { data: pagedPools, loading, loadMore, hasMore, refetch } = useCursorPagination<Pool>({
-    limit: 9,
-    fetchPage,
+  const { 
+    data: infiniteData, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetching, 
+    isFetchingNextPage,
+    refetch 
+  } = useInfinitePoolsQuery({
+    search: debouncedSearch,
+    category: filters.category,
+    status: filters.status,
+    minPrice: filters.priceRange[0] * 100,
+    maxPrice: filters.priceRange[1] * 100,
+    minRating: filters.minRating
   });
+
+  const pagedPoolsItems = useMemo(() => {
+    return infiniteData?.pages.flatMap(page => page.items) || [];
+  }, [infiniteData]);
+
+  const loading = isFetching && !isFetchingNextPage;
+  const loadMore = () => fetchNextPage();
+  const hasMore = hasNextPage;
 
   const { toast, show: showToast } = useToast();
   const { user } = useAuth();
@@ -333,12 +276,12 @@ export function BrowsePools() {
   };
 
   const filtered = React.useMemo(() => {
-    return [...(pagedPools?.items || [])].sort((a, b) => {
+    return [...pagedPoolsItems].sort((a, b) => {
       if (sort === 'price-asc') return a.price_per_slot - b.price_per_slot;
       if (sort === 'price-desc') return b.price_per_slot - a.price_per_slot;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [pagedPools?.items, sort]);
+  }, [pagedPoolsItems, sort]);
 
   const [columns, setColumns] = useState(3);
   const parentRef = useRef<HTMLDivElement>(null);
@@ -402,7 +345,7 @@ export function BrowsePools() {
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {loading && !pagedPools?.items.length ? (
+        {loading && !pagedPoolsItems.length ? (
           [1, 2, 3, 4].map((i) => <StatCardSkeleton key={i} />)
         ) : (
           <>
@@ -442,7 +385,7 @@ export function BrowsePools() {
               filters={filters}
               onFiltersChange={setFilters}
               onReset={clearFilters}
-              resultCount={pagedPools?.items.length || 0}
+              resultCount={pagedPoolsItems.length || 0}
               isPro={profile?.plan !== 'free' && !!profile}
             />
 

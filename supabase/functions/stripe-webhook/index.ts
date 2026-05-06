@@ -50,11 +50,9 @@ serve(async (req) => {
       .from('ledger')
       .update({
         status: 'paid',
-        settled_at: new Date().toISOString(),
-        stripe_payment_intent_id: session.payment_intent as string | null,
+        paid_at: new Date().toISOString(),
       })
-      .eq('id', ledger_id)
-      .eq('stripe_session_id', session.id); // Extra guard: only update if session matches
+      .eq('id', ledger_id);
 
     if (error) {
       console.error('Failed to mark ledger paid:', error);
@@ -63,20 +61,21 @@ serve(async (req) => {
 
     // 4. Notify pool owner that payment was received
     if (member_id) {
-      // Fetch the ledger entry to get pool info
+      // Fetch the ledger entry to get pool info via membership join
       const { data: entry } = await adminClient
         .from('ledger')
-        .select('pool_id, amount_cents, pools(owner_id, platform)')
+        .select('amount, membership:memberships(pool:pools(owner_id, platform))')
         .eq('id', ledger_id)
         .single();
 
-      if (entry?.pools?.owner_id) {
+      const pool = (entry as any)?.membership?.pool;
+      if (pool?.owner_id) {
         await adminClient.from('notifications').insert({
-          user_id: entry.pools.owner_id,
+          user_id: pool.owner_id,
           type: 'success',
           icon: '💰',
           title: 'Payment received',
-          body: `A member paid $${(entry.amount_cents / 100).toFixed(2)} for your ${entry.pools.platform} pool.`,
+          body: `A member paid $${(Number(entry?.amount ?? 0) / 100).toFixed(2)} for your ${pool.platform} pool.`,
           action_url: '/ledger',
         });
       }

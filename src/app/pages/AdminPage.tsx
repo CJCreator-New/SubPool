@@ -5,13 +5,28 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import { PLATFORMS, getPlatform } from '../../lib/constants';
-import { useAuth } from '../../lib/supabase/auth';
-import { useAdminUsers, useAdminPools } from '../../lib/supabase/hooks';
+import { useNavigate } from 'react-router';
+import { 
+    useAdminUsersQuery, 
+    useAdminPoolsQuery, 
+    useAdminAnalyticsQuery 
+} from '../../lib/supabase/queries';
 import { 
     Shield, Zap, TrendingUp, Users as UsersIcon, RefreshCcw, Database, Lock, AlertTriangle, 
     UserMinus, UserCheck, Eye, Trash2, Search, Filter, Globe, DollarSign
 } from 'lucide-react';
 import { cn } from '../components/ui/utils';
+import { 
+    LineChart, 
+    Line, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Tooltip as RechartsTooltip, 
+    ResponsiveContainer,
+    AreaChart,
+    Area
+} from 'recharts';
 import { 
     Card, 
     CardHeader, 
@@ -28,15 +43,12 @@ export function AdminPage() {
     const [activeTab, setActiveTab] = useState<AdminTab>('metrics');
     const [searchQuery, setSearchQuery] = useState('');
     
-    const { users, loading: usersLoading, refetch: refetchUsers } = useAdminUsers();
-    const { pools, loading: poolsLoading, refetch: refetchPools } = useAdminPools();
+    const { data: usersData, isLoading: usersLoading } = useAdminUsersQuery();
+    const { data: poolsData, isLoading: poolsLoading } = useAdminPoolsQuery();
+    const { data: analytics, isLoading: analyticsLoading } = useAdminAnalyticsQuery();
 
-    const [stats, setStats] = useState({
-        poolsCreatedToday: 0,
-        joinRequests: 0,
-        suggestionFollowedPct: 0,
-        topPlatform: '-',
-    });
+    const users = usersData?.data || [];
+    const pools = poolsData?.data || [];
 
     const [selectedPlatform, setSelectedPlatform] = useState('');
     const [editPrices, setEditPrices] = useState({ plan: '', price: '' });
@@ -44,42 +56,12 @@ export function AdminPage() {
 
     const isAuthorized = profile?.is_admin === true;
 
-    useEffect(() => {
-        if (!isAuthorized || !supabase) return;
-
-        const loadStats = async () => {
-            try {
-                const today = new Date();
-                const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-
-                const db = supabase!;
-                const [{ data: created }, { data: requests }, { data: market }] = await Promise.all([
-                    db.from('analytics_events').select('id').eq('event_name', 'pool_created').gte('created_at', start),
-                    db.from('analytics_events').select('id').eq('event_name', 'join_request_submitted').gte('created_at', start),
-                    db.from('analytics_events').select('id').eq('event_name', 'market_intelligence_expanded').gte('created_at', start),
-                ]);
-
-                setStats({
-                    poolsCreatedToday: created?.length ?? 0,
-                    joinRequests: requests?.length ?? 0,
-                    suggestionFollowedPct: (requests?.length ?? 0) === 0 ? 0 : Math.round(((market?.length ?? 0) / (requests?.length ?? 0)) * 100),
-                    topPlatform: created && created.length > 0 ? 'Netflix' : 'None',
-                });
-            } catch (error) {
-                console.warn('Admin stats fallback:', error);
-            }
-        };
-
-        loadStats();
-    }, [isAuthorized]);
-
     const handleBanUser = async (userId: string, isBanned: boolean) => {
         if (!supabase) return;
         try {
             const { error } = await supabase.from('profiles').update({ is_banned: !isBanned }).eq('id', userId);
             if (error) throw error;
             toast.success(`User ${isBanned ? 'unbanned' : 'banned'} successfully.`);
-            refetchUsers();
         } catch (e: any) {
             toast.error(`Operation failed: ${e.message}`);
         }
@@ -91,7 +73,6 @@ export function AdminPage() {
             const { error } = await supabase.from('pools').update({ status: 'closed' }).eq('id', poolId);
             if (error) throw error;
             toast.success('Pool deactivated.');
-            refetchPools();
         } catch (e: any) {
             toast.error(`Operation failed: ${e.message}`);
         }
@@ -233,20 +214,27 @@ export function AdminPage() {
                                 exit={{ opacity: 0, y: -20 }}
                                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
                             >
-                                {[
-                                    { label: 'Daily New Pools', value: stats.poolsCreatedToday, icon: Database, color: 'text-primary' },
-                                    { label: 'Join Requests/24h', value: stats.joinRequests, icon: UsersIcon, color: 'text-blue-400' },
-                                    { label: 'Intelligence Yield', value: `${stats.suggestionFollowedPct}%`, icon: Zap, color: 'text-amber-400' },
-                                    { label: 'Top Platform', value: stats.topPlatform, icon: Globe, color: 'text-emerald-400' }
-                                ].map((stat, i) => (
-                                    <Card key={i} className="glass border-border/40 bg-surface-gradient p-8 space-y-4">
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <stat.icon size={14} />
-                                            <p className="font-mono text-[9px] uppercase tracking-widest">{stat.label}</p>
-                                        </div>
-                                        <p className={cn("font-display font-black text-4xl", stat.color)}>{stat.value}</p>
-                                    </Card>
-                                ))}
+                                {(() => {
+                                    const totalRevenue = (analytics?.earnings || []).reduce((acc, curr) => acc + (curr.total_revenue || 0), 0);
+                                    const activeUsers = (analytics?.userStats || []).length;
+                                    const proUsers = (analytics?.userStats || []).filter(u => u.plan === 'pro').length;
+                                    const poolsCount = pools.length;
+
+                                    return [
+                                        { label: 'Total Revenue', value: `$${(totalRevenue / 100).toLocaleString()}`, icon: DollarSign, color: 'text-primary' },
+                                        { label: 'Active Users', value: activeUsers, icon: UsersIcon, color: 'text-blue-400' },
+                                        { label: 'Pro Conversion', value: `${activeUsers === 0 ? 0 : Math.round((proUsers / activeUsers) * 100)}%`, icon: Zap, color: 'text-amber-400' },
+                                        { label: 'Active Channels', value: poolsCount, icon: Database, color: 'text-emerald-400' }
+                                    ].map((stat, i) => (
+                                        <Card key={i} className="glass border-border/40 bg-surface-gradient p-8 space-y-4">
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                <stat.icon size={14} />
+                                                <p className="font-mono text-[9px] uppercase tracking-widest">{stat.label}</p>
+                                            </div>
+                                            <p className={cn("font-display font-black text-4xl", stat.color)}>{stat.value}</p>
+                                        </Card>
+                                    ));
+                                })()}
                                 
                                 <Card className="md:col-span-2 lg:col-span-4 glass border-border/40 bg-card/40 p-8">
                                     <div className="flex items-center justify-between mb-8">
@@ -258,12 +246,38 @@ export function AdminPage() {
                                             Export Audit Log
                                         </Button>
                                     </div>
-                                    <div className="h-[200px] w-full flex items-end gap-2 px-2">
-                                        {[40, 65, 45, 90, 75, 55, 80, 60, 45, 70, 85, 50].map((h, i) => (
-                                            <div key={i} className="flex-1 bg-primary/20 rounded-t-lg relative group cursor-pointer hover:bg-primary/40 transition-all" style={{ height: `${h}%` }}>
-                                                <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </div>
-                                        ))}
+                                    <div className="h-[300px] w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={analytics?.earnings.map(e => ({ 
+                                                name: e.month, 
+                                                revenue: e.total_revenue / 100,
+                                            })) || []}>
+                                                <defs>
+                                                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#C8F135" stopOpacity={0.3}/>
+                                                        <stop offset="95%" stopColor="#C8F135" stopOpacity={0}/>
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                                                <XAxis 
+                                                    dataKey="name" 
+                                                    axisLine={false} 
+                                                    tickLine={false} 
+                                                    tick={{ fill: '#6B6860', fontSize: 10, fontFamily: 'monospace' }} 
+                                                />
+                                                <YAxis 
+                                                    axisLine={false} 
+                                                    tickLine={false} 
+                                                    tick={{ fill: '#6B6860', fontSize: 10, fontFamily: 'monospace' }} 
+                                                    tickFormatter={(value) => `$${value}`}
+                                                />
+                                                <RechartsTooltip 
+                                                    contentStyle={{ backgroundColor: '#1A1917', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                                                    itemStyle={{ fontFamily: 'monospace', fontSize: '11px' }}
+                                                />
+                                                <Area type="monotone" dataKey="revenue" stroke="#C8F135" fillOpacity={1} fill="url(#colorRev)" strokeWidth={3} />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
                                     </div>
                                 </Card>
                             </motion.div>

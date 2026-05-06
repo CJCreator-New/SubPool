@@ -4,7 +4,7 @@ import { supabase } from './client';
 import { Profile } from '../types';
 import { resolveDataMode } from '../data-mode';
 
-console.log('[AuthProvider] Module loaded, React version:', React.version);
+
 
 const {
     createContext,
@@ -40,7 +40,7 @@ function deriveRole(profile: Profile | null): AuthRole {
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    console.log('[AuthProvider] Rendering...');
+
     const [user, setUser] = React.useState<User | null>(null);
     const [profile, setProfile] = React.useState<Profile | null>(null);
     const [loading, setLoading] = React.useState(true);

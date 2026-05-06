@@ -29,48 +29,40 @@ import {
 import { cn } from '../components/ui/utils';
 import { getPlatform, formatPrice, formatDate, timeAgo } from '../../lib/constants';
 import type { Pool, Membership, JoinRequest } from '../../lib/types';
-import { useJoinRequests, usePools, useMemberships } from '../../lib/supabase/hooks';
+import { 
+  useMyPoolsQuery, 
+  useMembershipsQuery, 
+  useJoinRequestsQuery,
+  useApproveRequestMutation,
+  useRejectRequestMutation
+} from '../../lib/supabase/queries';
 import { useAuth } from '../../lib/supabase/auth';
-import { approveRequest, rejectRequest } from '../../lib/supabase/mutations';
 import { MOCK_EARNINGS_DATA, MOCK_PAYMENT_TIMELINE } from '../../lib/mock-data';
 import { EarningsBarChart, MemberPaymentTimeline, PoolHealthGauge } from '../components/pool-analytics-charts';
 import { getUserFacingError } from '../../lib/error-feedback';
 import { toast as sonnerToast } from 'sonner';
 
-// ─── Toast helper ─────────────────────────────────────────────────────────────
-
-function useToast() {
-  const [toast, setToast] = useState<{ message: string; visible: boolean }>({
-    message: '',
-    visible: false,
-  });
-
-  const show = (msg: string) => {
-    setToast({ message: msg, visible: true });
-    setTimeout(() => setToast((t) => ({ ...t, visible: false })), 3500);
-  };
-
-  return { toast, show };
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function MyPools() {
   const navigate = useNavigate();
-  const { toast, show: showToast } = useToast();
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [membershipToCancel, setMembershipToCancel] = useState<Membership | null>(null);
   const { user, profile } = useAuth();
 
-  const { data: myPools, loading: poolsLoading } = usePools({ ownerId: user?.id ?? 'user-you' });
-  const { data: memberships, loading: membershipsLoading } = useMemberships();
+  const { data: myPoolsData, isLoading: poolsLoading } = useMyPoolsQuery(user?.id);
+  const { data: membershipsData, isLoading: membershipsLoading } = useMembershipsQuery(user?.id);
   const {
-    data: joinRequests,
-    loading: requestsLoading,
+    data: joinRequestsData,
+    isLoading: requestsLoading,
     error: joinRequestsError,
-    refetch: refetchRequests,
-  } = useJoinRequests();
+  } = useJoinRequestsQuery(user?.id);
+
+  const approveMutation = useApproveRequestMutation();
+  const rejectMutation = useRejectRequestMutation();
+
+  const myPools = myPoolsData || [];
+  const memberships = membershipsData || [];
+  const joinRequests = joinRequestsData || [];
 
   const loading = poolsLoading || membershipsLoading || requestsLoading;
 
@@ -99,24 +91,22 @@ export function MyPools() {
     : null;
 
   const handleApprove = async (id: string) => {
-    const res = await approveRequest(id);
-    if (res.success) {
-      showToast('Request approved! Slot filled.');
-      refetchRequests();
-    } else {
-      const friendly = getUserFacingError(res.error, 'approve this request');
-      showToast(friendly.message);
+    try {
+      await approveMutation.mutateAsync(id);
+      sonnerToast.success('Request approved! Slot filled.');
+    } catch (err) {
+      const friendly = getUserFacingError(err, 'approve this request');
+      sonnerToast.error(friendly.message);
     }
   };
 
   const handleReject = async (id: string) => {
-    const res = await rejectRequest(id);
-    if (res.success) {
-      showToast('Request rejected.');
-      refetchRequests();
-    } else {
-      const friendly = getUserFacingError(res.error, 'reject this request');
-      showToast(friendly.message);
+    try {
+      await rejectMutation.mutateAsync(id);
+      sonnerToast.success('Request rejected.');
+    } catch (err) {
+      const friendly = getUserFacingError(err, 'reject this request');
+      sonnerToast.error(friendly.message);
     }
   };
 
@@ -133,7 +123,7 @@ export function MyPools() {
       description: `${platformName} ${membershipToCancel.pool.plan_name} will be cancelled at period end.`,
       action: {
         label: 'Undo',
-        onClick: () => showToast('Cancellation undone.'),
+        onClick: () => sonnerToast.info('Cancellation undone.'),
       },
     });
 
@@ -451,7 +441,7 @@ export function MyPools() {
                                 size="sm"
                                 className="font-display text-xs"
                                 onClick={() =>
-                                  showToast('Payment marked ✓')
+                                  sonnerToast.success('Payment marked ✓')
                                 }
                               >
                                 Pay {formatPrice(m.pool.price_per_slot)}
@@ -533,7 +523,7 @@ export function MyPools() {
                 </div>
                 {m.status === 'active' && (
                   <div className="flex gap-2">
-                    <Button size="sm" className="h-8 text-xs px-3" onClick={() => showToast('Payment sent')}>
+                    <Button size="sm" className="h-8 text-xs px-3" onClick={() => sonnerToast.success('Payment sent')}>
                       Pay
                     </Button>
                     <Button variant="ghost" size="sm" className="h-8 text-xs px-2" onClick={() => requestCancelMembership(m)}>
@@ -570,11 +560,7 @@ export function MyPools() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {toast.visible && (
-        <div role="status" aria-live="polite" className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-lg bg-card border border-success text-foreground font-display text-sm shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300">
-          {toast.message}
-        </div>
-      )}
+
     </div>
   );
 }

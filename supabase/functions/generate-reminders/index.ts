@@ -2,8 +2,14 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const allowedOrigins = [
+  'https://subpool.app',
+  'https://www.subpool.app',
+  'http://localhost:5173',
+  'http://localhost:4173',
+];
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-reminder-secret',
 };
 
@@ -120,7 +126,7 @@ serve(async (req) => {
           if (existing) continue;
 
           const platform = (row as any).membership?.pool?.platform ?? 'your pool';
-          const amount = Number(row.amount ?? 0).toFixed(2);
+          const amount = (Number(row.amount ?? 0) / 100).toFixed(2);
           const title = isOverdue ? 'Payment overdue reminder' : 'Upcoming payment reminder';
           const bodyText = isOverdue
             ? `Your ${platform} share of $${amount} is overdue. Please settle to avoid host penalties.`

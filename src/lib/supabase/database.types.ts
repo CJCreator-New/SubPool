@@ -180,6 +180,32 @@ export interface Database {
           cancelled_at?: string | null
         }
       }
+      credentials: {
+        Row: {
+          id: string
+          pool_id: string
+          encrypted_data: string
+          nonce: string
+          updated_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          pool_id: string
+          encrypted_data: string
+          nonce: string
+          updated_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          pool_id?: string
+          encrypted_data?: string
+          nonce?: string
+          updated_at?: string
+          created_at?: string
+        }
+      }
       messages: {
         Row: {
           id: string
@@ -424,12 +450,104 @@ export interface Database {
           created_at?: string
         }
       }
+      referrals: {
+        Row: {
+          id: string
+          referrer_id: string
+          referred_id: string
+          referral_code: string
+          signup_at: string
+          reward_granted: boolean
+          reward_type: string | null
+        }
+        Insert: {
+          id?: string
+          referrer_id: string
+          referred_id: string
+          referral_code: string
+          signup_at?: string
+          reward_granted?: boolean
+          reward_type?: string | null
+        }
+        Update: {
+          id?: string
+          referrer_id?: string
+          referred_id?: string
+          referral_code?: string
+          signup_at?: string
+          reward_granted?: boolean
+          reward_type?: string | null
+        }
+      }
+      message_reactions: {
+        Row: {
+          id: string
+          message_id: string
+          user_id: string
+          emoji: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          user_id: string
+          emoji: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          user_id?: string
+          emoji?: string
+          created_at?: string
+        }
+      }
     }
     Views: {
-      [_ in never]: never
+      host_earnings_summary: {
+        Row: {
+          host_id: string
+          pool_id: string
+          platform: string
+          plan_name: string
+          paid_count: number
+          pending_count: number
+          total_earned: number
+          total_pending: number
+          last_payout_at: string | null
+        }
+      }
     }
     Functions: {
-      [_ in never]: never
+      get_monthly_earnings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          month: string
+          earned: number
+          pending: number
+        }[]
+      }
+      process_referral: {
+        Args: {
+          p_referral_code: string
+          p_new_user_id: string
+        }
+        Returns: {
+          ok: boolean
+          referrer_id?: string
+          error?: string
+        }
+      }
+      join_waitlist: {
+        Args: {
+          p_pool_id: string
+        }
+        Returns: {
+          ok: boolean
+          position?: number
+          error?: string
+        }
+      }
     }
     Enums: {
       [_ in never]: never

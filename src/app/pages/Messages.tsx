@@ -13,6 +13,7 @@ import { Input } from '../components/ui/input';
 import { EmptyState } from '../components/empty-state';
 import { CredentialVault } from '../components/credential-vault';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { MessageReactions } from '../components/message-reactions';
 import { cn } from '../components/ui/utils';
 
 function initials(name: string): string {
@@ -416,24 +417,6 @@ export function Messages() {
                                                 </div>
 
                                                 <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="size-8 rounded-xl bg-secondary/50 hover:bg-secondary border border-border/40" aria-label="Add reaction">
-                                                                <Smile size={14} className="text-muted-foreground" />
-                                                            </Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent side="top" className="w-auto p-2 flex gap-2 rounded-2xl border-border/40 glass backdrop-blur shadow-2xl">
-                                                            {COMMON_EMOJIS.map(emoji => (
-                                                                <button 
-                                                                    key={emoji} 
-                                                                    onClick={() => toggleReaction(message.id, emoji)}
-                                                                    className="hover:bg-primary/20 rounded-xl size-10 flex items-center justify-center text-xl transition-transform hover:scale-110 active:scale-95"
-                                                                >
-                                                                    {emoji}
-                                                                </button>
-                                                            ))}
-                                                        </PopoverContent>
-                                                    </Popover>
                                                     <Button 
                                                         variant="ghost" 
                                                         size="icon" 
@@ -448,26 +431,11 @@ export function Messages() {
                                                 </div>
                                             </div>
 
-                                            {Object.keys(reactions).length > 0 && (
-                                                <div className={cn("flex flex-wrap gap-1.5 mt-2", isYou ? "justify-end" : "justify-start")}>
-                                                    {Object.entries(reactions).map(([emoji, users]) => {
-                                                        const iReacted = currentUser && users.includes(currentUser.id);
-                                                        return (
-                                                            <button
-                                                                key={emoji}
-                                                                onClick={() => toggleReaction(message.id, emoji)}
-                                                                className={cn(
-                                                                    "flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-bold border transition-all active:scale-95",
-                                                                    iReacted ? "bg-primary/20 border-primary/40 text-primary" : "bg-background/40 border-border/40 text-muted-foreground hover:border-border"
-                                                                )}
-                                                            >
-                                                                <span>{emoji}</span>
-                                                                {users.length > 1 && <span>{users.length}</span>}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
+                                            <MessageReactions 
+                                                messageId={message.id}
+                                                currentUserId={currentUser?.id}
+                                                initial={message.message_reactions}
+                                            />
                                         </div>
                                     </motion.div>
                                 );

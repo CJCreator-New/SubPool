@@ -12,12 +12,21 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
   httpClient: Stripe.createFetchHttpClient(),
 });
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const allowedOrigins = [
+  'https://subpool.app',
+  'https://www.subpool.app',
+  'http://localhost:5173',
+  'http://localhost:4173',
+];
 
 serve(async (req) => {
+  const origin = req.headers.get('origin') ?? '';
+  const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': corsOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -107,7 +116,7 @@ serve(async (req) => {
         {
           price_data: {
             currency: 'usd',
-            unit_amount: entry.amount_cents,
+            unit_amount: entry.amount,
             product_data: {
               name: `${entry.pools?.platform ?? 'Pool'} — ${entry.pools?.plan_name ?? 'Subscription'}`,
               description: `SubPool payment for ${entry.pools?.platform}`,

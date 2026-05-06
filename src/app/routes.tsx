@@ -128,7 +128,6 @@ export const router = createBrowserRouter([
                     { path: '/waitlist', element: <Lazy><WaitlistPage /></Lazy> },
                     { path: '/referrals', element: <Lazy><ReferralPage /></Lazy> },
                     { path: '/enterprise', element: <Lazy><EnterpriseHubPage /></Lazy> },
-                    { path: '/admin', element: <GuestEmptyState message="Admin access requires an authenticated account and admin PIN." /> },
                     { path: '/design-system', element: <Lazy><DesignSystemPage /></Lazy> },
                     { path: '/empty-states', element: <Lazy><EmptyStatesPage /></Lazy> },
                     { path: '*', element: <Lazy><NotFoundPage /></Lazy> },

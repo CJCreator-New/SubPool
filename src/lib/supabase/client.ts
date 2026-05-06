@@ -3,6 +3,7 @@
 // When env vars are absent the app falls back to mock data — see hooks.ts.
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from './database.types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -18,9 +19,11 @@ export const isSupabaseConnected: boolean =
  * Supabase singleton client.
  * Returns null when credentials are missing so the rest of the app
  * can branch without throwing.
+ * 
+ * Typed with the Database schema for full type safety on all queries.
  */
-export const supabase: SupabaseClient | null = isSupabaseConnected
-    ? createClient(supabaseUrl!, supabaseKey!)
+export const supabase: SupabaseClient<Database> | null = isSupabaseConnected
+    ? createClient<Database>(supabaseUrl!, supabaseKey!)
     : null;
 
 // ─── Typed table helpers (extend as schema grows) ─────────────────────────────

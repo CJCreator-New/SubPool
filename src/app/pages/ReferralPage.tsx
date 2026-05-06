@@ -6,13 +6,14 @@ import { useAuth } from '../../lib/supabase/auth';
 import { toast } from 'sonner';
 import { track } from '../../lib/analytics';
 import { useNavigate } from 'react-router';
-import { useReferralStats } from '../../lib/supabase/hooks';
+import { useReferralStatsQuery } from '../../lib/supabase/queries';
 import { cn } from '../components/ui/utils';
 
 export function ReferralPage() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const navigate = useNavigate();
-  const { stats, loading } = useReferralStats();
+  const { data: statsData, isLoading: loading } = useReferralStatsQuery(user?.id);
+  const stats = statsData || { count: 0, rewardsGranted: 0 };
 
   const friendsGoal = 3;
   const progressPercent = Math.min((stats.count / friendsGoal) * 100, 100);

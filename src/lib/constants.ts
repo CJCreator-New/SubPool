@@ -109,7 +109,7 @@ export const BOTTOM_TABS: Pick<NavItem, 'icon' | 'label' | 'path'>[] = [
 
 export const PLATFORM_FEE_BPS = 500;
 export const PROCESSING_FEE_BPS = 290;
-export const PROCESSING_FLAT_USD = 0.3;
+export const PROCESSING_FLAT_USD = 30; // 30 cents
 
 export const PAGE_TITLES: Record<string, string> = {
     '/': 'Browse Pools',
