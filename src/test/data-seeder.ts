@@ -1,5 +1,5 @@
 import { testSupabase as supabase } from './test-supabase-client';
-import { encryptString } from '../lib/crypto';
+import { encryptData } from '../lib/crypto';
 
 /**
  * SubPool: Data Seeder Utility (Deterministic Edition)
@@ -108,14 +108,14 @@ export async function seedCredentials(poolId: string) {
         password: 'e2e-password-123'
     });
 
-    const { cipherBase64, nonceBase64 } = encryptString(payload);
+    const { encrypted, nonce } = await encryptData(payload);
 
     const { error } = await supabase
         .from('credentials')
         .upsert({
             pool_id: poolId,
-            encrypted_data: cipherBase64,
-            nonce: nonceBase64
+            encrypted_data: encrypted,
+            nonce: nonce
         }, { onConflict: 'pool_id' });
 
     if (error) console.error('Credential Seed Error:', error);

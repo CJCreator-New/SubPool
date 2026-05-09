@@ -42,8 +42,7 @@ export function PoolSettingsModal({ pool, open, onClose, onUpdate }: PoolSetting
             const priceCents = Math.round(parseFloat(price) * 100);
             if (isNaN(priceCents) || priceCents <= 0) throw new Error('Invalid price format');
 
-            const { error } = await supabase
-                .from('pools')
+            const { error } = await supabase!.from('pools')
                 .update({
                     price_per_slot: priceCents,
                     status,
@@ -69,7 +68,7 @@ export function PoolSettingsModal({ pool, open, onClose, onUpdate }: PoolSetting
         if (!pool) return;
         setLoading(true);
         try {
-            const { error } = await supabase
+            const { error } = await supabase!
                 .from('pools')
                 .delete()
                 .eq('id', pool.id);

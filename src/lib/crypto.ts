@@ -23,7 +23,7 @@ async function getMasterKey() {
   );
 }
 
-export async function encryptData(data: string): Promise<{ encrypted: string; nonce: string }> {
+export async function encryptString(data: string): Promise<{ encrypted: string; nonce: string }> {
   const key = await getMasterKey();
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const enc = new TextEncoder();
@@ -41,7 +41,7 @@ export async function encryptData(data: string): Promise<{ encrypted: string; no
   };
 }
 
-export async function decryptData(encryptedB64: string, nonceB64: string): Promise<string> {
+export async function decryptString(encryptedB64: string, nonceB64: string): Promise<string> {
   const key = await getMasterKey();
   const iv = new Uint8Array(atob(nonceB64).split('').map(c => c.charCodeAt(0)));
   const encrypted = new Uint8Array(atob(encryptedB64).split('').map(c => c.charCodeAt(0)));
@@ -55,3 +55,6 @@ export async function decryptData(encryptedB64: string, nonceB64: string): Promi
   const dec = new TextDecoder();
   return dec.decode(decrypted);
 }
+
+export const encryptData = encryptString;
+export const decryptData = decryptString;

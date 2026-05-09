@@ -1,23 +1,16 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
-import { ArrowLeft, CreditCard } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Avatar, AvatarFallback } from '../../components/ui/avatar';
-
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { ArrowLeft, CreditCard, ShieldCheck } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
-import { useCurrency } from '../../lib/currency-context';
-import { supabase } from '../../lib/supabase/client';
+import { useCurrency } from '../../../lib/currency-context';
+import { supabase } from '../../../lib/supabase/client';
 import { PlatformIcon } from '../../components/subpool-components';
-import { getPlatform } from '../../lib/constants';
+import { getPlatform } from '../../../lib/constants';
 import { toast } from 'sonner';
-import { recordPoolPayment } from '../../lib/supabase/mutations';
-import { useAuth } from '../../lib/supabase/auth';
+import { recordPoolPayment } from '../../../lib/supabase/mutations';
+import { useAuth } from '../../../lib/supabase/auth';
 
 export function PaymentConfirmation() {
   const navigate = useNavigate();
@@ -40,16 +33,17 @@ export function PaymentConfirmation() {
       }
 
       try {
+        if (!supabase) throw new Error('Supabase not initialized');
         let query = supabase.from('pools').select('*, owner:profiles(*)');
         
         if (poolId) {
           query = query.eq('id', poolId);
         } else {
           // If membershipId provided, we join to find the pool
-          const { data: memData } = await supabase
+          const { data: memData } = await supabase!
             .from('memberships')
             .select('pool_id')
-            .eq('id', membershipId)
+            .eq('id', membershipId!)
             .single();
           if (memData) {
             query = query.eq('id', memData.pool_id);

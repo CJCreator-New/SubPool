@@ -8,7 +8,8 @@ import { Textarea } from '../components/ui/textarea';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '../components/ui/select';
 import { Switch } from '../components/ui/switch';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Activity, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Zap, Globe, ArrowRight, Activity, MapPin, Monitor, Info } from 'lucide-react';
+import { cn } from '../components/ui/utils';
 import { 
     Dialog, 
     DialogContent, 
@@ -34,7 +35,6 @@ import { useCurrency } from '../../lib/currency-context';
 import { CurrencyToggle } from '../components/currency-toggle';
 import { getUserFacingError } from '../../lib/error-feedback';
 import { Card, CardContent } from '../components/ui/card';
-import { ShieldCheck, Info, MapPin, Monitor } from 'lucide-react';
 
 function StepIndicator({ step }: { step: number }) {
   return (
@@ -76,7 +76,8 @@ export function ListAPool() {
     planName: '',
     totalCost: '',
     slots: '2',
-    category: 'OTT' as PoolCategory,
+    category: 'video-streaming' as PoolCategory,
+
     billingCycle: 'monthly' as 'monthly' | 'yearly',
     autoApprove: false,
     rules: '',
@@ -90,8 +91,10 @@ export function ListAPool() {
   const [showPaywall, setShowPaywall] = useState(false);
   
   const { data: myPools } = useMyPoolsQuery(user?.id);
-  const { data: categories = [] } = useCategoriesQuery();
-  const { data: platforms = [] } = usePlatformsQuery(selectedCategoryId || undefined);
+  const { data: categoriesData } = useCategoriesQuery();
+  const categories = (categoriesData || []) as Category[];
+  const { data: platformsData } = usePlatformsQuery(selectedCategoryId || undefined);
+  const platforms = (platformsData || []) as PlatformType[];
   
   const activePoolsCount = myPools?.length || 0;
 
@@ -170,7 +173,7 @@ export function ListAPool() {
             }}
             style={{ 
               backgroundColor: selectedCategoryId === cat.id ? `${cat.color}20` : undefined,
-              borderColor: selectedCategoryId === cat.id ? cat.color : undefined
+              borderColor: selectedCategoryId === cat.id ? (cat.color || undefined) : undefined
             }}
             className={cn(
               "flex flex-col items-center justify-center p-8 rounded-3xl border transition-all duration-500 group relative overflow-hidden h-40",
@@ -180,9 +183,9 @@ export function ListAPool() {
             )}
           >
             <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">{cat.icon}</div>
-            <span className="font-display font-black text-[11px] uppercase tracking-widest text-center" style={{ color: selectedCategoryId === cat.id ? cat.color : undefined }}>{cat.name}</span>
+            <span className="font-display font-black text-[11px] uppercase tracking-widest text-center" style={{ color: selectedCategoryId === cat.id ? (cat.color || undefined) : undefined }}>{cat.name}</span>
             {selectedCategoryId === cat.id && (
-              <motion.div layoutId="category-active" className="absolute bottom-0 inset-x-0 h-1" style={{ backgroundColor: cat.color }} />
+              <motion.div layoutId="category-active" className="absolute bottom-0 inset-x-0 h-1" style={{ backgroundColor: (cat.color || undefined) }} />
             )}
           </button>
         ))}
@@ -229,7 +232,7 @@ export function ListAPool() {
             )}
           >
             <div className="text-2xl mb-3 flex items-center justify-center">
-              {p.icon || '📦'}
+              <PlatformIcon platformId={p.id} size="lg" />
             </div>
             <span className="font-mono text-[10px] font-black uppercase tracking-widest text-center truncate w-full px-2">{p.name}</span>
             {selectedPlatformId === p.id && (
@@ -366,7 +369,7 @@ export function ListAPool() {
             >
               <div className="flex items-center gap-4">
                 <div className={cn("size-10 rounded-full flex items-center justify-center", analysis.band === 'overpriced' ? "bg-destructive text-white" : "bg-primary text-black")}>
-                  {analysis.band === 'overpriced' ? '⚠️' : <Sparkles size={18} />}
+                  {analysis.band === 'overpriced' ? '⚠️' : <Info size={18} />}
                 </div>
                 <div>
                   <p className="font-display font-black text-sm uppercase italic">Market Alpha: {analysis.label}</p>
@@ -375,7 +378,7 @@ export function ListAPool() {
               </div>
               <div className="text-right">
                 <p className="font-mono text-[9px] text-muted-foreground uppercase tracking-widest">Savings / Slot</p>
-                <p className="font-display font-black text-xl text-success">{analysis.savingsPct.toFixed(0)}%</p>
+                <p className="font-display font-black text-xl text-primary">{analysis.savingsPct.toFixed(0)}%</p>
               </div>
             </motion.div>
           )}
@@ -394,11 +397,11 @@ export function ListAPool() {
             <div className="w-full space-y-3 pt-4 border-t border-white/5">
               <div className="flex justify-between font-mono text-[10px] uppercase tracking-widest">
                 <span className="text-muted-foreground">Host Offset</span>
-                <span className="text-success font-black">-{analysis?.hostOffset.toFixed(0) || '0'}%</span>
+                <span className="text-primary font-black">-{analysis?.hostOffset.toFixed(0) || '0'}%</span>
               </div>
               <div className="flex justify-between font-mono text-[10px] uppercase tracking-widest">
                 <span className="text-muted-foreground">Compliance</span>
-                <span className={cn("font-black", platform?.tos_risk_level === 'safe' ? 'text-success' : 'text-warning')}>
+                <span className={cn("font-black", platform?.tos_risk_level === 'safe' ? 'text-primary' : 'text-amber-500')}>
                   {platform?.tos_risk_level?.toUpperCase() || 'GREY AREA'}
                 </span>
               </div>
@@ -611,11 +614,10 @@ export function ListAPool() {
         </AnimatePresence>
 
         <PaywallModal 
-          isOpen={showPaywall} 
+          open={showPaywall} 
           onClose={() => setShowPaywall(false)}
-          feature="MAX_ACTIVE_POOLS"
-          title="Operational Limit Reached"
-          description={getUpgradeMessage('MAX_ACTIVE_POOLS')}
+          feature="hosting more pools"
+          requiredPlan="pro"
         />
       </div>
     </div>

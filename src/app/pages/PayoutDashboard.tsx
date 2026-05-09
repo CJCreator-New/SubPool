@@ -1,16 +1,19 @@
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Button } from '../components/ui/button';
 import { ArrowUpRight, Banknote, Clock3, WalletCards, TrendingUp, DollarSign } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Variants } from 'motion/react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { EmptyState } from '../components/empty-state';
-import { useHostEarnings, useAuth } from '../../lib/supabase/hooks';
+import { useHostEarnings } from '../../lib/supabase/hooks';
+import { useAuth } from '../../lib/supabase/auth';
 import { useRequestPayoutMutation } from '../../lib/supabase/queries';
 import { formatPrice, getPlatform } from '../../lib/constants';
 import { cn } from '../components/ui/utils';
 import { Input } from '../components/ui/input';
+import { PlatformIcon } from '../components/subpool-components';
 import { toast } from 'sonner';
 
 export function PayoutDashboard() {
@@ -289,7 +292,7 @@ export function PayoutDashboard() {
                   <div key={pool.pool_id} className="group relative flex items-center justify-between px-6 py-5 hover:bg-white/[0.02] transition-colors duration-300">
                     <div className="flex items-center gap-4 relative z-10">
                       <div className="group-hover:rotate-12 transition-transform duration-500 grid size-12 place-items-center rounded-2xl bg-secondary/80 text-2xl border border-white/5 shadow-xl backdrop-blur-md">
-                        {platform?.icon || '📦'}
+                        <PlatformIcon platformId={pool.platform || ''} size="sm" />
                       </div>
                       <div>
                         <p className="font-display text-base font-bold text-foreground leading-tight group-hover:text-primary transition-colors">{platform?.name || pool.platform}</p>
@@ -398,7 +401,7 @@ export function PayoutDashboard() {
                                     
                                     try {
                                         await requestPayout.mutateAsync({
-                                            userId: user?.id,
+                                            userId: user?.id || '',
                                             amountCents: amount * 100,
                                             currency: 'USD'
                                         });

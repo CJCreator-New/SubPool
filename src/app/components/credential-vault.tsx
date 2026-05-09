@@ -36,7 +36,7 @@ export function CredentialVault({ poolId, isOwner }: CredentialVaultProps) {
                 if (error) throw error;
 
                 if (data && isMounted) {
-                    const decryptedString = decryptString(data.encrypted_data, data.nonce);
+                    const decryptedString = await decryptString(data.encrypted_data, data.nonce);
                     if (decryptedString) {
                         try {
                             const parsed = JSON.parse(decryptedString);
@@ -66,19 +66,19 @@ export function CredentialVault({ poolId, isOwner }: CredentialVaultProps) {
 
         setIsSaving(true);
         try {
-            const payload = JSON.stringify({
+            const formData = {
                 username: usernameInput.trim(),
                 password: passwordInput
-            });
+            };
 
-            const { cipherBase64, nonceBase64 } = encryptString(payload);
+            const { encrypted, nonce } = await encryptString(JSON.stringify(formData));
 
             const { error } = await supabase!
                 .from('credentials')
                 .upsert({
                     pool_id: poolId,
-                    encrypted_data: cipherBase64,
-                    nonce: nonceBase64,
+                    encrypted_data: encrypted,
+                    nonce: nonce,
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'pool_id' });
 

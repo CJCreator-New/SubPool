@@ -5,7 +5,20 @@
 // ─── Pool ─────────────────────────────────────────────────────────────────────
 
 export type PoolStatus = 'open' | 'active' | 'closed' | 'full';
-export type PoolCategory = 'OTT' | 'AI_IDE' | 'ai' | 'productivity';
+export type PoolCategory = 
+  | 'ai-tools' 
+  | 'education' 
+  | 'video-streaming' 
+  | 'music' 
+  | 'gaming' 
+  | 'dth-tv' 
+  | 'family-plans' 
+  | 'productivity' 
+  | 'cloud-storage' 
+  | 'vpn-security'
+  | 'design-creative'
+  | 'dev-tools';
+
 
 export type SharingType = 'family_invite' | 'credential_share' | 'seat_assignment' | 'multi_room_add_on' | 'household_share';
 export type RiskLevel = 'safe' | 'grey_area' | 'risky';
@@ -64,6 +77,8 @@ export interface Pool {
   billing_cycle?: 'monthly' | 'yearly';
   description?: string | null;
   auto_approve?: boolean;
+  visibility?: 'public' | 'private';
+  is_featured?: boolean;
   created_at: string;
   updated_at?: string;
 }
@@ -149,6 +164,19 @@ export interface LedgerRow {
   due_date: string;              // date
   status: LedgerStatus;
   paid_at: string | null;
+  created_at: string;
+}
+
+export interface PoolSession {
+  id: string;
+  pool_id: string;
+  user_id: string;
+  start_at: string;
+  end_at: string;
+  user?: {
+    username: string;
+    display_name: string | null;
+  };
   created_at: string;
 }
 

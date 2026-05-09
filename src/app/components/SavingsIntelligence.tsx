@@ -86,7 +86,7 @@ export function SavingsIntelligence() {
                 <div key={i} className="flex items-center justify-between group">
                   <div className="space-y-0.5">
                     <p className="font-display font-bold text-[12px] uppercase tracking-tight">{d.platform}</p>
-                    <p className="font-mono text-[9px] text-muted-foreground uppercase">Joined {new Date(d.joinedAt).toLocaleDateString()}</p>
+                    <p className="font-mono text-[9px] text-muted-foreground uppercase">Joined {new Date(d.joinedAt || '').toLocaleDateString()}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-mono text-[11px] font-black text-success">+{formatPrice(d.savings)}</p>

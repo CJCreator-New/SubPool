@@ -235,6 +235,36 @@ export function useAdminPayoutsQuery() {
     });
 }
 
+export function useAdminAnalyticsQuery() {
+    return useQuery({
+        queryKey: [...adminKeys.all, 'analytics'],
+        queryFn: async () => {
+            if (!supabase) throw new Error('Supabase not connected');
+            
+            const { data: users } = await supabase.from('profiles').select('plan');
+            const { data: pools } = await supabase.from('pools').select('id');
+            const { data: ledger } = await supabase.from('ledger').select('amount, created_at').eq('status', 'paid');
+
+            const earningsMap: Record<string, number> = {};
+            ledger?.forEach(row => {
+                const month = new Date(row.created_at).toLocaleString('en-US', { month: 'short' });
+                earningsMap[month] = (earningsMap[month] || 0) + row.amount;
+            });
+
+            const earnings = Object.entries(earningsMap).map(([month, total_revenue]) => ({
+                month,
+                total_revenue
+            }));
+
+            return {
+                userStats: users || [],
+                poolsCount: pools?.length || 0,
+                earnings: earnings.length > 0 ? earnings : [{ month: 'May', total_revenue: 0 }]
+            };
+        },
+    });
+}
+
 // ─── User Queries ─────────────────────────────────────────────────────────────
 
 export function useProfileQuery(userId?: string) {
@@ -613,7 +643,7 @@ export function usePoolSessionsQuery(poolId?: string) {
         .order('start_at', { ascending: true });
       
       if (error) throw error;
-      return data;
+      return data as any as PoolSession[];
     }
   });
 }

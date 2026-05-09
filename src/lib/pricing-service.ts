@@ -19,7 +19,7 @@ export async function getPricingData() {
             const { data, error } = await supabase.from('platforms').select('*');
             if (!error && data && data.length > 0) {
                 // Map platforms table structure to pricing structure
-                const mapped = data.map(p => ({
+                const mapped = data.map((p: any) => ({
                     platform_id: p.slug || p.id,
                     plan_name: 'Standard', // Default if not specified
                     official_price: p.retail_price_inr || p.retail_price_usd || 0,

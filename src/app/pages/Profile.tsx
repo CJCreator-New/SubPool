@@ -18,8 +18,11 @@ import {
   ShieldCheck, 
   UserCheck, 
   Camera, 
-  CreditCard, 
-  Zap, 
+  Check,
+  Coins,
+  Users,
+  Zap,
+  ArrowRight,
   Award 
 } from 'lucide-react';
 import {
@@ -431,7 +434,7 @@ export function Profile() {
                     <Button 
                         size="sm" 
                         className="h-8 rounded-xl font-display font-black uppercase tracking-widest shadow-glow-primary animate-bounce"
-                        onClick={() => claimReward.mutate(user?.id)}
+                        onClick={() => user?.id && claimReward.mutate(user.id)}
                         disabled={claimReward.isPending}
                     >
                         {claimReward.isPending ? "Initialising..." : "Claim Pro Payload"}

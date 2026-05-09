@@ -430,7 +430,7 @@ export function ActionCenter() {
                                     >
                                         <div className="flex justify-between items-start mb-2">
                                             <p className="text-[10px] font-mono text-primary uppercase tracking-widest font-black italic">{notif.type}</p>
-                                            <p className="text-[9px] font-mono text-muted-foreground/50">{timeAgo(notif.created_at)}</p>
+                                            <p className="text-[9px] font-mono text-muted-foreground/50">{timeAgo(notif.created_at || new Date().toISOString())}</p>
                                         </div>
                                         <p className="text-xs font-bold text-foreground leading-snug group-hover:text-primary transition-colors">{notif.title}</p>
                                         <p className="text-[11px] text-muted-foreground mt-2 line-clamp-2 leading-relaxed opacity-60">{notif.body}</p>

@@ -16,7 +16,7 @@ import {
 } from '../../lib/supabase/queries';
 import { 
     Shield, Zap, TrendingUp, Users as UsersIcon, RefreshCcw, Database, Lock, AlertTriangle, 
-    UserMinus, UserCheck, Eye, Trash2, Search, Filter, Globe, DollarSign
+    UserMinus, UserCheck, Eye, Trash2, Search, Filter, Globe, DollarSign, Banknote
 } from 'lucide-react';
 import { cn } from '../components/ui/utils';
 import { 

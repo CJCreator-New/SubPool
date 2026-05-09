@@ -230,7 +230,7 @@ export function updatePoolStatus(
  */
 export function updateProfile(
     userId: string,
-    updates: Partial<Pick<Profile, 'display_name' | 'bio' | 'avatar_color' | 'onboarding_completed' | 'onboarding_role' | 'onboarding_step'>>,
+    updates: Partial<Pick<Profile, 'display_name' | 'bio' | 'avatar_color' | 'onboarding_completed' | 'onboarding_role' | 'onboarding_step' | 'username'>>,
     options?: { allowDemoFallback?: boolean },
 ): Promise<MutationResult> {
     return withRateLimit(`updateProfile:${userId}`, async () => {

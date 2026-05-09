@@ -30,8 +30,22 @@ import { SEO } from '../components/seo';
 
 // ─── Filter constants ─────────────────────────────────────────────────────────
 
-const FILTER_VALUES: BrowseFilterKey[] = ['all', 'OTT', 'AI_IDE', 'ai', 'open', 'creative'];
-const SORT_VALUES: BrowseSortKey[] = ['recent', 'price-asc', 'price-desc'];
+const FILTER_VALUES = [
+  'all', 
+  'ai-tools', 
+  'education', 
+  'video-streaming', 
+  'music', 
+  'gaming', 
+  'dth-tv', 
+  'family-plans', 
+  'productivity', 
+  'cloud-storage', 
+  'vpn-security',
+  'design-creative',
+  'dev-tools'
+];
+
 const SORT_VALUES: BrowseSortKey[] = ['recent', 'price-asc', 'price-desc'];
 
 

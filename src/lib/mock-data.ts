@@ -69,7 +69,8 @@ const ELENA_V: Profile = {
 export const MOCK_POOLS: Pool[] = [
     {
         id: 'pool-1', platform: 'netflix', owner_id: RIYA_K.id, owner: RIYA_K,
-        category: 'OTT', status: 'open', plan_name: '4K',
+        category: 'video-streaming',
+ status: 'open', plan_name: '4K',
         price_per_slot: 499, total_slots: 4, filled_slots: 3,
         auto_approve: false,
         description: 'Reliable Netflix 4K pool. Auto-renews monthly via SubPool escrow.',
@@ -77,7 +78,8 @@ export const MOCK_POOLS: Pool[] = [
     },
     {
         id: 'pool-2', platform: 'spotify', owner_id: ALEX_T.id, owner: ALEX_T,
-        category: 'OTT', status: 'open', plan_name: 'Duo',
+        category: 'video-streaming',
+ status: 'open', plan_name: 'Duo',
         price_per_slot: 349, total_slots: 2, filled_slots: 1,
         auto_approve: true,
         description: 'Spotify Duo — 1 slot remaining. Instant approval.',
@@ -85,7 +87,7 @@ export const MOCK_POOLS: Pool[] = [
     },
     {
         id: 'pool-3', platform: 'figma', owner_id: SAM_D.id, owner: SAM_D,
-        category: 'AI_IDE', status: 'active', plan_name: 'Professional',
+        category: 'productivity', status: 'active', plan_name: 'Professional',
         price_per_slot: 600, total_slots: 5, filled_slots: 5,
         auto_approve: false,
         description: 'Full Figma Professional pool for designers. Join waitlist.',
@@ -93,7 +95,7 @@ export const MOCK_POOLS: Pool[] = [
     },
     {
         id: 'pool-4', platform: 'notion', owner_id: JAY_M.id, owner: JAY_M,
-        category: 'AI_IDE', status: 'open', plan_name: 'Plus',
+        category: 'productivity', status: 'open', plan_name: 'Plus',
         price_per_slot: 400, total_slots: 4, filled_slots: 2,
         auto_approve: true,
         description: 'Notion Team plan — 2 slots open. Great for solo devs.',
@@ -101,7 +103,8 @@ export const MOCK_POOLS: Pool[] = [
     },
     {
         id: 'pool-5', platform: 'disneyplus', owner_id: PRIYA_S.id, owner: PRIYA_S,
-        category: 'OTT', status: 'open', plan_name: 'Premium',
+        category: 'video-streaming',
+ status: 'open', plan_name: 'Premium',
         price_per_slot: 375, total_slots: 4, filled_slots: 3,
         auto_approve: false,
         description: 'Disney+ Premium with 4K + Hulu bundle. 1 slot available.',
@@ -109,7 +112,7 @@ export const MOCK_POOLS: Pool[] = [
     },
     {
         id: 'pool-6', platform: 'chatgpt', owner_id: MARCUS_W.id, owner: MARCUS_W,
-        category: 'ai', status: 'open', plan_name: 'Plus',
+        category: 'ai-tools', status: 'open', plan_name: 'Plus',
         price_per_slot: 999, total_slots: 2, filled_slots: 1,
         auto_approve: true,
         description: 'ChatGPT Plus split. Full GPT-4 access for half the price.',
@@ -117,7 +120,7 @@ export const MOCK_POOLS: Pool[] = [
     },
     {
         id: 'pool-7', platform: 'adobe', owner_id: ELENA_V.id, owner: ELENA_V,
-        category: 'AI_IDE', status: 'open', plan_name: 'All Apps',
+        category: 'productivity', status: 'open', plan_name: 'All Apps',
         price_per_slot: 1800, total_slots: 3, filled_slots: 1,
         auto_approve: false,
         description: 'Adobe Creative Cloud All Apps plan. Full suite access.',
@@ -125,7 +128,8 @@ export const MOCK_POOLS: Pool[] = [
     },
     {
         id: 'pool-8', platform: 'youtube', owner_id: MARCUS_W.id, owner: MARCUS_W,
-        category: 'OTT', status: 'open', plan_name: 'Premium Family',
+        category: 'video-streaming',
+ status: 'open', plan_name: 'Premium Family',
         price_per_slot: 349, total_slots: 5, filled_slots: 4,
         auto_approve: true,
         description: 'Elite YouTube cluster. 1 slot remaining.',

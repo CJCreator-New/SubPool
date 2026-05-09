@@ -6,7 +6,7 @@ import { Label } from './ui/label';
 import { Wallet, Landmark, ArrowUpRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRequestPayoutMutation } from '../../lib/supabase/queries';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../lib/supabase/auth';
 
 interface PayoutModalProps {
     open: boolean;

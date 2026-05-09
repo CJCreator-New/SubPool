@@ -15,13 +15,13 @@ import { celebrate } from '../../lib/confetti';
 import { OwnerTrustRibbon } from '../components/trust-score';
 import { supabase } from '../../lib/supabase/client';
 import { useAuth } from '../../lib/supabase/auth';
-import { Shield, Share2, Info, TrendingDown, Users, DollarSign, ArrowLeft, Zap } from 'lucide-react';
+import { Shield, Share2, Info, TrendingDown, Users, DollarSign, ArrowLeft, Zap, Clock } from 'lucide-react';
 import { PremiumCard } from '../components/premium-ui';
 import { SEO } from '../components/seo';
 import { PaywallModal } from '../components/paywall-modal';
 import { useMembershipsQuery } from '../../lib/supabase/queries';
 import { checkPlanAccess, getUpgradeMessage } from '../../lib/gating';
-import { CredentialVault } from '../components/CredentialVault';
+import { CredentialVault } from '../components/credential-vault';
 import { SessionScheduler } from '../components/SessionScheduler';
 import { ComplianceDisclaimer } from '../components/ComplianceDisclaimer';
 import { usePlatformsQuery } from '../../lib/supabase/queries';
@@ -44,7 +44,7 @@ export function PoolDetail() {
     const activeMembershipsCount = memberships?.length || 0;
     
     const poolPlatform = useMemo(() => {
-        return platformsList?.find(p => p.slug === pool?.platform);
+        return (platformsList as any)?.find((p: any) => p.slug === pool?.platform);
     }, [platformsList, pool]);
 
     const isMember = useMemo(() => {
@@ -58,14 +58,14 @@ export function PoolDetail() {
         async function loadPool() {
             setLoading(true);
             try {
-                const { data, error } = await supabase
-                    .from('pools_with_owners')
+                const { data, error } = await supabase!
+                    .from('pools_with_owners' as any)
                     .select('*')
-                    .eq('id', id)
+                    .eq('id', id!)
                     .single();
                 
                 if (error) throw error;
-                setPool(data as Pool);
+                setPool((data as unknown) as Pool);
             } catch (err) {
                 console.error('Failed to load pool:', err);
                 toast.error('Failed to establish uplink with pool node.');
@@ -116,16 +116,18 @@ export function PoolDetail() {
     };
 
     const confirmJoin = async () => {
+        if (!pool || !user) return;
         setShowCompliance(false);
         setRequestState('loading');
         try {
-            // Simplified join logic for now
-            const { error } = await supabase
-                .from('pool_requests')
+            // Updated to use join_requests table
+            const { error } = await supabase!
+                .from('join_requests' as any)
                 .insert({
-                    pool_id: pool.id,
-                    user_id: user.id,
-                    status: 'pending'
+                    pool_id: id as string,
+                    requester_id: user.id,
+                    status: 'pending',
+                    message: 'Initializing node uplink request.'
                 });
             
             if (error) throw error;
@@ -133,7 +135,7 @@ export function PoolDetail() {
             setRequestState('success');
             celebrate();
             toast.success('Uplink request transmitted to host.');
-            track('pool_join_requested', { poolId: pool.id });
+            if (pool) track('pool_join_requested', { poolId: pool.id });
         } catch (err: any) {
             toast.error(err.message || 'Join request failed');
             setRequestState('idle');
@@ -280,6 +282,8 @@ export function PoolDetail() {
                                         <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Uptime Guarantee</p>
                                         <p className="font-display font-bold text-sm">99.9% Operational Continuity</p>
                                     </div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Credential Vault Section (Phase 2.2) */}
@@ -291,7 +295,7 @@ export function PoolDetail() {
                                 <h3 className="font-display font-black text-2xl uppercase italic tracking-tight">Access Terminal</h3>
                                 <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
                             </div>
-                            <CredentialVault poolId={id!} isMember={isMember} />
+                            <CredentialVault poolId={id!} isOwner={pool.owner_id === user?.id} />
                         </section>
 
                         {/* Session Scheduler Section (Phase 2.3) */}
@@ -382,11 +386,10 @@ export function PoolDetail() {
             </div>
 
             <PaywallModal 
-                isOpen={showPaywall} 
+                open={showPaywall} 
                 onClose={() => setShowPaywall(false)}
                 feature="MAX_JOINED_POOLS"
-                title="Membership Limit Reached"
-                description={getUpgradeMessage('MAX_JOINED_POOLS')}
+                requiredPlan="pro"
             />
 
             <ComplianceDisclaimer 

@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         p_new_user_id: currentUser.id
                     });
 
-                    if (res?.ok) {
+                    if ((res as any)?.ok) {
                         console.log('Referral processed successfully:', res);
                         // Refresh profile after referral is linked
                         await fetchProfile(currentUser.id);

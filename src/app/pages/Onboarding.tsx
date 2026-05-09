@@ -58,7 +58,7 @@ const roleCopy = {
 
 export function Onboarding() {
   const navigate = useNavigate();
-  const { user, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [step, setStep] = useState(0);
   const [role, setRole] = useState<OnboardingRole>('joiner');
   const [interests, setInterests] = useState<string[]>([]);

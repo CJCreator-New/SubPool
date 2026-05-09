@@ -321,7 +321,7 @@ export function MyPools() {
           </div>
         ) : (
           <EmptyState
-            icon={<ArrowRight className="size-8 text-muted-foreground" />}
+            icon="→"
             title="No pools yet"
             description="Share your subscriptions and earn by listing your first pool."
             action={() => navigate('/list')}
@@ -588,7 +588,7 @@ export function MyPools() {
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
                       <EmptyState
-                        icon={<AlertTriangle className="size-8 text-muted-foreground" />}
+                        icon="⚠️"
                         title="No memberships"
                         description="You haven't joined any pools yet."
                         action={() => navigate('/browse')}

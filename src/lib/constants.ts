@@ -7,27 +7,32 @@ export interface Platform {
     color: string;
     bg: string;
     category: PoolCategory;
+    sharing_type?: string;
+    requires_same_location?: boolean;
+    hardware_required?: boolean;
+    tos_risk_level?: string;
 }
 
 export const PLATFORMS: Platform[] = [
-    { id: 'netflix', name: 'Netflix', icon: '🎬', color: '#E50914', bg: '#1A0203', category: 'OTT' },
-    { id: 'spotify', name: 'Spotify', icon: '🎵', color: '#1DB954', bg: '#011B09', category: 'OTT' },
-    { id: 'youtube', name: 'YouTube', icon: '▶️', color: '#FF0000', bg: '#1A0000', category: 'OTT' },
-    { id: 'disneyplus', name: 'Disney+', icon: '✨', color: '#113CCF', bg: '#000E24', category: 'OTT' },
-    { id: 'hulu', name: 'Hulu', icon: '📺', color: '#1CE783', bg: '#001A0B', category: 'OTT' },
-    { id: 'appletv', name: 'Apple TV+', icon: '🍎', color: '#F5F5F5', bg: '#1A1A1A', category: 'OTT' },
-    { id: 'notion', name: 'Notion', icon: '📋', color: '#FFFFFF', bg: '#1A1A1A', category: 'AI_IDE' },
-    { id: 'figma', name: 'Figma', icon: '🎨', color: '#A259FF', bg: '#140A24', category: 'AI_IDE' },
-    { id: 'slack', name: 'Slack', icon: '💬', color: '#611F69', bg: '#0A0A1A', category: 'AI_IDE' },
-    { id: 'github', name: 'GitHub', icon: '🐙', color: '#F0F6FC', bg: '#0D1117', category: 'AI_IDE' },
-    { id: 'adobe', name: 'Adobe CC', icon: '🅰️', color: '#FF0000', bg: '#1A0000', category: 'AI_IDE' },
+    { id: 'netflix', name: 'Netflix', icon: '🎬', color: '#E50914', bg: '#1A0203', category: 'video-streaming' },
+    { id: 'spotify', name: 'Spotify', icon: '🎵', color: '#1DB954', bg: '#011B09', category: 'music' },
+    { id: 'youtube', name: 'YouTube', icon: '▶️', color: '#FF0000', bg: '#1A0000', category: 'video-streaming' },
+    { id: 'disneyplus', name: 'Disney+', icon: '✨', color: '#113CCF', bg: '#000E24', category: 'video-streaming' },
+    { id: 'hulu', name: 'Hulu', icon: '📺', color: '#1CE783', bg: '#001A0B', category: 'video-streaming' },
+    { id: 'appletv', name: 'Apple TV+', icon: '🍎', color: '#F5F5F5', bg: '#1A1A1A', category: 'video-streaming' },
+    { id: 'notion', name: 'Notion', icon: '📋', color: '#FFFFFF', bg: '#1A1A1A', category: 'productivity' },
+    { id: 'figma', name: 'Figma', icon: '🎨', color: '#A259FF', bg: '#140A24', category: 'productivity' },
+    { id: 'slack', name: 'Slack', icon: '💬', color: '#611F69', bg: '#0A0A1A', category: 'productivity' },
+    { id: 'github', name: 'GitHub', icon: '🐙', color: '#F0F6FC', bg: '#0D1117', category: 'productivity' },
+    { id: 'adobe', name: 'Adobe CC', icon: '🅰️', color: '#FF0000', bg: '#1A0000', category: 'productivity' },
     { id: 'linear', name: 'Linear', icon: '🔏', color: '#5E6AD2', bg: '#0A0A1A', category: 'productivity' },
-    { id: 'chatgpt', name: 'ChatGPT', icon: '🤖', color: '#10A37F', bg: '#031A14', category: 'ai' },
-    { id: 'claude', name: 'Claude', icon: '🧠', color: '#D4A574', bg: '#1A1200', category: 'ai' },
-    { id: 'cursor', name: 'Cursor', icon: '⌨️', color: '#8B5CF6', bg: '#0D0A1A', category: 'ai' },
-    { id: 'midjourney', name: 'Midjourney', icon: '🎭', color: '#FFFFFF', bg: '#0A0A0A', category: 'ai' },
-    { id: 'perplexity', name: 'Perplexity', icon: '🔍', color: '#20B2AA', bg: '#00131A', category: 'ai' },
+    { id: 'chatgpt', name: 'ChatGPT', icon: '🤖', color: '#10A37F', bg: '#031A14', category: 'ai-tools' },
+    { id: 'claude', name: 'Claude', icon: '🧠', color: '#D4A574', bg: '#1A1200', category: 'ai-tools' },
+    { id: 'cursor', name: 'Cursor', icon: '⌨️', color: '#8B5CF6', bg: '#0D0A1A', category: 'ai-tools' },
+    { id: 'midjourney', name: 'Midjourney', icon: '🎭', color: '#FFFFFF', bg: '#0A0A0A', category: 'ai-tools' },
+    { id: 'perplexity', name: 'Perplexity', icon: '🔍', color: '#20B2AA', bg: '#00131A', category: 'ai-tools' },
 ];
+
 
 export function getPlatform(id: string): Platform | undefined {
     return PLATFORMS.find((platform) => platform.id === id);
@@ -136,7 +141,22 @@ export const PAGE_TITLES: Record<string, string> = {
     '/payment/confirm': 'Confirm Payment',
 };
 
-export const POOL_FILTERS = ['all', 'OTT', 'AI_IDE', 'productivity', 'ai', 'open only'] as const;
+export const POOL_FILTERS = [
+  'all', 
+  'ai-tools', 
+  'education', 
+  'video-streaming', 
+  'music', 
+  'gaming', 
+  'dth-tv', 
+  'family-plans', 
+  'productivity', 
+  'cloud-storage', 
+  'vpn-security',
+  'design-creative',
+  'dev-tools'
+] as const;
+
 export type PoolFilter = (typeof POOL_FILTERS)[number];
 
 export const SORT_OPTIONS = [

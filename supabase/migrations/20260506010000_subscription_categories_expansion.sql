@@ -65,7 +65,9 @@ VALUES
     ('Family Plans', 'family-plans', '👨‍👩‍👧‍👦', '#DB2777', 7),
     ('Productivity', 'productivity', '💼', '#64748B', 8),
     ('Cloud Storage', 'cloud-storage', '☁️', '#0EA5E9', 9),
-    ('VPN & Security', 'vpn-security', '🔒', '#16A34A', 10)
+    ('VPN & Security', 'vpn-security', '🔒', '#16A34A', 10),
+    ('Design & Creative', 'design-creative', '🎨', '#F59E0B', 11),
+    ('Developer Tools', 'dev-tools', '⚙️', '#8B5CF6', 12)
 ON CONFLICT (slug) DO UPDATE SET
     name = EXCLUDED.name,
     icon = EXCLUDED.icon,

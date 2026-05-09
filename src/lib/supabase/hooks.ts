@@ -1,5 +1,5 @@
 // @ts-nocheck
-// â”€â”€â”€ Supabase Hooks â€” with mock-data fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ————————————————————————————————— Supabase Hooks — with mock-data fallback —————————————————————————————————
 // When Supabase is not connected, every hook returns typed mock data so the
 // entire UI works offline and during development without any env setup.
 
@@ -923,7 +923,7 @@ export function useHostEarnings() {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    return { summary, monthly, loading, error };
+    return { summary, monthly, loading, error, refetch: fetchData };
 }
 
 export function useReferralStats() {

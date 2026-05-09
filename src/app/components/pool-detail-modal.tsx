@@ -91,7 +91,7 @@ export function PoolDetailModal({
         if (!pool) return;
         setWaitlistState('loading');
         try {
-            const { data, error } = await supabase?.rpc('join_waitlist', { p_pool_id: pool.id }) || { data: null, error: new Error('System Offline') };
+            const { data, error } = (await supabase?.rpc('join_waitlist', { p_pool_id: pool.id }) || { data: null, error: new Error('System Offline') }) as any;
             if (error) throw error;
             
             if (data.ok === false) {
